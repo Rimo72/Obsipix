@@ -56,7 +56,8 @@ src/
 ├── app/              application shell (React presentation)
 └── core/             browser-independent engine
     ├── types/        ids, geometry, color primitives
-    └── pixels/       PixelBuffer — authoritative RGBA pixel store
+    ├── pixels/       PixelBuffer — authoritative RGBA pixel store
+    └── document/     Document, layers, frames, cels, selection, invariants
 tests/
 ├── unit/             standalone unit specs (co-located *.test.ts also allowed)
 └── e2e/              Playwright specs
@@ -70,5 +71,6 @@ Directories are created only when a phase needs them.
 | ----- | --------------------------- | ----------- |
 | 0     | Repository / Foundation     | COMPLETE    |
 | 1     | Pixel Engine                | COMPLETE    |
-| 2     | Document / Layers           | NOT STARTED |
-| 3+    | see `OBSIPIX_CODING_PHASES` | NOT STARTED |
+| 2     | Document / Layers           | COMPLETE    |
+| 3     | Commands / History          | NOT STARTED |
+| 4+    | see `OBSIPIX_CODING_PHASES` | NOT STARTED |
