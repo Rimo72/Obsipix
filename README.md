@@ -54,9 +54,11 @@ Core code (`src/core`) must not depend on React or browser APIs.
 ```
 src/
 ├── app/              application shell (React presentation)
-└── core/             browser-independent engine (added from Phase 1)
+└── core/             browser-independent engine
+    ├── types/        ids, geometry, color primitives
+    └── pixels/       PixelBuffer — authoritative RGBA pixel store
 tests/
-├── unit/             standalone unit specs (co-located specs also allowed)
+├── unit/             standalone unit specs (co-located *.test.ts also allowed)
 └── e2e/              Playwright specs
 ```
 
@@ -67,5 +69,6 @@ Directories are created only when a phase needs them.
 | Phase | Area                        | Status      |
 | ----- | --------------------------- | ----------- |
 | 0     | Repository / Foundation     | COMPLETE    |
-| 1     | Pixel Engine                | NOT STARTED |
-| 2+    | see `OBSIPIX_CODING_PHASES` | NOT STARTED |
+| 1     | Pixel Engine                | COMPLETE    |
+| 2     | Document / Layers           | NOT STARTED |
+| 3+    | see `OBSIPIX_CODING_PHASES` | NOT STARTED |
