@@ -1,0 +1,81 @@
+.app-shell {
+  display: grid;
+  grid-template-rows:
+    var(--obsipix-header-height)
+    var(--obsipix-toolbar-height)
+    1fr
+    var(--obsipix-statusbar-height);
+  height: 100%;
+  overflow: hidden;
+}
+
+.app-shell__header {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  background: var(--obsipix-surface);
+  border-bottom: 1px solid var(--obsipix-border);
+}
+
+.app-shell__brand {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.app-shell__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 12px;
+  background: var(--obsipix-surface-raised);
+  border-bottom: 1px solid var(--obsipix-border);
+}
+
+.app-shell__tool-group {
+  display: flex;
+  gap: 6px;
+}
+
+.app-shell__button {
+  padding: 4px 10px;
+  font: inherit;
+  color: var(--obsipix-text);
+  background: var(--obsipix-surface);
+  border: 1px solid var(--obsipix-border);
+  border-radius: 4px;
+}
+
+.app-shell__button:disabled {
+  color: var(--obsipix-text-muted);
+  cursor: not-allowed;
+}
+
+.app-shell__stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: repeating-conic-gradient(#2a2a2a 0% 25%, #232323 0% 50%) 50% / 20px 20px;
+  overflow: auto;
+}
+
+.app-shell__canvas-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 256px;
+  height: 256px;
+  color: var(--obsipix-text-muted);
+  background: var(--obsipix-bg);
+  border: 1px dashed var(--obsipix-border);
+}
+
+.app-shell__statusbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 12px;
+  font-size: 12px;
+  color: var(--obsipix-text-muted);
+  background: var(--obsipix-surface);
+  border-top: 1px solid var(--obsipix-border);
+}
