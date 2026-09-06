@@ -1,7 +1,12 @@
 import { compositeDocument } from '@core/document/compositeDocument';
 import { onionSkinFrames } from '@core/document/onionFrames';
-import { createDefaultDocument } from '@core/document/DocumentFactory';
+import { createDefaultDocument, DocumentFactory } from '@core/document/DocumentFactory';
 import type { Document } from '@core/document/Document';
+import {
+  bufferFromImage,
+  importLayerCommand,
+  type ImageData8,
+} from '@core/document/importCommands';
 import {
   deleteSelectionCommand,
   deselectCommand,
@@ -231,6 +236,19 @@ export class EditorSession {
     return serializeDocument(this.document);
   }
 
+  /**
+   * Serialize the current document with no side effects — no float commit, no
+   * event. For autosave, which must never disturb what the user is doing.
+   */
+  peekBytes(): Uint8Array {
+    return serializeDocument(this.document);
+  }
+
+  /** True while a brush stroke or a floating selection is mid-interaction. */
+  get isInteracting(): boolean {
+    return this.#stroke !== null || this.#float !== null;
+  }
+
   markSaved(name: string): void {
     this.history.markSaved();
     this.#fileName = name;
@@ -246,12 +264,51 @@ export class EditorSession {
     this.#emit();
   }
 
+  /**
+   * Load recovered autosave bytes. Like {@link open}, but the document stays
+   * dirty — it is unsaved work that still needs a real Save (PROJECT_CORE §3.13).
+   */
+  recover(bytes: Uint8Array, name: string | null): void {
+    const document = parseDocument(bytes);
+    this.#discardInteraction();
+    this.history.reset(document, true);
+    this.#fileName = name;
+    this.fitView();
+    this.#emit();
+  }
+
   newDocument(): void {
     this.#discardInteraction();
     this.history.reset(createDefaultDocument());
     this.#fileName = null;
     this.fitView();
     this.#emit();
+  }
+
+  /** Replace the whole project with an imported image (PROJECT_CORE §3.11). Stays dirty. */
+  importAsDocument(image: ImageData8, name: string): void {
+    const document = new DocumentFactory().create({
+      width: image.width,
+      height: image.height,
+      name,
+    });
+    document
+      .ensureDrawableBuffer(document.layers.activeLayerId)
+      .copyRegion(
+        bufferFromImage(image),
+        { x: 0, y: 0, width: image.width, height: image.height },
+        { x: 0, y: 0 },
+      );
+    this.#discardInteraction();
+    this.history.reset(document, true);
+    this.#fileName = null;
+    this.fitView();
+    this.#emit();
+  }
+
+  /** Import an image as a new top layer of the current document (undoable). */
+  importAsLayer(image: ImageData8, name: string): void {
+    this.runCommand(importLayerCommand(name, image));
   }
 
   exportPngBytes(): Uint8Array {

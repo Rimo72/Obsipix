@@ -326,3 +326,60 @@ describe('EditorSession animation', () => {
     expect(session.history.depth).toBe(depth);
   });
 });
+
+describe('EditorSession lifecycle & import', () => {
+  function image(width: number, height: number) {
+    const data = new Uint8ClampedArray(width * height * 4).fill(255);
+    return { width, height, data };
+  }
+
+  it('peekBytes serializes without committing a float or emitting', () => {
+    const session = new EditorSession();
+    const buffer = session.document.resolveBuffer(session.document.layers.activeLayerId);
+    for (let x = 4; x < 8; x += 1) {
+      buffer?.setPixel(x, 4, BLACK);
+    }
+    session.runCommand(selectRectCommand({ x: 4, y: 4, width: 4, height: 1 }, 'replace'));
+    session.nudge(3, 0);
+    expect(session.hasFloat).toBe(true);
+
+    const version = session.getVersion();
+    const bytes = session.peekBytes();
+    expect(bytes.length).toBeGreaterThan(0);
+    expect(session.hasFloat).toBe(true); // float untouched
+    expect(session.getVersion()).toBe(version); // no emit
+  });
+
+  it('recover() loads bytes but leaves the document dirty', () => {
+    const source = new EditorSession();
+    source.pointerDown(press(2, 2));
+    source.pointerUp(press(2, 2, 'none'));
+    const bytes = source.serialize();
+
+    const session = new EditorSession();
+    session.recover(bytes, 'crash.obsipix');
+    expect(session.isDirty).toBe(true);
+    expect(session.fileName).toBe('crash.obsipix');
+    expect(session.canUndo).toBe(false);
+    expect(rgbaEquals(pixel(session, 2, 2), BLACK)).toBe(true);
+  });
+
+  it('importAsDocument replaces the project, resized and dirty', () => {
+    const session = new EditorSession();
+    session.importAsDocument(image(10, 6), 'logo');
+    expect(session.document.dimensions).toEqual({ width: 10, height: 6 });
+    expect(session.document.metadata.name).toBe('logo');
+    expect(session.isDirty).toBe(true);
+    expect(session.fileName).toBeNull();
+  });
+
+  it('importAsLayer adds an undoable top layer', () => {
+    const session = new EditorSession();
+    const before = session.document.layers.count;
+    session.importAsLayer(image(4, 4), 'stamp');
+    expect(session.document.layers.count).toBe(before + 1);
+    expect(rgbaEquals(pixel(session, 0, 0), { r: 255, g: 255, b: 255, a: 255 })).toBe(true);
+    session.undo();
+    expect(session.document.layers.count).toBe(before);
+  });
+});

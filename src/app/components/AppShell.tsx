@@ -1,14 +1,26 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { EditorSession } from '../EditorSession';
-import { exportProjectPng, newProject, openProject, saveProject } from '../fileCommands';
+import {
+  closeProject,
+  exportProjectPng,
+  importPng,
+  newProject,
+  openProject,
+  saveProject,
+  saveProjectAs,
+} from '../fileCommands';
+import { decodePng } from '../pngDecode';
+import { resolveShortcut, type ShortcutCommand } from '../shortcuts';
+import { useAutosaveRecovery, type AutosaveRecoveryOptions } from '../useAutosaveRecovery';
 import { useEditorSessionVersion } from '../useEditorSession';
-import { TOOL_SHORTCUTS } from '../toolCatalog';
 import { BrushControls } from './BrushControls';
 import { CanvasStage } from './CanvasStage';
 import { ColorControls } from './ColorControls';
+import { KeyboardHelp } from './KeyboardHelp';
 import { LayerPanel } from './LayerPanel';
 import { PalettePanel } from './PalettePanel';
+import { RecoveryPrompt } from './RecoveryPrompt';
 import { SelectionControls } from './SelectionControls';
 import { TimelinePanel } from './TimelinePanel';
 import { ToolRail } from './ToolRail';
@@ -16,103 +28,192 @@ import './AppShell.css';
 
 interface AppShellProps {
   readonly session: EditorSession;
+  /** Test seam for autosave / recovery wiring. */
+  readonly autosaveRecovery?: AutosaveRecoveryOptions;
 }
 
-/** The editor shell: header, tool rail, canvas stage, layer panel and status bar. */
-export function AppShell({ session }: AppShellProps) {
+function isTextTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement ||
+    (target instanceof HTMLElement && target.isContentEditable)
+  );
+}
+
+/** The editor shell: header, tool rail, canvas stage, side panels, timeline and status bar. */
+export function AppShell({ session, autosaveRecovery }: AppShellProps) {
   useEditorSessionVersion(session);
   const [error, setError] = useState<string | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
+
+  const { recovery, recover, discardRecovery, resolveAutosave } = useAutosaveRecovery(
+    session,
+    autosaveRecovery ?? {},
+  );
+
+  // Keep the shortcut handler stable while reading fresh values each keydown.
+  const handlers = useRef({ recover, discardRecovery, resolveAutosave, setError, setHelpOpen });
+  handlers.current = { recover, discardRecovery, resolveAutosave, setError, setHelpOpen };
 
   const confirmDiscard = (): boolean =>
     !session.isDirty || window.confirm('Discard unsaved changes?');
+
+  const runSave = (): void => {
+    setError(saveProject(session));
+    resolveAutosave();
+  };
+
+  const runSaveAs = (): void => {
+    setError(saveProjectAs(session));
+    resolveAutosave();
+  };
 
   const handleOpen = (): void => {
     if (!confirmDiscard()) {
       return;
     }
-    void openProject(session).then(setError);
+    void openProject(session).then((message) => {
+      setError(message);
+      if (message === null) {
+        resolveAutosave();
+      }
+    });
   };
 
   const handleNew = (): void => {
     if (confirmDiscard()) {
       newProject(session);
+      resolveAutosave();
       setError(null);
     }
   };
 
+  const handleClose = (): void => {
+    if (confirmDiscard()) {
+      closeProject(session);
+      resolveAutosave();
+      setError(null);
+    }
+  };
+
+  const handleImport = (mode: 'document' | 'layer'): void => {
+    if (mode === 'document' && !confirmDiscard()) {
+      return;
+    }
+    void importPng(session, mode).then((message) => {
+      setError(message);
+      if (message === null && mode === 'document') {
+        resolveAutosave();
+      }
+    });
+  };
+
   useEffect(() => {
+    const dispatch: Record<ShortcutCommand, () => void> = {
+      undo: () => session.undo(),
+      redo: () => session.redo(),
+      save: () => {
+        setError(saveProject(session));
+        handlers.current.resolveAutosave();
+      },
+      'save-as': () => {
+        setError(saveProjectAs(session));
+        handlers.current.resolveAutosave();
+      },
+      open: () => {
+        if (!session.isDirty || window.confirm('Discard unsaved changes?')) {
+          void openProject(session).then((message) => {
+            setError(message);
+            if (message === null) {
+              handlers.current.resolveAutosave();
+            }
+          });
+        }
+      },
+      new: () => {
+        if (!session.isDirty || window.confirm('Discard unsaved changes?')) {
+          newProject(session);
+          handlers.current.resolveAutosave();
+          setError(null);
+        }
+      },
+      'select-all': () => session.selectAll(),
+      deselect: () => session.deselect(),
+      copy: () => session.copy(),
+      cut: () => session.cut(),
+      paste: () => session.paste(),
+      delete: () => session.deleteSelection(),
+      'swap-colors': () => session.swapColors(),
+      'commit-float': () => session.commitFloat(),
+      'cancel-float': () => session.cancelFloat(),
+      'nudge-left': () => session.nudge(-1, 0),
+      'nudge-right': () => session.nudge(1, 0),
+      'nudge-up': () => session.nudge(0, -1),
+      'nudge-down': () => session.nudge(0, 1),
+      'toggle-play': () => session.togglePlay(),
+      'prev-frame': () => session.prevFrame(),
+      'next-frame': () => session.nextFrame(),
+      'first-frame': () => session.firstFrame(),
+      'last-frame': () => session.lastFrame(),
+      'zoom-in': () => session.zoomIn(),
+      'zoom-out': () => session.zoomOut(),
+      fit: () => session.fitView(),
+      help: () => {
+        handlers.current.setHelpOpen(true);
+      },
+    };
+
     const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+      const resolution = resolveShortcut(event, {
+        editingText: isTextTarget(event.target),
+        hasFloat: session.hasFloat,
+      });
+      if (!resolution) {
         return;
       }
-      const mod = event.ctrlKey || event.metaKey;
-      const key = event.key.toLowerCase();
-      const arrows: Record<string, [number, number]> = {
-        arrowleft: [-1, 0],
-        arrowright: [1, 0],
-        arrowup: [0, -1],
-        arrowdown: [0, 1],
-      };
-      if (mod && key === 'z') {
+      if (resolution.preventDefault) {
         event.preventDefault();
-        if (event.shiftKey) {
-          session.redo();
-        } else {
-          session.undo();
-        }
-      } else if (mod && key === 'y') {
-        event.preventDefault();
-        session.redo();
-      } else if (mod && key === 's') {
-        event.preventDefault();
-        saveProject(session);
-      } else if (mod && key === 'o') {
-        event.preventDefault();
-        handleOpen();
-      } else if (mod && key === 'a') {
-        event.preventDefault();
-        session.selectAll();
-      } else if (mod && key === 'd') {
-        event.preventDefault();
-        session.deselect();
-      } else if (mod && key === 'c') {
-        session.copy();
-      } else if (mod && key === 'x') {
-        event.preventDefault();
-        session.cut();
-      } else if (mod && key === 'v') {
-        session.paste();
-      } else if (!mod && key === 'x') {
-        session.swapColors();
-      } else if (!mod && (key === 'delete' || key === 'backspace')) {
-        event.preventDefault();
-        session.deleteSelection();
-      } else if (!mod && key === 'enter') {
-        session.commitFloat();
-      } else if (!mod && key === 'escape') {
-        session.cancelFloat();
-      } else if (!mod && key === ' ') {
-        event.preventDefault();
-        session.togglePlay();
-      } else if (!mod && key === ',') {
-        event.preventDefault();
-        session.prevFrame();
-      } else if (!mod && key === '.') {
-        event.preventDefault();
-        session.nextFrame();
-      } else if (!mod && key in arrows) {
-        event.preventDefault();
-        const [dx, dy] = arrows[key] ?? [0, 0];
-        session.nudge(dx, dy);
-      } else if (!mod && !event.shiftKey && !event.altKey && key in TOOL_SHORTCUTS) {
-        session.setTool(TOOL_SHORTCUTS[key] as string);
+      }
+      if (resolution.kind === 'tool') {
+        session.setTool(resolution.toolId);
+      } else {
+        dispatch[resolution.command]();
       }
     };
+
     window.addEventListener('keydown', onKeyDown);
     return () => {
       window.removeEventListener('keydown', onKeyDown);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session]);
+
+  // System clipboard: pasting an image imports it as a layer (PROJECT_CORE §3.11).
+  useEffect(() => {
+    const onPaste = (event: ClipboardEvent): void => {
+      if (isTextTarget(event.target)) {
+        return;
+      }
+      const file = [...(event.clipboardData?.items ?? [])]
+        .find((item) => item.kind === 'file' && item.type.startsWith('image/'))
+        ?.getAsFile();
+      if (!file) {
+        return;
+      }
+      event.preventDefault();
+      void (async () => {
+        try {
+          const image = await decodePng(new Uint8Array(await file.arrayBuffer()));
+          session.importAsLayer(image, file.name.replace(/\.[a-z]+$/i, '') || 'Pasted');
+        } catch {
+          handlers.current.setError('The pasted image could not be imported.');
+        }
+      })();
+    };
+    window.addEventListener('paste', onPaste);
+    return () => {
+      window.removeEventListener('paste', onPaste);
+    };
   }, [session]);
 
   useEffect(() => {
@@ -150,11 +251,37 @@ export function AppShell({ session }: AppShellProps) {
             type="button"
             className="app-shell__button"
             title="Save (Ctrl+S)"
-            onClick={() => {
-              saveProject(session);
-            }}
+            onClick={runSave}
           >
             Save
+          </button>
+          <button
+            type="button"
+            className="app-shell__button"
+            title="Save As (Ctrl+Shift+S)"
+            onClick={runSaveAs}
+          >
+            Save As
+          </button>
+          <button
+            type="button"
+            className="app-shell__button"
+            title="Import a PNG as a new layer"
+            onClick={() => {
+              handleImport('layer');
+            }}
+          >
+            Import PNG
+          </button>
+          <button
+            type="button"
+            className="app-shell__button"
+            title="Open a PNG as a new document"
+            onClick={() => {
+              handleImport('document');
+            }}
+          >
+            Open PNG
           </button>
           <button
             type="button"
@@ -164,6 +291,9 @@ export function AppShell({ session }: AppShellProps) {
             }}
           >
             Export PNG
+          </button>
+          <button type="button" className="app-shell__button" onClick={handleClose}>
+            Close
           </button>
         </div>
         <div className="app-shell__group">
@@ -188,6 +318,17 @@ export function AppShell({ session }: AppShellProps) {
             }}
           >
             Redo
+          </button>
+          <button
+            type="button"
+            className="app-shell__button"
+            aria-label="Keyboard shortcuts"
+            title="Keyboard shortcuts (?)"
+            onClick={() => {
+              setHelpOpen(true);
+            }}
+          >
+            ?
           </button>
         </div>
       </header>
@@ -290,6 +431,24 @@ export function AppShell({ session }: AppShellProps) {
           Fit
         </button>
       </footer>
+
+      {recovery && (
+        <RecoveryPrompt
+          snapshot={recovery}
+          onRecover={() => {
+            setError(recover());
+          }}
+          onDiscard={discardRecovery}
+        />
+      )}
+
+      {helpOpen && (
+        <KeyboardHelp
+          onClose={() => {
+            setHelpOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

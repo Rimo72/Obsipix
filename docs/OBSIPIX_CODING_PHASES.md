@@ -1048,7 +1048,7 @@ V1 Release
   8       Selection / Transform         COMPLETE
   9       Palettes                      COMPLETE
   10      Animation                     COMPLETE
-  11      Lifecycle / Recovery          NOT STARTED
+  11      Lifecycle / Recovery          COMPLETE
   12      UI Completion                 NOT STARTED
   13      Hardening                     NOT STARTED
   14      Testing / Release Candidate   NOT STARTED

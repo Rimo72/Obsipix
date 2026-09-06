@@ -16,7 +16,7 @@ test.describe('persistence', () => {
 
     // --- save ---
     const downloadPromise = page.waitForEvent('download');
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toMatch(/\.obsipix$/);
     const savedPath = await download.path();
@@ -39,7 +39,7 @@ test.describe('persistence', () => {
         buffer: bytes,
       });
     });
-    await page.getByRole('button', { name: 'Open' }).click();
+    await page.getByRole('button', { name: 'Open', exact: true }).click();
 
     await page.waitForFunction(() => {
       const session = window.__obsipix;
@@ -71,7 +71,7 @@ test.describe('persistence', () => {
         buffer: Buffer.from('OBSIPIX\0 not a real file at all'),
       });
     });
-    await page.getByRole('button', { name: 'Open' }).click();
+    await page.getByRole('button', { name: 'Open', exact: true }).click();
 
     await expect(page.getByTestId('file-error')).toBeVisible();
     // current artwork is untouched

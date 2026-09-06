@@ -258,14 +258,15 @@ export class History {
 
   /**
    * Swap in a different document and drop all history — for opening a file or
-   * starting a new project. The new document becomes the saved state.
+   * starting a new project. The new document becomes the saved state, unless
+   * `markDirty` is set (recovered / imported work that has never been saved).
    */
-  reset(document: Document): void {
+  reset(document: Document, markDirty = false): void {
     this.#assertIdle('reset history');
     this.#document = document;
     this.#undo.length = 0;
     this.#redo.length = 0;
-    this.#savedRevision = document.revision;
+    this.#savedRevision = markDirty ? document.revision - 1 : document.revision;
     this.#syncSavedRevision();
   }
 }

@@ -15,11 +15,17 @@
 .app-shell__header {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   height: var(--obsipix-header-height);
   padding: 0 12px;
   background: var(--obsipix-surface);
   border-bottom: 1px solid var(--obsipix-border);
+  overflow-x: auto;
+}
+
+.app-shell__header .app-shell__brand,
+.app-shell__header .app-shell__title {
+  flex: 0 0 auto;
 }
 
 .app-shell__brand {
@@ -38,6 +44,7 @@
 
 .app-shell__group {
   display: flex;
+  flex: 0 0 auto;
   gap: 6px;
 }
 
@@ -87,8 +94,10 @@
 }
 
 .app-shell__button {
+  flex: 0 0 auto;
   padding: 4px 10px;
   font: inherit;
+  white-space: nowrap;
   color: var(--obsipix-text);
   background: var(--obsipix-surface);
   border: 1px solid var(--obsipix-border);

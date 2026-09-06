@@ -254,6 +254,15 @@ describe('History dirty / save-point tracking', () => {
     expect(history.isDirty).toBe(false);
     expect(history.canUndo).toBe(false);
   });
+
+  it('reset(doc, true) adopts recovered/imported work as dirty', () => {
+    history.reset(createDefaultDocument(createSequentialIdFactory()), true);
+    expect(history.isDirty).toBe(true);
+    expect(history.document.isDirty).toBe(true);
+    expect(history.canUndo).toBe(false);
+    history.markSaved();
+    expect(history.isDirty).toBe(false);
+  });
 });
 
 describe('History.begin (interactive stroke)', () => {

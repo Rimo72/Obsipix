@@ -47,7 +47,7 @@ test.describe('animation', () => {
 
     // --- save ---
     const downloadPromise = page.waitForEvent('download');
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
     const download = await downloadPromise;
     const bytes = await readFile(await download.path());
 
@@ -61,7 +61,7 @@ test.describe('animation', () => {
         buffer: bytes,
       });
     });
-    await page.getByRole('button', { name: 'Open' }).click();
+    await page.getByRole('button', { name: 'Open', exact: true }).click();
 
     await page.waitForFunction(() => (window.__obsipix?.document.timeline.frameCount ?? 0) === 2);
     expect(await frameAlpha(page, 0, 10, 4)).toBeGreaterThan(0);
