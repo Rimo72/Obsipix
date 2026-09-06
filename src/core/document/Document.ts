@@ -1,10 +1,18 @@
 import type { PixelBuffer } from '@core/pixels/PixelBuffer';
 import type { RGBA } from '@core/types/color';
 import type { Dimensions } from '@core/types/geometry';
-import type { DocumentId, FrameId, LayerId, PaletteId, Revision } from '@core/types/ids';
+import type {
+  DocumentId,
+  FrameId,
+  LayerId,
+  PaletteColorId,
+  PaletteId,
+  Revision,
+} from '@core/types/ids';
 
 import { Layer } from './Layer';
 import { LayerCollection } from './LayerCollection';
+import { clonePalette, createPalette, makePaletteColor, type Palette } from './Palette';
 import { SelectionState } from './Selection';
 import { Timeline } from './Timeline';
 import type { IdFactory } from './IdFactory';
@@ -13,11 +21,7 @@ export interface DocumentMetadata {
   name: string;
 }
 
-export interface Palette {
-  readonly id: PaletteId;
-  name: string;
-  colors: RGBA[];
-}
+export type { Palette } from './Palette';
 
 interface DocumentParts {
   readonly id: DocumentId;
@@ -27,6 +31,7 @@ interface DocumentParts {
   readonly timeline: Timeline;
   readonly selection: SelectionState;
   readonly palettes: Palette[];
+  readonly activePaletteId?: PaletteId | null;
   readonly ids: IdFactory;
   readonly revision?: number;
   readonly savedRevision?: number;
@@ -49,6 +54,7 @@ export class Document {
   readonly palettes: Palette[];
 
   #dimensions: Dimensions;
+  #activePaletteId: PaletteId | null;
   readonly #ids: IdFactory;
   #revision: number;
   #savedRevision: number;
@@ -61,6 +67,7 @@ export class Document {
     this.timeline = parts.timeline;
     this.selection = parts.selection;
     this.palettes = parts.palettes;
+    this.#activePaletteId = parts.activePaletteId ?? parts.palettes[0]?.id ?? null;
     this.#ids = parts.ids;
     this.#revision = parts.revision ?? 0;
     this.#savedRevision = parts.savedRevision ?? 0;
@@ -140,6 +147,78 @@ export class Document {
 
   setActiveLayer(layerId: LayerId): void {
     this.layers.setActive(layerId);
+  }
+
+  // --- Palettes (PROJECT_CORE §3.4) --------------------------------------
+
+  get activePaletteId(): PaletteId | null {
+    return this.#activePaletteId;
+  }
+
+  get activePalette(): Palette | null {
+    return this.palettes.find((palette) => palette.id === this.#activePaletteId) ?? null;
+  }
+
+  getPalette(id: PaletteId): Palette | undefined {
+    return this.palettes.find((palette) => palette.id === id);
+  }
+
+  requirePalette(id: PaletteId): Palette {
+    const palette = this.getPalette(id);
+    if (!palette) {
+      throw new RangeError(`No palette with id "${id}"`);
+    }
+    return palette;
+  }
+
+  addPalette(palette: Palette, activate = true): void {
+    this.palettes.push(palette);
+    if (activate || this.#activePaletteId === null) {
+      this.#activePaletteId = palette.id;
+    }
+  }
+
+  /** Create and add a new palette, returning its id. */
+  createPalette(name: string, colors: readonly RGBA[] = []): PaletteId {
+    const palette = createPalette(this.#ids, name, colors);
+    this.addPalette(palette);
+    return palette.id;
+  }
+
+  /** Duplicate an existing palette (fresh ids), returning the new palette id. */
+  duplicatePalette(id: PaletteId): PaletteId {
+    const source = this.requirePalette(id);
+    const duplicate: Palette = {
+      id: this.#ids.palette(),
+      name: `${source.name} copy`,
+      colors: source.colors.map((color) => makePaletteColor(this.#ids, color.rgba, color.name)),
+    };
+    this.addPalette(duplicate);
+    return duplicate.id;
+  }
+
+  /** Append a colour to a palette, returning the new colour's id. */
+  addPaletteColor(paletteId: PaletteId, rgba: RGBA, name?: string): PaletteColorId {
+    const color = makePaletteColor(this.#ids, rgba, name);
+    this.requirePalette(paletteId).colors.push(color);
+    return color.id;
+  }
+
+  removePalette(id: PaletteId): void {
+    const index = this.palettes.findIndex((palette) => palette.id === id);
+    if (index < 0) {
+      return;
+    }
+    this.palettes.splice(index, 1);
+    if (this.#activePaletteId === id) {
+      this.#activePaletteId = this.palettes[Math.max(0, index - 1)]?.id ?? null;
+    }
+  }
+
+  setActivePalette(id: PaletteId | null): void {
+    if (id === null || this.getPalette(id)) {
+      this.#activePaletteId = id;
+    }
   }
 
   // --- Frames -----------------------------------------------------------
@@ -236,7 +315,8 @@ export class Document {
       layers: this.layers.clone(),
       timeline: this.timeline.clone(bufferMap),
       selection: this.selection.clone(),
-      palettes: this.palettes.map((palette) => ({ ...palette, colors: [...palette.colors] })),
+      palettes: this.palettes.map((palette) => clonePalette(palette)),
+      activePaletteId: this.#activePaletteId,
       ids: this.#ids,
       revision: this.#revision,
       savedRevision: this.#savedRevision,

@@ -1,0 +1,117 @@
+.palette-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+  border-top: 1px solid var(--obsipix-border);
+}
+
+.palette-panel__header {
+  display: flex;
+  gap: 3px;
+}
+
+.palette-panel__select,
+.palette-panel__name-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 3px 4px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--obsipix-text);
+  background: var(--obsipix-surface-raised);
+  border: 1px solid var(--obsipix-border);
+  border-radius: 4px;
+}
+
+.palette-panel__header button {
+  padding: 3px 6px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--obsipix-text);
+  background: var(--obsipix-surface-raised);
+  border: 1px solid var(--obsipix-border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.palette-panel__header button:disabled {
+  color: var(--obsipix-text-muted);
+  cursor: not-allowed;
+}
+
+.palette-panel__recent,
+.palette-panel__grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.palette-panel__swatch {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid rgb(0 0 0 / 35%);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.palette-panel__swatch--sm {
+  width: 14px;
+  height: 14px;
+}
+
+.palette-panel__swatch.is-selected {
+  outline: 2px solid var(--obsipix-accent);
+  outline-offset: 1px;
+}
+
+.palette-panel__toolbar {
+  display: flex;
+  gap: 3px;
+}
+
+.palette-panel__toolbar button {
+  flex: 1 1 auto;
+  padding: 3px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--obsipix-text);
+  background: var(--obsipix-surface-raised);
+  border: 1px solid var(--obsipix-border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.palette-panel__toolbar button:disabled {
+  color: var(--obsipix-text-muted);
+  cursor: not-allowed;
+}
+
+.palette-panel__editor {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.palette-panel__color-name {
+  width: 70px;
+  padding: 3px 4px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--obsipix-text);
+  background: var(--obsipix-bg);
+  border: 1px solid var(--obsipix-border);
+  border-radius: 4px;
+}
+
+.palette-panel__editor button {
+  padding: 3px 8px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--obsipix-text);
+  background: var(--obsipix-surface-raised);
+  border: 1px solid var(--obsipix-border);
+  border-radius: 4px;
+  cursor: pointer;
+}

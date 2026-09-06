@@ -59,7 +59,7 @@ src/
     ├── pixels/       PixelBuffer — authoritative RGBA pixel store
     ├── document/     Document, layers, frames, cels, selection, invariants
     ├── history/      Command interface + snapshot undo/redo, transactions, strokes
-    ├── tools/        Pencil/Eraser/Eyedropper/Fill/Line/Rect/Ellipse, brush, shapes, commands
+    ├── tools/        Pencil/Eraser/Eyedropper/Fill/Line/Rect/Ellipse/Select/Move, brush, shapes, transform
     ├── persistence/  .obsipix serializer/parser (CRC + RLE), PNG encoder
     └── errors/       EditorError (structured, severity-tagged)
 src/rendering/        browser-facing: Viewport (coordinate transforms),
@@ -85,5 +85,6 @@ Directories are created only when a phase needs them.
 | 6     | Persistence / PNG           | COMPLETE    |
 | 7     | Core Editor Features        | COMPLETE    |
 | 8     | Selection / Transform       | COMPLETE    |
-| 9     | Palettes                    | NOT STARTED |
-| 10+   | see `OBSIPIX_CODING_PHASES` | NOT STARTED |
+| 9     | Palettes                    | COMPLETE    |
+| 10    | Animation                   | NOT STARTED |
+| 11+   | see `OBSIPIX_CODING_PHASES` | NOT STARTED |

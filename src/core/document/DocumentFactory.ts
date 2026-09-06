@@ -11,6 +11,7 @@ import { Document } from './Document';
 import { Frame } from './Frame';
 import { Layer } from './Layer';
 import { LayerCollection } from './LayerCollection';
+import { DEFAULT_PALETTE_COLORS, DEFAULT_PALETTE_NAME } from './palettes';
 import { SelectionState } from './Selection';
 import { Timeline } from './Timeline';
 import { createIdFactory, type IdFactory } from './IdFactory';
@@ -52,7 +53,7 @@ export class DocumentFactory {
     const firstFrame = new Frame(this.#ids.frame());
     firstFrame.setCel(layerId, Cel.normal(this.#ids.cel(), PixelBuffer.create(width, height)));
 
-    return Document.create({
+    const document = Document.create({
       id: this.#ids.document(),
       dimensions,
       metadata: { name: options.name ?? DEFAULT_DOCUMENT_NAME },
@@ -62,6 +63,8 @@ export class DocumentFactory {
       palettes: [],
       ids: this.#ids,
     });
+    document.createPalette(DEFAULT_PALETTE_NAME, DEFAULT_PALETTE_COLORS);
+    return document;
   }
 
   createDefault(): Document {

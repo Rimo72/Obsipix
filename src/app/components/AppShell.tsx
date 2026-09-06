@@ -8,6 +8,7 @@ import { BrushControls } from './BrushControls';
 import { CanvasStage } from './CanvasStage';
 import { ColorControls } from './ColorControls';
 import { LayerPanel } from './LayerPanel';
+import { PalettePanel } from './PalettePanel';
 import { SelectionControls } from './SelectionControls';
 import { ToolRail } from './ToolRail';
 import './AppShell.css';
@@ -192,7 +193,10 @@ export function AppShell({ session }: AppShellProps) {
         <main className="app-shell__stage" aria-label="Canvas">
           <CanvasStage session={session} />
         </main>
-        <LayerPanel session={session} />
+        <div className="app-shell__sidebar">
+          <LayerPanel session={session} />
+          <PalettePanel session={session} />
+        </div>
       </div>
 
       {error !== null && (

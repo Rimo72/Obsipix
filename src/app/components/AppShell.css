@@ -66,6 +66,26 @@
   background: var(--obsipix-bg);
 }
 
+.app-shell__sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 224px;
+  overflow-y: auto;
+  background: var(--obsipix-surface);
+  border-left: 1px solid var(--obsipix-border);
+}
+
+.app-shell__sidebar .layer-panel {
+  flex: 1 1 auto;
+  min-height: 120px;
+  border-left: 0;
+  width: auto;
+}
+
+.app-shell__sidebar .palette-panel {
+  flex: 0 0 auto;
+}
+
 .app-shell__button {
   padding: 4px 10px;
   font: inherit;

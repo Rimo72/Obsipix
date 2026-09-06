@@ -18,6 +18,7 @@ export type LayerId = Brand<string, 'LayerId'>;
 export type FrameId = Brand<string, 'FrameId'>;
 export type CelId = Brand<string, 'CelId'>;
 export type PaletteId = Brand<string, 'PaletteId'>;
+export type PaletteColorId = Brand<string, 'PaletteColorId'>;
 export type AnimationTagId = Brand<string, 'AnimationTagId'>;
 
 /** Zero-based position of a frame in the timeline. Ordering, not identity. */

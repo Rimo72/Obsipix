@@ -40,6 +40,11 @@ function fingerprint(document: Document): unknown {
       color: tag.color ?? null,
       fps: tag.fps ?? null,
     })),
+    palettes: document.palettes.map((palette) => ({
+      name: palette.name,
+      colors: palette.colors.map((color) => ({ rgba: color.rgba, name: color.name ?? null })),
+    })),
+    activePaletteName: document.activePalette?.name ?? null,
   };
 }
 
@@ -84,6 +89,11 @@ function buildRichDocument(): Document {
     color: rgba(255, 128, 0, 255),
     fps: 12,
   });
+
+  // a second palette with a named colour
+  const extraPalette = document.createPalette('Greys', [rgba(20, 20, 20, 255), WHITE]);
+  document.addPaletteColor(extraPalette, rgba(128, 128, 128, 255), 'mid grey');
+  document.setActivePalette(extraPalette);
 
   document.setActiveLayer(overlay);
   document.setActiveFrame(frame2);

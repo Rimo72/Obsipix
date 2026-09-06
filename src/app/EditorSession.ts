@@ -53,11 +53,22 @@ import {
   RectangleTool,
   RECTANGLE_TOOL_ID,
 } from '@core/tools/shapeTools';
+import {
+  addPaletteColorCommand,
+  createPaletteCommand,
+  deletePaletteCommand,
+  duplicatePaletteCommand,
+  movePaletteColorCommand,
+  namePaletteColorCommand,
+  removePaletteColorCommand,
+  renamePaletteCommand,
+  setPaletteColorCommand,
+} from '@core/document/paletteCommands';
 import { flipHorizontal, flipVertical, rotateQuarter, type Quarter } from '@core/tools/transform';
 import type { PreviewStamp, Tool, ToolContext } from '@core/tools/Tool';
-import { BLACK, TRANSPARENT, WHITE, type RGBA } from '@core/types/color';
+import { BLACK, TRANSPARENT, WHITE, rgbaEquals, type RGBA } from '@core/types/color';
 import type { Dimensions } from '@core/types/geometry';
-import type { LayerId } from '@core/types/ids';
+import type { LayerId, PaletteColorId, PaletteId } from '@core/types/ids';
 
 import { Viewport } from '@rendering/Viewport';
 
@@ -83,6 +94,7 @@ export interface EditorSessionOptions {
 
 const FIT_PADDING = 24;
 const ZOOM_STEP = 1.4;
+const RECENT_COLOR_LIMIT = 16;
 
 /**
  * Application-layer coordinator: owns the {@link History} (and the current
@@ -107,6 +119,7 @@ export class EditorSession {
   #stroke: StrokeHandle | null = null;
   #float: Float | null = null;
   #clipboard: PixelBuffer | null = null;
+  #recentColors: readonly RGBA[] = [];
   #fileName: string | null = null;
   #viewSize: { width: number; height: number } | null = null;
 
@@ -292,12 +305,25 @@ export class EditorSession {
 
   setForeground(color: RGBA): void {
     this.#foreground = color;
+    this.#pushRecent(color);
     this.#emit();
   }
 
   setBackground(color: RGBA): void {
     this.#background = color;
+    this.#pushRecent(color);
     this.#emit();
+  }
+
+  get recentColors(): readonly RGBA[] {
+    return this.#recentColors;
+  }
+
+  #pushRecent(color: RGBA): void {
+    this.#recentColors = [
+      color,
+      ...this.#recentColors.filter((existing) => !rgbaEquals(existing, color)),
+    ].slice(0, RECENT_COLOR_LIMIT);
   }
 
   swapColors(): void {
@@ -669,6 +695,56 @@ export class EditorSession {
 
   get canPaste(): boolean {
     return this.#clipboard !== null;
+  }
+
+  // --- Palettes (PROJECT_CORE §3.4) ----------------------------------
+
+  setActivePalette(id: PaletteId | null): void {
+    this.document.setActivePalette(id);
+    this.#emit();
+  }
+
+  createPalette(name?: string): void {
+    const count = this.document.palettes.length + 1;
+    this.runCommand(createPaletteCommand(name ?? `Palette ${String(count)}`));
+  }
+
+  renamePalette(id: PaletteId, name: string): void {
+    this.runCommand(renamePaletteCommand(id, name));
+  }
+
+  deletePalette(id: PaletteId): void {
+    this.runCommand(deletePaletteCommand(id));
+  }
+
+  duplicateActivePalette(): void {
+    const id = this.document.activePaletteId;
+    if (id) {
+      this.runCommand(duplicatePaletteCommand(id));
+    }
+  }
+
+  addColorToActivePalette(color: RGBA = this.#foreground): void {
+    const id = this.document.activePaletteId;
+    if (id) {
+      this.runCommand(addPaletteColorCommand(id, color));
+    }
+  }
+
+  removePaletteColor(paletteId: PaletteId, colorId: PaletteColorId): void {
+    this.runCommand(removePaletteColorCommand(paletteId, colorId));
+  }
+
+  movePaletteColor(paletteId: PaletteId, colorId: PaletteColorId, toIndex: number): void {
+    this.runCommand(movePaletteColorCommand(paletteId, colorId, toIndex));
+  }
+
+  setPaletteColor(paletteId: PaletteId, colorId: PaletteColorId, rgba: RGBA): void {
+    this.runCommand(setPaletteColorCommand(paletteId, colorId, rgba));
+  }
+
+  namePaletteColor(paletteId: PaletteId, colorId: PaletteColorId, name: string): void {
+    this.runCommand(namePaletteColorCommand(paletteId, colorId, name));
   }
 
   // --- Layers --------------------------------------------------------

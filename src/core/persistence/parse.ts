@@ -17,7 +17,14 @@ import { Timeline } from '@core/document/Timeline';
 import { assertDocumentInvariants } from '@core/document/invariants';
 import type { PixelBuffer } from '@core/pixels/PixelBuffer';
 import type { RGBA } from '@core/types/color';
-import type { AnimationTagId, CelId, FrameId, LayerId, PaletteId } from '@core/types/ids';
+import type {
+  AnimationTagId,
+  CelId,
+  FrameId,
+  LayerId,
+  PaletteColorId,
+  PaletteId,
+} from '@core/types/ids';
 
 import { ByteReader } from './ByteWriter';
 import { crc32 } from './crc32';
@@ -228,8 +235,23 @@ export function parseDocument(fileBytes: Uint8Array, ids: IdFactory = createIdFa
   const palettes: Palette[] = metadata.palettes.map((paletteData) => ({
     id: brand<PaletteId>(paletteData.id),
     name: paletteData.name,
-    colors: paletteData.colors.map((color) => readTuple4(color.rgba)),
+    colors: paletteData.colors.map((color) => {
+      const entry: Palette['colors'][number] = {
+        id: color.id ? brand<PaletteColorId>(color.id) : ids.paletteColor(),
+        rgba: readTuple4(color.rgba),
+      };
+      if (typeof color.name === 'string' && color.name !== '') {
+        entry.name = color.name;
+      }
+      return entry;
+    }),
   }));
+
+  const activePaletteId =
+    typeof metadata.activePaletteId === 'string' &&
+    palettes.some((palette) => palette.id === metadata.activePaletteId)
+      ? brand<PaletteId>(metadata.activePaletteId)
+      : (palettes[0]?.id ?? null);
 
   const document = Document.create({
     id: ids.document(),
@@ -239,6 +261,7 @@ export function parseDocument(fileBytes: Uint8Array, ids: IdFactory = createIdFa
     timeline,
     selection: new SelectionState(dimensions),
     palettes,
+    activePaletteId,
     ids,
   });
 

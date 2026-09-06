@@ -68,6 +68,7 @@ export interface ObsipixPaletteData {
   readonly id: string;
   readonly name: string;
   readonly colors: readonly {
+    readonly id?: string;
     readonly rgba: readonly [number, number, number, number];
     readonly name?: string;
   }[];
@@ -84,6 +85,7 @@ export interface ObsipixMetadata {
   };
   readonly layers: readonly ObsipixLayerData[];
   readonly activeLayerId: string;
+  readonly activePaletteId?: string | null;
   readonly buffers: readonly ObsipixBufferRef[];
   readonly animation: {
     readonly frames: readonly ObsipixFrameData[];

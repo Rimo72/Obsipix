@@ -4,6 +4,7 @@ import type {
   DocumentId,
   FrameId,
   LayerId,
+  PaletteColorId,
   PaletteId,
 } from '@core/types/ids';
 
@@ -19,6 +20,7 @@ export interface IdFactory {
   frame(): FrameId;
   cel(): CelId;
   palette(): PaletteId;
+  paletteColor(): PaletteColorId;
   animationTag(): AnimationTagId;
 }
 
@@ -37,6 +39,7 @@ export function createIdFactory(source: () => string = defaultRandom): IdFactory
     frame: () => `frm_${source()}` as FrameId,
     cel: () => `cel_${source()}` as CelId,
     palette: () => `pal_${source()}` as PaletteId,
+    paletteColor: () => `pc_${source()}` as PaletteColorId,
     animationTag: () => `tag_${source()}` as AnimationTagId,
   };
 }

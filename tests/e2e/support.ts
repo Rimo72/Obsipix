@@ -6,11 +6,16 @@ interface ObsipixSession {
     layers: { activeLayerId: string };
     dimensions: { width: number; height: number };
     selection: { active: boolean };
+    palettes: { id: string; name: string; colors: unknown[] }[];
+    activePaletteId: string | null;
     resolveBuffer(
       id: string,
     ): { getPixel(x: number, y: number): { r: number; g: number; b: number; a: number } } | null;
   };
   history: { depth: number };
+  foreground: { r: number; g: number; b: number; a: number };
+  background: { r: number; g: number; b: number; a: number };
+  recentColors: readonly { r: number; g: number; b: number; a: number }[];
   canUndo: boolean;
   canRedo: boolean;
   isDirty: boolean;

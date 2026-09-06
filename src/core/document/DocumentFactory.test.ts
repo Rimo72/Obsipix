@@ -15,7 +15,9 @@ describe('DocumentFactory.createDefault', () => {
     expect(document.layers.count).toBe(1);
     expect(document.layers.layers[0]?.name).toBe('Layer 1');
     expect(document.timeline.frameCount).toBe(1);
-    expect(document.palettes).toEqual([]);
+    expect(document.palettes).toHaveLength(1);
+    expect(document.palettes[0]?.colors).toHaveLength(16);
+    expect(document.activePaletteId).toBe(document.palettes[0]?.id);
     expect(document.selection.active).toBe(false);
     expect(document.isDirty).toBe(false);
     expect(document.revision).toBe(0);

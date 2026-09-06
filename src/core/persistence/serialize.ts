@@ -89,6 +89,7 @@ export function serializeDocument(document: Document): Uint8Array {
       opacity: layer.opacity,
     })),
     activeLayerId: document.layers.activeLayerId,
+    activePaletteId: document.activePaletteId,
     buffers: bufferRefs,
     animation: {
       frames,
@@ -111,7 +112,9 @@ export function serializeDocument(document: Document): Uint8Array {
       id: palette.id,
       name: palette.name,
       colors: palette.colors.map((color) => ({
-        rgba: [color.r, color.g, color.b, color.a] as const,
+        id: color.id,
+        rgba: [color.rgba.r, color.rgba.g, color.rgba.b, color.rgba.a] as const,
+        ...(color.name !== undefined ? { name: color.name } : {}),
       })),
     })),
   };

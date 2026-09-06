@@ -1046,7 +1046,7 @@ V1 Release
   6       Persistence / PNG             COMPLETE
   7       Core Editor                   COMPLETE
   8       Selection / Transform         COMPLETE
-  9       Palettes                      NOT STARTED
+  9       Palettes                      COMPLETE
   10      Animation                     NOT STARTED
   11      Lifecycle / Recovery          NOT STARTED
   12      UI Completion                 NOT STARTED
