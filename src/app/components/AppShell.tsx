@@ -1,24 +1,21 @@
 import { useEffect, useState } from 'react';
 
-import { ERASER_TOOL_ID } from '@core/tools/EraserTool';
-import { PENCIL_TOOL_ID } from '@core/tools/PencilTool';
-
 import type { EditorSession } from '../EditorSession';
 import { exportProjectPng, newProject, openProject, saveProject } from '../fileCommands';
 import { useEditorSessionVersion } from '../useEditorSession';
+import { TOOL_SHORTCUTS } from '../toolCatalog';
+import { BrushControls } from './BrushControls';
 import { CanvasStage } from './CanvasStage';
+import { ColorControls } from './ColorControls';
+import { LayerPanel } from './LayerPanel';
+import { ToolRail } from './ToolRail';
 import './AppShell.css';
-
-const TOOLS: readonly { readonly id: string; readonly label: string; readonly key: string }[] = [
-  { id: PENCIL_TOOL_ID, label: 'Pencil', key: 'B' },
-  { id: ERASER_TOOL_ID, label: 'Eraser', key: 'E' },
-];
 
 interface AppShellProps {
   readonly session: EditorSession;
 }
 
-/** The editor shell: header, toolbar, canvas stage and status bar. */
+/** The editor shell: header, tool rail, canvas stage, layer panel and status bar. */
 export function AppShell({ session }: AppShellProps) {
   useEditorSessionVersion(session);
   const [error, setError] = useState<string | null>(null);
@@ -63,19 +60,16 @@ export function AppShell({ session }: AppShellProps) {
       } else if (mod && key === 'o') {
         event.preventDefault();
         handleOpen();
-      } else if (!mod && key === 'b') {
-        session.setTool(PENCIL_TOOL_ID);
-      } else if (!mod && key === 'e') {
-        session.setTool(ERASER_TOOL_ID);
       } else if (!mod && key === 'x') {
         session.swapColors();
+      } else if (!mod && !event.shiftKey && !event.altKey && key in TOOL_SHORTCUTS) {
+        session.setTool(TOOL_SHORTCUTS[key] as string);
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => {
       window.removeEventListener('keydown', onKeyDown);
     };
-    // handleOpen closes over `session` only; safe for the lifetime of the shell
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session]);
 
@@ -102,10 +96,8 @@ export function AppShell({ session }: AppShellProps) {
         <span className="app-shell__title" data-testid="project-title">
           {title}
         </span>
-      </header>
-
-      <div className="app-shell__toolbar" role="toolbar" aria-label="Editor tools">
-        <div className="app-shell__tool-group" aria-label="Project">
+        <div className="app-shell__spacer" />
+        <div className="app-shell__group">
           <button type="button" className="app-shell__button" onClick={handleNew}>
             New
           </button>
@@ -132,30 +124,7 @@ export function AppShell({ session }: AppShellProps) {
             Export PNG
           </button>
         </div>
-
-        <div className="app-shell__tool-group" aria-label="Tools">
-          {TOOLS.map((tool) => {
-            const active = session.activeToolId === tool.id;
-            return (
-              <button
-                key={tool.id}
-                type="button"
-                className={
-                  active ? 'app-shell__button app-shell__button--active' : 'app-shell__button'
-                }
-                aria-pressed={active}
-                title={`${tool.label} (${tool.key})`}
-                onClick={() => {
-                  session.setTool(tool.id);
-                }}
-              >
-                {tool.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="app-shell__tool-group" aria-label="History">
+        <div className="app-shell__group">
           <button
             type="button"
             className="app-shell__button"
@@ -179,11 +148,20 @@ export function AppShell({ session }: AppShellProps) {
             Redo
           </button>
         </div>
+      </header>
+
+      <div className="app-shell__options">
+        <BrushControls session={session} />
+        <ColorControls session={session} />
       </div>
 
-      <main className="app-shell__stage" aria-label="Canvas">
-        <CanvasStage session={session} />
-      </main>
+      <div className="app-shell__body">
+        <ToolRail session={session} />
+        <main className="app-shell__stage" aria-label="Canvas">
+          <CanvasStage session={session} />
+        </main>
+        <LayerPanel session={session} />
+      </div>
 
       {error !== null && (
         <div className="app-shell__error" role="alert" data-testid="file-error">
@@ -207,6 +185,62 @@ export function AppShell({ session }: AppShellProps) {
         <span data-testid="status-zoom">{zoomPercent}%</span>
         <span data-testid="status-tool">{session.activeToolId}</span>
         <span data-testid="status-dirty">{session.isDirty ? 'unsaved' : 'saved'}</span>
+        <div className="app-shell__spacer" />
+        <button
+          type="button"
+          className={
+            session.showGrid ? 'app-shell__toggle app-shell__toggle--on' : 'app-shell__toggle'
+          }
+          aria-pressed={session.showGrid}
+          onClick={() => {
+            session.toggleGrid();
+          }}
+        >
+          Grid
+        </button>
+        <button
+          type="button"
+          className={
+            session.showCheckerboard
+              ? 'app-shell__toggle app-shell__toggle--on'
+              : 'app-shell__toggle'
+          }
+          aria-pressed={session.showCheckerboard}
+          onClick={() => {
+            session.toggleCheckerboard();
+          }}
+        >
+          Checker
+        </button>
+        <button
+          type="button"
+          className="app-shell__toggle"
+          aria-label="Zoom out"
+          onClick={() => {
+            session.zoomOut();
+          }}
+        >
+          &minus;
+        </button>
+        <button
+          type="button"
+          className="app-shell__toggle"
+          aria-label="Zoom in"
+          onClick={() => {
+            session.zoomIn();
+          }}
+        >
+          +
+        </button>
+        <button
+          type="button"
+          className="app-shell__toggle"
+          onClick={() => {
+            session.fitView();
+          }}
+        >
+          Fit
+        </button>
       </footer>
     </div>
   );

@@ -1,8 +1,16 @@
 import { compositeDocument } from '@core/document/compositeDocument';
 import type { Document } from '@core/document/Document';
+import type { RGBA } from '@core/types/color';
 import type { FrameId } from '@core/types/ids';
 
 import type { Viewport } from './Viewport';
+
+/** A previewed pixel drawn over the artwork while a shape tool drags. */
+export interface PreviewStamp {
+  readonly x: number;
+  readonly y: number;
+  readonly color: RGBA;
+}
 
 export interface CheckerboardStyle {
   readonly light: string;
@@ -24,6 +32,8 @@ export interface RenderOptions {
   readonly showGrid?: boolean;
   readonly checkerboard?: CheckerboardStyle;
   readonly grid?: GridStyle;
+  /** Shape-tool preview drawn over the artwork; never part of the document. */
+  readonly preview?: readonly PreviewStamp[] | null;
 }
 
 export const DEFAULT_CHECKERBOARD: CheckerboardStyle = {
@@ -131,6 +141,27 @@ export class CanvasRenderer {
       );
     }
 
+    if (options.preview && options.preview.length > 0) {
+      this.#paintPreview(ctx, options.preview, viewport.zoom, originX, originY);
+    }
+
+    ctx.restore();
+  }
+
+  #paintPreview(
+    ctx: CanvasRenderingContext2D,
+    preview: readonly PreviewStamp[],
+    zoom: number,
+    originX: number,
+    originY: number,
+  ): void {
+    ctx.save();
+    for (const stamp of preview) {
+      ctx.fillStyle = `rgba(${String(stamp.color.r)}, ${String(stamp.color.g)}, ${String(
+        stamp.color.b,
+      )}, ${String((stamp.color.a / 255) * 0.85)})`;
+      ctx.fillRect(originX + stamp.x * zoom, originY + stamp.y * zoom, zoom, zoom);
+    }
     ctx.restore();
   }
 

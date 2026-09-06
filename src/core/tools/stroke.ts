@@ -56,10 +56,40 @@ export const paintErase: StrokePaint = (buffer, x, y) => {
 };
 
 /**
- * Stamp `brush` along the polyline `path` into `buffer` using `paint`, and
- * return how many distinct pixels were touched. Pixels outside the buffer are
- * skipped (PROJECT_CORE §3.2). `isAllowed`, when given, gates each pixel (e.g.
- * an active selection mask).
+ * Stamp `brush` at each of `points` (already the final pixels — no
+ * interpolation between them) and return how many distinct pixels were touched.
+ * Off-buffer pixels are skipped (PROJECT_CORE §3.2); `isAllowed` gates each one.
+ */
+export function stampPoints(
+  buffer: PixelBuffer,
+  points: readonly PixelPoint[],
+  brush: Brush,
+  paint: StrokePaint,
+  isAllowed?: (x: number, y: number) => boolean,
+): number {
+  const offsets = stampOffsets(brush);
+  const painted = new Set<number>();
+  for (const point of points) {
+    for (const offset of offsets) {
+      const x = point.x + offset.x;
+      const y = point.y + offset.y;
+      if (!buffer.contains(x, y) || (isAllowed && !isAllowed(x, y))) {
+        continue;
+      }
+      const key = y * buffer.width + x;
+      if (painted.has(key)) {
+        continue;
+      }
+      painted.add(key);
+      paint(buffer, x, y);
+    }
+  }
+  return painted.size;
+}
+
+/**
+ * Stamp `brush` along the polyline `path`, interpolating between consecutive
+ * points so a fast drag leaves no gaps (PROJECT_CORE §3.2, §16).
  */
 export function paintStroke(
   buffer: PixelBuffer,
@@ -71,42 +101,20 @@ export function paintStroke(
   if (path.length === 0) {
     return 0;
   }
-  const offsets = stampOffsets(brush);
-  const painted = new Set<number>();
-
-  const stamp = (px: number, py: number): void => {
-    for (const offset of offsets) {
-      const x = px + offset.x;
-      const y = py + offset.y;
-      if (!buffer.contains(x, y)) {
-        continue;
-      }
-      if (isAllowed && !isAllowed(x, y)) {
-        continue;
-      }
-      const key = y * buffer.width + x;
-      if (painted.has(key)) {
-        continue;
-      }
-      painted.add(key);
-      paint(buffer, x, y);
-    }
-  };
-
+  const pixels: PixelPoint[] = [];
   let previous = path[0];
   if (previous) {
-    stamp(previous.x, previous.y);
+    pixels.push(previous);
   }
   for (let index = 1; index < path.length; index += 1) {
     const point = path[index];
     if (!point || !previous) {
       continue;
     }
-    const segment = bresenhamLine(previous, point);
-    for (const pixel of segment) {
-      stamp(pixel.x, pixel.y);
+    for (const pixel of bresenhamLine(previous, point)) {
+      pixels.push(pixel);
     }
     previous = point;
   }
-  return painted.size;
+  return stampPoints(buffer, pixels, brush, paint, isAllowed);
 }

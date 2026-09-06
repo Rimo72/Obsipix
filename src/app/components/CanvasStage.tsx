@@ -6,7 +6,6 @@ import type { EditorSession } from '../EditorSession';
 import { toPointerInput } from '../pointerAdapter';
 import './CanvasStage.css';
 
-const FIT_PADDING = 24;
 const ZOOM_WHEEL_STEP = 1.15;
 
 interface CanvasStageProps {
@@ -45,7 +44,10 @@ export function CanvasStage({ session }: CanvasStageProps) {
       const checkerSize = Math.max(4, Math.round(session.viewport.zoom / 2));
       renderer.render(session.document, session.viewport, {
         devicePixelRatio: window.devicePixelRatio || 1,
+        showGrid: session.showGrid,
+        showCheckerboard: session.showCheckerboard,
         checkerboard: { ...DEFAULT_CHECKERBOARD, size: checkerSize },
+        preview: session.preview,
       });
     };
     const schedule = (): void => {
@@ -54,22 +56,16 @@ export function CanvasStage({ session }: CanvasStageProps) {
       }
     };
 
-    const fitToContainer = (): void => {
+    const reportSize = (): void => {
       const rect = container.getBoundingClientRect();
-      session.viewport.fit(
-        Math.max(1, rect.width),
-        Math.max(1, rect.height),
-        session.document.dimensions,
-        FIT_PADDING,
-      );
-      session.touch();
+      session.setViewSize(Math.max(1, rect.width), Math.max(1, rect.height));
     };
 
-    fitToContainer();
+    reportSize();
     schedule();
 
     const unsubscribe = session.subscribe(schedule);
-    const observer = new ResizeObserver(fitToContainer);
+    const observer = new ResizeObserver(reportSize);
     observer.observe(container);
 
     const onWheel = (event: WheelEvent): void => {

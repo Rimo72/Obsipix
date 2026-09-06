@@ -9,7 +9,7 @@ function channel(value: number): number {
 }
 
 /** Alpha-composite `source` over `target` in place (source-over), scaling source alpha by `opacity`. */
-function blendOver(target: PixelBuffer, source: PixelBuffer, opacity: number): void {
+export function blendOver(target: PixelBuffer, source: PixelBuffer, opacity: number): void {
   const { width, height } = target.dimensions;
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {

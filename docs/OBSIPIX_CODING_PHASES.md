@@ -1044,7 +1044,7 @@ V1 Release
   4       Renderer / Coordinates        COMPLETE
   5       Input / Vertical Slice        COMPLETE
   6       Persistence / PNG             COMPLETE
-  7       Core Editor                   NOT STARTED
+  7       Core Editor                   COMPLETE
   8       Selection / Transform         NOT STARTED
   9       Palettes                      NOT STARTED
   10      Animation                     NOT STARTED

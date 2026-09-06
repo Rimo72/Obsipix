@@ -1,0 +1,27 @@
+.tool-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 64px;
+  padding: 8px 6px;
+  background: var(--obsipix-surface);
+  border-right: 1px solid var(--obsipix-border);
+  overflow-y: auto;
+}
+
+.tool-rail__button {
+  padding: 6px 4px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--obsipix-text);
+  background: var(--obsipix-surface-raised);
+  border: 1px solid var(--obsipix-border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.tool-rail__button--active {
+  color: var(--obsipix-bg);
+  background: var(--obsipix-accent);
+  border-color: var(--obsipix-accent);
+}

@@ -1,15 +1,42 @@
+import { compositeDocument } from '@core/document/compositeDocument';
 import { createDefaultDocument } from '@core/document/DocumentFactory';
 import type { Document } from '@core/document/Document';
+import {
+  addLayerCommand,
+  clearLayerCommand,
+  duplicateLayerCommand,
+  flattenCommand,
+  mergeDownCommand,
+  mergeVisibleCommand,
+  moveLayerCommand,
+  removeLayerCommand,
+  renameLayerCommand,
+  setLayerLockedCommand,
+  setLayerOpacityCommand,
+  setLayerVisibilityCommand,
+} from '@core/document/layerCommands';
 import { History, type StrokeHandle } from '@core/history/History';
+import type { Command } from '@core/history/Command';
 import { exportPng } from '@core/persistence/png';
 import { parseDocument } from '@core/persistence/parse';
 import { serializeDocument } from '@core/persistence/serialize';
-import { DEFAULT_BRUSH, type Brush } from '@core/tools/Brush';
+import { DEFAULT_BRUSH, type Brush, type BrushShape } from '@core/tools/Brush';
 import { EraserTool, ERASER_TOOL_ID } from '@core/tools/EraserTool';
+import { EyedropperTool, EYEDROPPER_TOOL_ID } from '@core/tools/EyedropperTool';
+import { FillTool, FILL_TOOL_ID } from '@core/tools/FillTool';
 import { PencilTool, PENCIL_TOOL_ID } from '@core/tools/PencilTool';
 import type { PointerInput } from '@core/tools/PointerInput';
-import type { Tool, ToolContext } from '@core/tools/Tool';
+import {
+  EllipseTool,
+  ELLIPSE_TOOL_ID,
+  LineTool,
+  LINE_TOOL_ID,
+  RectangleTool,
+  RECTANGLE_TOOL_ID,
+} from '@core/tools/shapeTools';
+import type { PreviewStamp, Tool, ToolContext } from '@core/tools/Tool';
 import { BLACK, WHITE, type RGBA } from '@core/types/color';
+import type { LayerId } from '@core/types/ids';
 
 import { Viewport } from '@rendering/Viewport';
 
@@ -17,13 +44,15 @@ export interface EditorSessionOptions {
   readonly document?: Document;
 }
 
+const FIT_PADDING = 24;
+const ZOOM_STEP = 1.4;
+
 /**
- * Application-layer coordinator: it owns the {@link History} (and through it the
- * current {@link Document}), the {@link Viewport}, the active tool and the
- * current colours, and turns pointer input into stroke lifecycles
- * (PROJECT_CORE §4.2 "Application Services").
- *
- * It is UI-framework-agnostic; React subscribes via {@link EditorSession.subscribe}.
+ * Application-layer coordinator: owns the {@link History} (and the current
+ * {@link Document}), the {@link Viewport}, the active tool, colours, brush and
+ * view toggles, and turns pointer input into tool interactions
+ * (PROJECT_CORE §4.2). UI-framework-agnostic; React subscribes via
+ * {@link EditorSession.subscribe}.
  */
 export class EditorSession {
   readonly history: History;
@@ -34,9 +63,14 @@ export class EditorSession {
   #foreground: RGBA = BLACK;
   #background: RGBA = WHITE;
   #brush: Brush = DEFAULT_BRUSH;
+  #preview: readonly PreviewStamp[] | null = null;
+  #showGrid = true;
+  #showCheckerboard = true;
 
   #stroke: StrokeHandle | null = null;
   #fileName: string | null = null;
+  #viewSize: { width: number; height: number } | null = null;
+
   readonly #listeners = new Set<() => void>();
   #version = 0;
 
@@ -45,6 +79,11 @@ export class EditorSession {
     this.#tools = new Map<string, Tool>([
       [PENCIL_TOOL_ID, new PencilTool()],
       [ERASER_TOOL_ID, new EraserTool()],
+      [EYEDROPPER_TOOL_ID, new EyedropperTool()],
+      [FILL_TOOL_ID, new FillTool()],
+      [LINE_TOOL_ID, new LineTool()],
+      [RECTANGLE_TOOL_ID, new RectangleTool()],
+      [ELLIPSE_TOOL_ID, new EllipseTool()],
     ]);
   }
 
@@ -56,49 +95,8 @@ export class EditorSession {
     return this.history.isDirty;
   }
 
-  /** The name the project was last saved / opened as, or `null` for an unsaved project. */
   get fileName(): string | null {
     return this.#fileName;
-  }
-
-  // --- Persistence (PROJECT_CORE §3.10, §13) ------------------------------
-
-  /** Serialize the current document to `.obsipix` bytes. */
-  serialize(): Uint8Array {
-    return serializeDocument(this.document);
-  }
-
-  /** Record that the project has been saved under `name`. */
-  markSaved(name: string): void {
-    this.history.markSaved();
-    this.#fileName = name;
-    this.#emit();
-  }
-
-  /** Replace the document with one parsed from `bytes`. Throws on a bad file — the current document is untouched. */
-  open(bytes: Uint8Array, name: string): void {
-    const document = parseDocument(bytes);
-    if (this.#stroke) {
-      this.cancelStroke();
-    }
-    this.history.reset(document);
-    this.#fileName = name;
-    this.#emit();
-  }
-
-  /** Discard the current project and start a fresh default document. */
-  newDocument(): void {
-    if (this.#stroke) {
-      this.cancelStroke();
-    }
-    this.history.reset(createDefaultDocument());
-    this.#fileName = null;
-    this.#emit();
-  }
-
-  /** A flattened PNG of the active frame — no editor overlays. */
-  exportPngBytes(): Uint8Array {
-    return exportPng(this.document);
   }
 
   get activeToolId(): string {
@@ -117,6 +115,22 @@ export class EditorSession {
     return this.#background;
   }
 
+  get brush(): Brush {
+    return this.#brush;
+  }
+
+  get preview(): readonly PreviewStamp[] | null {
+    return this.#preview;
+  }
+
+  get showGrid(): boolean {
+    return this.#showGrid;
+  }
+
+  get showCheckerboard(): boolean {
+    return this.#showCheckerboard;
+  }
+
   get canUndo(): boolean {
     return this.history.canUndo;
   }
@@ -133,6 +147,47 @@ export class EditorSession {
     return this.history.redoLabel;
   }
 
+  // --- Persistence -------------------------------------------------------
+
+  serialize(): Uint8Array {
+    return serializeDocument(this.document);
+  }
+
+  markSaved(name: string): void {
+    this.history.markSaved();
+    this.#fileName = name;
+    this.#emit();
+  }
+
+  open(bytes: Uint8Array, name: string): void {
+    const document = parseDocument(bytes);
+    if (this.#stroke) {
+      this.cancelStroke();
+    }
+    this.history.reset(document);
+    this.#fileName = name;
+    this.#preview = null;
+    this.fitView();
+    this.#emit();
+  }
+
+  newDocument(): void {
+    if (this.#stroke) {
+      this.cancelStroke();
+    }
+    this.history.reset(createDefaultDocument());
+    this.#fileName = null;
+    this.#preview = null;
+    this.fitView();
+    this.#emit();
+  }
+
+  exportPngBytes(): Uint8Array {
+    return exportPng(this.document);
+  }
+
+  // --- Tools & colours --------------------------------------------------
+
   #activeTool(): Tool {
     const tool = this.#tools.get(this.#activeToolId);
     if (!tool) {
@@ -143,12 +198,30 @@ export class EditorSession {
 
   #context(): ToolContext {
     const document = this.document;
+    const editable = (x: number, y: number): boolean => {
+      if (document.selection.active && !document.selection.isSelected(x, y)) {
+        return false;
+      }
+      return !document.layers.activeLayer.locked;
+    };
     return {
       drawableBuffer: () => document.ensureDrawableBuffer(),
       foreground: this.#foreground,
       background: this.#background,
       brush: this.#brush,
-      isEditable: (x, y) => !document.selection.active || document.selection.isSelected(x, y),
+      isEditable: editable,
+      isInsideDocument: (x, y) =>
+        x >= 0 && y >= 0 && x < document.dimensions.width && y < document.dimensions.height,
+      sampleColor: (x, y) => compositeDocument(document).getPixel(x, y),
+      setForeground: (color) => {
+        this.setForeground(color);
+      },
+      setBackground: (color) => {
+        this.setBackground(color);
+      },
+      setPreview: (preview) => {
+        this.#preview = preview;
+      },
       requestRender: () => {
         this.#emit();
       },
@@ -162,6 +235,7 @@ export class EditorSession {
     if (this.#stroke) {
       this.cancelStroke();
     }
+    this.#preview = null;
     this.#activeToolId = id;
     this.#emit();
   }
@@ -181,13 +255,69 @@ export class EditorSession {
     this.#emit();
   }
 
+  setBrushSize(size: number): void {
+    this.#brush = { ...this.#brush, size: Math.max(1, Math.round(size)) };
+    this.#emit();
+  }
+
+  setBrushShape(shape: BrushShape): void {
+    this.#brush = { ...this.#brush, shape };
+    this.#emit();
+  }
+
+  // --- View ------------------------------------------------------------
+
+  setViewSize(width: number, height: number): void {
+    const first = this.#viewSize === null;
+    this.#viewSize = { width, height };
+    if (first) {
+      this.fitView();
+    }
+  }
+
+  fitView(): void {
+    if (!this.#viewSize) {
+      return;
+    }
+    this.viewport.fit(
+      this.#viewSize.width,
+      this.#viewSize.height,
+      this.document.dimensions,
+      FIT_PADDING,
+    );
+    this.#emit();
+  }
+
+  zoomIn(): void {
+    this.#zoomAroundCentre(ZOOM_STEP);
+  }
+
+  zoomOut(): void {
+    this.#zoomAroundCentre(1 / ZOOM_STEP);
+  }
+
+  #zoomAroundCentre(factor: number): void {
+    const size = this.#viewSize ?? { width: 0, height: 0 };
+    this.viewport.zoomAround({ x: size.width / 2, y: size.height / 2 }, factor);
+    this.#emit();
+  }
+
+  toggleGrid(): void {
+    this.#showGrid = !this.#showGrid;
+    this.#emit();
+  }
+
+  toggleCheckerboard(): void {
+    this.#showCheckerboard = !this.#showCheckerboard;
+    this.#emit();
+  }
+
+  // --- Pointer lifecycle ---------------------------------------------
+
   pointerDown(input: PointerInput): void {
     const tool = this.#activeTool();
-    if (
-      tool.strokeLabel !== null &&
-      (input.buttons.left || input.buttons.right) &&
-      this.#stroke === null
-    ) {
+    const pressed = input.buttons.left || input.buttons.right;
+    if (tool.kind === 'stroke' && pressed && this.#stroke === null) {
       this.#stroke = this.history.begin(tool.strokeLabel);
     }
     tool.onPointerDown(input, this.#context());
@@ -200,7 +330,8 @@ export class EditorSession {
 
   pointerUp(input: PointerInput): void {
     const tool = this.#activeTool();
-    tool.onPointerUp(input, this.#context());
+    const command = tool.onPointerUp(input, this.#context());
+
     if (this.#stroke) {
       const changed = tool.hasPendingChanges?.() ?? true;
       if (changed) {
@@ -209,7 +340,11 @@ export class EditorSession {
         this.#stroke.cancel();
       }
       this.#stroke = null;
+    } else if (command) {
+      this.history.execute(command);
     }
+
+    this.#preview = null;
     this.#emit();
   }
 
@@ -219,6 +354,17 @@ export class EditorSession {
       this.#stroke.cancel();
       this.#stroke = null;
     }
+    this.#preview = null;
+    this.#emit();
+  }
+
+  // --- History & commands -------------------------------------------
+
+  runCommand(command: Command): void {
+    if (this.#stroke) {
+      return;
+    }
+    this.history.execute(command);
     this.#emit();
   }
 
@@ -234,7 +380,72 @@ export class EditorSession {
     }
   }
 
-  /** Bump the version so external stores repaint. */
+  // --- Layers --------------------------------------------------------
+
+  setActiveLayer(layerId: LayerId): void {
+    this.document.setActiveLayer(layerId);
+    this.#emit();
+  }
+
+  setActiveFrame(frameId: Parameters<Document['setActiveFrame']>[0]): void {
+    this.document.setActiveFrame(frameId);
+    this.#emit();
+  }
+
+  addLayer(): void {
+    this.runCommand(addLayerCommand());
+  }
+
+  removeActiveLayer(): void {
+    if (this.document.layers.count > 1) {
+      this.runCommand(removeLayerCommand(this.document.layers.activeLayerId));
+    }
+  }
+
+  duplicateActiveLayer(): void {
+    this.runCommand(duplicateLayerCommand(this.document.layers.activeLayerId));
+  }
+
+  renameLayer(layerId: LayerId, name: string): void {
+    this.runCommand(renameLayerCommand(layerId, name));
+  }
+
+  moveLayer(layerId: LayerId, toIndex: number): void {
+    this.runCommand(moveLayerCommand(layerId, toIndex));
+  }
+
+  setLayerVisibility(layerId: LayerId, visible: boolean): void {
+    this.runCommand(setLayerVisibilityCommand(layerId, visible));
+  }
+
+  setLayerLocked(layerId: LayerId, locked: boolean): void {
+    this.runCommand(setLayerLockedCommand(layerId, locked));
+  }
+
+  setLayerOpacity(layerId: LayerId, opacity: number): void {
+    this.runCommand(setLayerOpacityCommand(layerId, opacity));
+  }
+
+  clearActiveLayer(): void {
+    this.runCommand(clearLayerCommand(this.document.layers.activeLayerId));
+  }
+
+  mergeActiveLayerDown(): void {
+    if (this.document.layers.indexOf(this.document.layers.activeLayerId) > 0) {
+      this.runCommand(mergeDownCommand(this.document.layers.activeLayerId));
+    }
+  }
+
+  mergeVisibleLayers(): void {
+    this.runCommand(mergeVisibleCommand());
+  }
+
+  flatten(): void {
+    this.runCommand(flattenCommand());
+  }
+
+  // --- Subscription ------------------------------------------------
+
   touch(): void {
     this.#emit();
   }

@@ -7,16 +7,16 @@ contains code and is never executed (PROJECT_CORE §13.13).
 
 All multi-byte integers are **little-endian**.
 
-| Offset      | Size | Field                                                     |
-| ----------- | ---- | -------------------------------------------------------- |
-| 0           | 8    | Magic `4F 42 53 49 50 49 58 00` (`"OBSIPIX\0"`)          |
-| 8           | 2    | Format version (`u16`) — currently `1`                   |
-| 10          | 2    | Reserved (`u16`, `0`)                                    |
-| 12          | 4    | Metadata length `N` (`u32`)                              |
-| 16          | `N`  | Metadata — UTF-8 JSON (see below)                        |
-| 16 + N      | 4    | Pixel-section length `M` (`u32`)                         |
-| 20 + N      | `M`  | Concatenated pixel blobs                                 |
-| 20 + N + M  | 4    | CRC-32 (IEEE) of every preceding byte (`u32`)            |
+| Offset     | Size | Field                                           |
+| ---------- | ---- | ----------------------------------------------- |
+| 0          | 8    | Magic `4F 42 53 49 50 49 58 00` (`"OBSIPIX\0"`) |
+| 8          | 2    | Format version (`u16`) — currently `1`          |
+| 10         | 2    | Reserved (`u16`, `0`)                           |
+| 12         | 4    | Metadata length `N` (`u32`)                     |
+| 16         | `N`  | Metadata — UTF-8 JSON (see below)               |
+| 16 + N     | 4    | Pixel-section length `M` (`u32`)                |
+| 20 + N     | `M`  | Concatenated pixel blobs                        |
+| 20 + N + M | 4    | CRC-32 (IEEE) of every preceding byte (`u32`)   |
 
 A reader rejects the file if: the magic or version is wrong, the CRC does not
 match, the metadata is not valid JSON of the expected shape, a pixel blob is
