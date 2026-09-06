@@ -4,3 +4,7 @@ playwright-report
 test-results
 node_modules
 package-lock.json
+
+# Spec documents are mirrored verbatim from the project workspace — keep them as-authored.
+docs/PROJECT_CORE_OBSIPIX.md
+docs/OBSIPIX_CODING_PHASES.md

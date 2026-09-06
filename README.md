@@ -2,8 +2,8 @@
 
 A web-first pixel-art editor built around exact logical-pixel editing.
 
-The authoritative specification is [`PROJECT_CORE_OBSIPIX.md`](../PROJECT_CORE_OBSIPIX.md);
-the build order is [`OBSIPIX_CODING_PHASES.md`](../OBSIPIX_CODING_PHASES.md).
+The authoritative specification is [`docs/PROJECT_CORE_OBSIPIX.md`](docs/PROJECT_CORE_OBSIPIX.md);
+the build order and phase status is [`docs/OBSIPIX_CODING_PHASES.md`](docs/OBSIPIX_CODING_PHASES.md).
 
 ## Requirements
 
