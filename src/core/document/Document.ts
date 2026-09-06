@@ -42,20 +42,20 @@ interface DocumentParts {
  */
 export class Document {
   readonly id: DocumentId;
-  readonly dimensions: Dimensions;
   readonly metadata: DocumentMetadata;
   readonly layers: LayerCollection;
   readonly timeline: Timeline;
   readonly selection: SelectionState;
   readonly palettes: Palette[];
 
+  #dimensions: Dimensions;
   readonly #ids: IdFactory;
   #revision: number;
   #savedRevision: number;
 
   private constructor(parts: DocumentParts) {
     this.id = parts.id;
-    this.dimensions = parts.dimensions;
+    this.#dimensions = { width: parts.dimensions.width, height: parts.dimensions.height };
     this.metadata = parts.metadata;
     this.layers = parts.layers;
     this.timeline = parts.timeline;
@@ -68,6 +68,10 @@ export class Document {
 
   static create(parts: DocumentParts): Document {
     return new Document(parts);
+  }
+
+  get dimensions(): Dimensions {
+    return this.#dimensions;
   }
 
   // --- Revision tracking (PROJECT_CORE §8.7) --------------------------------
@@ -192,6 +196,32 @@ export class Document {
     frameId: FrameId = this.timeline.activeFrameId,
   ): PixelBuffer {
     return this.timeline.ensureNormalCel(this.timeline.indexOf(frameId), layerId);
+  }
+
+  // --- Resize (PROJECT_CORE §3.7) -----------------------------------------
+
+  #applyResize(
+    dimensions: Dimensions,
+    transformBuffer: (buffer: PixelBuffer) => PixelBuffer,
+  ): void {
+    const map = new Map<PixelBuffer, PixelBuffer>();
+    for (const buffer of this.timeline.uniqueBuffers()) {
+      map.set(buffer, transformBuffer(buffer));
+    }
+    this.timeline.remapBuffers(map);
+    this.timeline.setDimensions(dimensions);
+    this.selection.resize(dimensions);
+    this.#dimensions = { width: dimensions.width, height: dimensions.height };
+  }
+
+  /** Scale all artwork to a new size (nearest-neighbour). */
+  resizeImage(dimensions: Dimensions, scale: (buffer: PixelBuffer) => PixelBuffer): void {
+    this.#applyResize(dimensions, scale);
+  }
+
+  /** Change the canvas bounds without scaling artwork. `place` positions old content. */
+  resizeCanvas(dimensions: Dimensions, place: (buffer: PixelBuffer) => PixelBuffer): void {
+    this.#applyResize(dimensions, place);
   }
 
   // --- Snapshot -------------------------------------------------------

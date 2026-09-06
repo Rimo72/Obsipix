@@ -37,6 +37,11 @@ export interface ToolContext {
   setBackground(color: RGBA): void;
   /** Show / clear the shape-preview overlay. */
   setPreview(preview: readonly PreviewStamp[] | null): void;
+  /** Lift the current selection into a movable float. Returns `false` if there is no selection. */
+  ensureFloat(): boolean;
+  /** Current float translation ({0,0} when there is no float). */
+  floatOffset(): { readonly x: number; readonly y: number };
+  setFloatOffset(x: number, y: number): void;
   requestRender(): void;
 }
 

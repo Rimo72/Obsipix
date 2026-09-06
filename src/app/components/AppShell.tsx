@@ -8,6 +8,7 @@ import { BrushControls } from './BrushControls';
 import { CanvasStage } from './CanvasStage';
 import { ColorControls } from './ColorControls';
 import { LayerPanel } from './LayerPanel';
+import { SelectionControls } from './SelectionControls';
 import { ToolRail } from './ToolRail';
 import './AppShell.css';
 
@@ -44,6 +45,12 @@ export function AppShell({ session }: AppShellProps) {
       }
       const mod = event.ctrlKey || event.metaKey;
       const key = event.key.toLowerCase();
+      const arrows: Record<string, [number, number]> = {
+        arrowleft: [-1, 0],
+        arrowright: [1, 0],
+        arrowup: [0, -1],
+        arrowdown: [0, 1],
+      };
       if (mod && key === 'z') {
         event.preventDefault();
         if (event.shiftKey) {
@@ -60,8 +67,32 @@ export function AppShell({ session }: AppShellProps) {
       } else if (mod && key === 'o') {
         event.preventDefault();
         handleOpen();
+      } else if (mod && key === 'a') {
+        event.preventDefault();
+        session.selectAll();
+      } else if (mod && key === 'd') {
+        event.preventDefault();
+        session.deselect();
+      } else if (mod && key === 'c') {
+        session.copy();
+      } else if (mod && key === 'x') {
+        event.preventDefault();
+        session.cut();
+      } else if (mod && key === 'v') {
+        session.paste();
       } else if (!mod && key === 'x') {
         session.swapColors();
+      } else if (!mod && (key === 'delete' || key === 'backspace')) {
+        event.preventDefault();
+        session.deleteSelection();
+      } else if (!mod && key === 'enter') {
+        session.commitFloat();
+      } else if (!mod && key === 'escape') {
+        session.cancelFloat();
+      } else if (!mod && key in arrows) {
+        event.preventDefault();
+        const [dx, dy] = arrows[key] ?? [0, 0];
+        session.nudge(dx, dy);
       } else if (!mod && !event.shiftKey && !event.altKey && key in TOOL_SHORTCUTS) {
         session.setTool(TOOL_SHORTCUTS[key] as string);
       }
@@ -153,6 +184,7 @@ export function AppShell({ session }: AppShellProps) {
       <div className="app-shell__options">
         <BrushControls session={session} />
         <ColorControls session={session} />
+        <SelectionControls session={session} />
       </div>
 
       <div className="app-shell__body">

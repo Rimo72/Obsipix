@@ -1045,7 +1045,7 @@ V1 Release
   5       Input / Vertical Slice        COMPLETE
   6       Persistence / PNG             COMPLETE
   7       Core Editor                   COMPLETE
-  8       Selection / Transform         NOT STARTED
+  8       Selection / Transform         COMPLETE
   9       Palettes                      NOT STARTED
   10      Animation                     NOT STARTED
   11      Lifecycle / Recovery          NOT STARTED

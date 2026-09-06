@@ -1,0 +1,91 @@
+.resize-dialog__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 45%);
+}
+
+.resize-dialog {
+  width: 260px;
+  padding: 16px;
+  background: var(--obsipix-surface-raised);
+  border: 1px solid var(--obsipix-border);
+  border-radius: 8px;
+  box-shadow: 0 12px 40px rgb(0 0 0 / 50%);
+}
+
+.resize-dialog__tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.resize-dialog__tabs button {
+  flex: 1 1 auto;
+  padding: 5px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--obsipix-text-muted);
+  background: var(--obsipix-surface);
+  border: 1px solid var(--obsipix-border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.resize-dialog__tabs button.is-active {
+  color: var(--obsipix-bg);
+  background: var(--obsipix-accent);
+  border-color: var(--obsipix-accent);
+}
+
+.resize-dialog__hint {
+  margin: 0 0 12px;
+  font-size: 11px;
+  color: var(--obsipix-text-muted);
+}
+
+.resize-dialog__field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--obsipix-text-muted);
+}
+
+.resize-dialog__field input {
+  width: 90px;
+  padding: 4px 6px;
+  font: inherit;
+  color: var(--obsipix-text);
+  background: var(--obsipix-bg);
+  border: 1px solid var(--obsipix-border);
+  border-radius: 4px;
+}
+
+.resize-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.resize-dialog__actions button {
+  padding: 5px 12px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--obsipix-text);
+  background: var(--obsipix-surface);
+  border: 1px solid var(--obsipix-border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.resize-dialog__actions button.is-primary {
+  color: var(--obsipix-bg);
+  background: var(--obsipix-accent);
+  border-color: var(--obsipix-accent);
+}

@@ -19,16 +19,48 @@ export type NewCelKind = 'empty' | 'normal-transparent';
  */
 export class Timeline {
   readonly #ids: IdFactory;
-  readonly #dimensions: Dimensions;
+  #dimensions: Dimensions;
   readonly #frames: Frame[];
   readonly #tags: AnimationTag[] = [];
   #activeFrameId: FrameId;
 
   constructor(ids: IdFactory, dimensions: Dimensions, firstFrame: Frame) {
     this.#ids = ids;
-    this.#dimensions = dimensions;
+    this.#dimensions = { width: dimensions.width, height: dimensions.height };
     this.#frames = [firstFrame];
     this.#activeFrameId = firstFrame.id;
+  }
+
+  /** Update the size new cels are created at (document resize). */
+  setDimensions(dimensions: Dimensions): void {
+    this.#dimensions = { width: dimensions.width, height: dimensions.height };
+  }
+
+  /** Every distinct pixel buffer referenced by any cel, once each. */
+  uniqueBuffers(): PixelBuffer[] {
+    const seen = new Set<PixelBuffer>();
+    for (const frame of this.#frames) {
+      for (const cel of frame.cels()) {
+        const buffer = cel.buffer;
+        if (buffer) {
+          seen.add(buffer);
+        }
+      }
+    }
+    return [...seen];
+  }
+
+  /** Swap every cel's buffer through `map` (document resize keeps linked cels linked). */
+  remapBuffers(map: Map<PixelBuffer, PixelBuffer>): void {
+    for (const frame of this.#frames) {
+      for (const cel of frame.cels()) {
+        const buffer = cel.buffer;
+        const replacement = buffer ? map.get(buffer) : undefined;
+        if (replacement) {
+          cel.replaceBuffer(replacement);
+        }
+      }
+    }
   }
 
   /** Rebuild a timeline from pre-constructed frames (used by the deserializer). */

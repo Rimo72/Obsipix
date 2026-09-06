@@ -2,6 +2,17 @@ import { compositeDocument } from '@core/document/compositeDocument';
 import { createDefaultDocument } from '@core/document/DocumentFactory';
 import type { Document } from '@core/document/Document';
 import {
+  deleteSelectionCommand,
+  deselectCommand,
+  flipCommand,
+  pasteCommand,
+  resizeCanvasCommand,
+  resizeImageCommand,
+  rotateDocumentCommand,
+  rotateSelectionCommand,
+  selectAllCommand,
+} from '@core/document/editCommands';
+import {
   addLayerCommand,
   clearLayerCommand,
   duplicateLayerCommand,
@@ -20,12 +31,20 @@ import type { Command } from '@core/history/Command';
 import { exportPng } from '@core/persistence/png';
 import { parseDocument } from '@core/persistence/parse';
 import { serializeDocument } from '@core/persistence/serialize';
+import { PixelBuffer } from '@core/pixels/PixelBuffer';
 import { DEFAULT_BRUSH, type Brush, type BrushShape } from '@core/tools/Brush';
 import { EraserTool, ERASER_TOOL_ID } from '@core/tools/EraserTool';
 import { EyedropperTool, EYEDROPPER_TOOL_ID } from '@core/tools/EyedropperTool';
 import { FillTool, FILL_TOOL_ID } from '@core/tools/FillTool';
+import { MoveTool, MOVE_TOOL_ID } from '@core/tools/MoveTool';
 import { PencilTool, PENCIL_TOOL_ID } from '@core/tools/PencilTool';
 import type { PointerInput } from '@core/tools/PointerInput';
+import {
+  LassoSelectTool,
+  LASSO_SELECT_TOOL_ID,
+  RectangleSelectTool,
+  RECT_SELECT_TOOL_ID,
+} from '@core/tools/SelectTools';
 import {
   EllipseTool,
   ELLIPSE_TOOL_ID,
@@ -34,11 +53,29 @@ import {
   RectangleTool,
   RECTANGLE_TOOL_ID,
 } from '@core/tools/shapeTools';
+import { flipHorizontal, flipVertical, rotateQuarter, type Quarter } from '@core/tools/transform';
 import type { PreviewStamp, Tool, ToolContext } from '@core/tools/Tool';
-import { BLACK, WHITE, type RGBA } from '@core/types/color';
+import { BLACK, TRANSPARENT, WHITE, type RGBA } from '@core/types/color';
+import type { Dimensions } from '@core/types/geometry';
 import type { LayerId } from '@core/types/ids';
 
 import { Viewport } from '@rendering/Viewport';
+
+interface Float {
+  readonly handle: StrokeHandle;
+  content: PixelBuffer;
+  origin: { x: number; y: number };
+  offset: { x: number; y: number };
+  readonly layerId: LayerId;
+}
+
+export interface FloatPreview {
+  readonly bytes: Uint8ClampedArray;
+  readonly width: number;
+  readonly height: number;
+  readonly x: number;
+  readonly y: number;
+}
 
 export interface EditorSessionOptions {
   readonly document?: Document;
@@ -68,6 +105,8 @@ export class EditorSession {
   #showCheckerboard = true;
 
   #stroke: StrokeHandle | null = null;
+  #float: Float | null = null;
+  #clipboard: PixelBuffer | null = null;
   #fileName: string | null = null;
   #viewSize: { width: number; height: number } | null = null;
 
@@ -84,6 +123,9 @@ export class EditorSession {
       [LINE_TOOL_ID, new LineTool()],
       [RECTANGLE_TOOL_ID, new RectangleTool()],
       [ELLIPSE_TOOL_ID, new EllipseTool()],
+      [RECT_SELECT_TOOL_ID, new RectangleSelectTool()],
+      [LASSO_SELECT_TOOL_ID, new LassoSelectTool()],
+      [MOVE_TOOL_ID, new MoveTool()],
     ]);
   }
 
@@ -150,6 +192,7 @@ export class EditorSession {
   // --- Persistence -------------------------------------------------------
 
   serialize(): Uint8Array {
+    this.#commitFloat();
     return serializeDocument(this.document);
   }
 
@@ -161,28 +204,23 @@ export class EditorSession {
 
   open(bytes: Uint8Array, name: string): void {
     const document = parseDocument(bytes);
-    if (this.#stroke) {
-      this.cancelStroke();
-    }
+    this.#discardInteraction();
     this.history.reset(document);
     this.#fileName = name;
-    this.#preview = null;
     this.fitView();
     this.#emit();
   }
 
   newDocument(): void {
-    if (this.#stroke) {
-      this.cancelStroke();
-    }
+    this.#discardInteraction();
     this.history.reset(createDefaultDocument());
     this.#fileName = null;
-    this.#preview = null;
     this.fitView();
     this.#emit();
   }
 
   exportPngBytes(): Uint8Array {
+    this.#commitFloat();
     return exportPng(this.document);
   }
 
@@ -222,6 +260,14 @@ export class EditorSession {
       setPreview: (preview) => {
         this.#preview = preview;
       },
+      ensureFloat: () => this.#beginFloat(),
+      floatOffset: () => (this.#float ? this.#float.offset : { x: 0, y: 0 }),
+      setFloatOffset: (x, y) => {
+        if (this.#float) {
+          this.#float.offset = { x, y };
+          this.#emit();
+        }
+      },
       requestRender: () => {
         this.#emit();
       },
@@ -229,7 +275,11 @@ export class EditorSession {
   }
 
   setTool(id: string): void {
-    if (!this.#tools.has(id) || id === this.#activeToolId) {
+    if (!this.#tools.has(id)) {
+      return;
+    }
+    this.#commitFloat();
+    if (id === this.#activeToolId) {
       return;
     }
     if (this.#stroke) {
@@ -317,6 +367,10 @@ export class EditorSession {
   pointerDown(input: PointerInput): void {
     const tool = this.#activeTool();
     const pressed = input.buttons.left || input.buttons.right;
+    // Any tool other than Move commits a pending float before it starts.
+    if (tool.id !== MOVE_TOOL_ID) {
+      this.#commitFloat();
+    }
     if (tool.kind === 'stroke' && pressed && this.#stroke === null) {
       this.#stroke = this.history.begin(tool.strokeLabel);
     }
@@ -358,26 +412,263 @@ export class EditorSession {
     this.#emit();
   }
 
+  #discardInteraction(): void {
+    if (this.#stroke) {
+      this.cancelStroke();
+    }
+    this.cancelFloat();
+    this.#preview = null;
+  }
+
+  // --- Floating selection (PROJECT_CORE §3.7) -------------------------
+
+  get hasFloat(): boolean {
+    return this.#float !== null;
+  }
+
+  get floatingPreview(): FloatPreview | null {
+    if (!this.#float) {
+      return null;
+    }
+    const { content, origin, offset } = this.#float;
+    return {
+      bytes: content.toBytes(),
+      width: content.width,
+      height: content.height,
+      x: origin.x + offset.x,
+      y: origin.y + offset.y,
+    };
+  }
+
+  /** Lift the current selection into a float. Returns `false` when there is nothing to lift. */
+  #beginFloat(): boolean {
+    if (this.#float) {
+      return true;
+    }
+    if (this.#stroke) {
+      return false;
+    }
+    const document = this.document;
+    const bounds = document.selection.bounds();
+    if (!bounds || !document.selection.active) {
+      return false;
+    }
+    const layerId = document.layers.activeLayerId;
+    const buffer = document.ensureDrawableBuffer(layerId);
+    const content = PixelBuffer.create(bounds.width, bounds.height);
+    const handle = this.history.begin('Transform');
+    for (let ly = 0; ly < bounds.height; ly += 1) {
+      for (let lx = 0; lx < bounds.width; lx += 1) {
+        const x = bounds.x + lx;
+        const y = bounds.y + ly;
+        if (document.selection.isSelected(x, y)) {
+          content.setPixel(lx, ly, buffer.getPixel(x, y));
+          buffer.setPixel(x, y, TRANSPARENT);
+        }
+      }
+    }
+    this.#float = {
+      handle,
+      content,
+      origin: { x: bounds.x, y: bounds.y },
+      offset: { x: 0, y: 0 },
+      layerId,
+    };
+    this.#emit();
+    return true;
+  }
+
+  #commitFloat(): void {
+    const float = this.#float;
+    if (!float) {
+      return;
+    }
+    this.#float = null;
+    const document = this.document;
+    const buffer = document.ensureDrawableBuffer(float.layerId);
+    const width = document.dimensions.width;
+    const placed = new Set<number>();
+    for (let ly = 0; ly < float.content.height; ly += 1) {
+      for (let lx = 0; lx < float.content.width; lx += 1) {
+        const pixel = float.content.getPixel(lx, ly);
+        const x = float.origin.x + float.offset.x + lx;
+        const y = float.origin.y + float.offset.y + ly;
+        if (pixel.a > 0 && buffer.contains(x, y)) {
+          buffer.setPixel(x, y, pixel);
+          placed.add(y * width + x);
+        }
+      }
+    }
+    document.selection.applyShape((x, y) => placed.has(y * width + x), 'replace');
+    float.handle.commit();
+    this.#emit();
+  }
+
+  commitFloat(): void {
+    this.#commitFloat();
+  }
+
+  cancelFloat(): void {
+    if (!this.#float) {
+      return;
+    }
+    this.#float.handle.cancel();
+    this.#float = null;
+    this.#emit();
+  }
+
+  #transformFloat(transform: (buffer: PixelBuffer) => PixelBuffer): void {
+    const float = this.#float;
+    if (!float) {
+      return;
+    }
+    const before = float.content;
+    const after = transform(before);
+    const centreX = float.origin.x + float.offset.x + (before.width - 1) / 2;
+    const centreY = float.origin.y + float.offset.y + (before.height - 1) / 2;
+    float.content = after;
+    float.origin = {
+      x: Math.round(centreX - (after.width - 1) / 2) - float.offset.x,
+      y: Math.round(centreY - (after.height - 1) / 2) - float.offset.y,
+    };
+    this.#emit();
+  }
+
+  /** Move the float (or lift the selection first) by whole pixels — arrow keys. */
+  nudge(dx: number, dy: number): void {
+    if (!this.#float && !this.#beginFloat()) {
+      return;
+    }
+    if (this.#float) {
+      this.#float.offset = { x: this.#float.offset.x + dx, y: this.#float.offset.y + dy };
+      this.#emit();
+    }
+  }
+
   // --- History & commands -------------------------------------------
 
   runCommand(command: Command): void {
     if (this.#stroke) {
       return;
     }
+    this.#commitFloat();
     this.history.execute(command);
     this.#emit();
   }
 
   undo(): void {
+    this.#commitFloat();
     if (this.history.undo()) {
       this.#emit();
     }
   }
 
   redo(): void {
+    this.#commitFloat();
     if (this.history.redo()) {
       this.#emit();
     }
+  }
+
+  // --- Selection & transform ------------------------------------------
+
+  selectAll(): void {
+    this.runCommand(selectAllCommand());
+  }
+
+  deselect(): void {
+    if (this.#float) {
+      this.#commitFloat();
+    }
+    this.runCommand(deselectCommand());
+  }
+
+  deleteSelection(): void {
+    this.#commitFloat();
+    this.runCommand(deleteSelectionCommand());
+  }
+
+  flip(axis: 'horizontal' | 'vertical'): void {
+    if (this.#float) {
+      this.#transformFloat(axis === 'horizontal' ? flipHorizontal : flipVertical);
+      return;
+    }
+    this.runCommand(flipCommand(axis));
+  }
+
+  rotate(quarter: Quarter): void {
+    if (this.#float) {
+      this.#transformFloat((buffer) => rotateQuarter(buffer, quarter));
+      return;
+    }
+    if (this.document.selection.active) {
+      this.runCommand(rotateSelectionCommand(quarter));
+    } else {
+      this.runCommand(rotateDocumentCommand(quarter));
+    }
+  }
+
+  resizeImage(dimensions: Dimensions): void {
+    this.runCommand(resizeImageCommand(dimensions));
+    this.fitView();
+  }
+
+  resizeCanvas(
+    dimensions: Dimensions,
+    anchorX: 'left' | 'center' | 'right' = 'center',
+    anchorY: 'top' | 'center' | 'bottom' = 'center',
+  ): void {
+    this.runCommand(resizeCanvasCommand(dimensions, anchorX, anchorY));
+    this.fitView();
+  }
+
+  copy(): void {
+    this.#commitFloat();
+    const document = this.document;
+    const source = document.resolveBuffer(document.layers.activeLayerId);
+    if (!source) {
+      return;
+    }
+    const region = document.selection.bounds() ?? {
+      x: 0,
+      y: 0,
+      width: document.dimensions.width,
+      height: document.dimensions.height,
+    };
+    const clip = PixelBuffer.create(region.width, region.height);
+    for (let ly = 0; ly < region.height; ly += 1) {
+      for (let lx = 0; lx < region.width; lx += 1) {
+        const x = region.x + lx;
+        const y = region.y + ly;
+        if (source.contains(x, y) && document.selection.isSelected(x, y)) {
+          clip.setPixel(lx, ly, source.getPixel(x, y));
+        }
+      }
+    }
+    this.#clipboard = clip;
+    this.#emit();
+  }
+
+  cut(): void {
+    this.copy();
+    this.runCommand(deleteSelectionCommand());
+  }
+
+  paste(): void {
+    this.#commitFloat();
+    if (!this.#clipboard) {
+      return;
+    }
+    const { width, height } = this.document.dimensions;
+    const at = {
+      x: Math.max(0, Math.floor((width - this.#clipboard.width) / 2)),
+      y: Math.max(0, Math.floor((height - this.#clipboard.height) / 2)),
+    };
+    this.runCommand(pasteCommand(this.#clipboard, at));
+  }
+
+  get canPaste(): boolean {
+    return this.#clipboard !== null;
   }
 
   // --- Layers --------------------------------------------------------

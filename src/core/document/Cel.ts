@@ -60,6 +60,14 @@ export class Cel {
     return this.#buffer;
   }
 
+  /** Swap the cel's buffer (used by document resize; keeps the cel's type). */
+  replaceBuffer(buffer: PixelBuffer): void {
+    if (this.#type === 'empty' || this.#type === 'hold') {
+      throw new Error(`Cel "${this.id}" (${this.#type}) has no buffer to replace`);
+    }
+    this.#buffer = buffer;
+  }
+
   /** The pixel buffer, asserting the cel actually has one. */
   requireBuffer(): PixelBuffer {
     if (!this.#buffer) {

@@ -25,6 +25,20 @@ export interface GridStyle {
   readonly minZoom: number;
 }
 
+export interface FloatOverlay {
+  readonly bytes: Uint8ClampedArray;
+  readonly width: number;
+  readonly height: number;
+  readonly x: number;
+  readonly y: number;
+}
+
+export interface SelectionOverlay {
+  readonly data: Uint8Array;
+  readonly width: number;
+  readonly height: number;
+}
+
 export interface RenderOptions {
   readonly frameId?: FrameId;
   readonly devicePixelRatio?: number;
@@ -34,6 +48,10 @@ export interface RenderOptions {
   readonly grid?: GridStyle;
   /** Shape-tool preview drawn over the artwork; never part of the document. */
   readonly preview?: readonly PreviewStamp[] | null;
+  /** A floating selection drawn over the artwork (transient — never in the document). */
+  readonly float?: FloatOverlay | null;
+  /** The active selection mask, drawn as marching ants. */
+  readonly selection?: SelectionOverlay | null;
 }
 
 export const DEFAULT_CHECKERBOARD: CheckerboardStyle = {
@@ -129,6 +147,10 @@ export class CanvasRenderer {
       scaledHeight,
     );
 
+    if (options.float) {
+      this.#paintFloat(ctx, options.float, viewport.zoom, originX, originY);
+    }
+
     if (options.showGrid ?? true) {
       this.#paintGrid(
         ctx,
@@ -141,10 +163,94 @@ export class CanvasRenderer {
       );
     }
 
+    if (options.selection) {
+      this.#paintMarchingAnts(ctx, options.selection, viewport.zoom, originX, originY);
+    }
+
     if (options.preview && options.preview.length > 0) {
       this.#paintPreview(ctx, options.preview, viewport.zoom, originX, originY);
     }
 
+    ctx.restore();
+  }
+
+  #paintFloat(
+    ctx: CanvasRenderingContext2D,
+    float: FloatOverlay,
+    zoom: number,
+    originX: number,
+    originY: number,
+  ): void {
+    if (this.#artwork.width < float.width) {
+      this.#artwork.width = float.width;
+    }
+    if (this.#artwork.height < float.height) {
+      this.#artwork.height = float.height;
+    }
+    const image = this.#artworkCtx.createImageData(float.width, float.height);
+    image.data.set(float.bytes);
+    this.#artworkCtx.clearRect(0, 0, this.#artwork.width, this.#artwork.height);
+    this.#artworkCtx.putImageData(image, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(
+      this.#artwork,
+      0,
+      0,
+      float.width,
+      float.height,
+      originX + float.x * zoom,
+      originY + float.y * zoom,
+      float.width * zoom,
+      float.height * zoom,
+    );
+  }
+
+  #paintMarchingAnts(
+    ctx: CanvasRenderingContext2D,
+    selection: SelectionOverlay,
+    zoom: number,
+    originX: number,
+    originY: number,
+  ): void {
+    const { data, width, height } = selection;
+    const at = (x: number, y: number): boolean =>
+      x >= 0 && y >= 0 && x < width && y < height && (data[y * width + x] ?? 0) !== 0;
+
+    ctx.save();
+    ctx.beginPath();
+    for (let y = 0; y < height; y += 1) {
+      for (let x = 0; x < width; x += 1) {
+        if (!at(x, y)) {
+          continue;
+        }
+        const left = originX + x * zoom;
+        const top = originY + y * zoom;
+        if (!at(x, y - 1)) {
+          ctx.moveTo(left, top);
+          ctx.lineTo(left + zoom, top);
+        }
+        if (!at(x, y + 1)) {
+          ctx.moveTo(left, top + zoom);
+          ctx.lineTo(left + zoom, top + zoom);
+        }
+        if (!at(x - 1, y)) {
+          ctx.moveTo(left, top);
+          ctx.lineTo(left, top + zoom);
+        }
+        if (!at(x + 1, y)) {
+          ctx.moveTo(left + zoom, top);
+          ctx.lineTo(left + zoom, top + zoom);
+        }
+      }
+    }
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 3]);
+    ctx.strokeStyle = '#000000';
+    ctx.stroke();
+    ctx.setLineDash([4, 3]);
+    ctx.lineDashOffset = 4;
+    ctx.strokeStyle = '#ffffff';
+    ctx.stroke();
     ctx.restore();
   }
 

@@ -42,12 +42,21 @@ export function CanvasStage({ session }: CanvasStageProps) {
       canvas.style.width = `${String(width)}px`;
       canvas.style.height = `${String(height)}px`;
       const checkerSize = Math.max(4, Math.round(session.viewport.zoom / 2));
+      const selection = session.document.selection;
       renderer.render(session.document, session.viewport, {
         devicePixelRatio: window.devicePixelRatio || 1,
         showGrid: session.showGrid,
         showCheckerboard: session.showCheckerboard,
         checkerboard: { ...DEFAULT_CHECKERBOARD, size: checkerSize },
         preview: session.preview,
+        float: session.floatingPreview,
+        selection: selection.active
+          ? {
+              data: selection.snapshotMask(),
+              width: selection.dimensions.width,
+              height: selection.dimensions.height,
+            }
+          : null,
       });
     };
     const schedule = (): void => {

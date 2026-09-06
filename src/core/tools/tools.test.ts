@@ -60,6 +60,9 @@ function contextFor(
     setPreview: (preview) => {
       context.preview = preview;
     },
+    ensureFloat: () => false,
+    floatOffset: () => ({ x: 0, y: 0 }),
+    setFloatOffset: () => undefined,
     requestRender: () => {
       context.renders += 1;
     },

@@ -4,6 +4,8 @@ interface ObsipixSession {
   viewport: { documentToCanvas(p: { x: number; y: number }): { x: number; y: number } };
   document: {
     layers: { activeLayerId: string };
+    dimensions: { width: number; height: number };
+    selection: { active: boolean };
     resolveBuffer(
       id: string,
     ): { getPixel(x: number, y: number): { r: number; g: number; b: number; a: number } } | null;
@@ -12,6 +14,7 @@ interface ObsipixSession {
   canUndo: boolean;
   canRedo: boolean;
   isDirty: boolean;
+  hasFloat: boolean;
 }
 
 declare global {
