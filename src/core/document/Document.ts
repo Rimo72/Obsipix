@@ -178,6 +178,18 @@ export class Document {
     return this.timeline.resolveBuffer(this.timeline.indexOf(frameId), layerId);
   }
 
+  /**
+   * The buffer that drawing should write to for a layer at a frame (defaults:
+   * the active layer at the active frame). Converts an empty or hold cel to a
+   * normal cel so it can be painted on.
+   */
+  ensureDrawableBuffer(
+    layerId: LayerId = this.layers.activeLayerId,
+    frameId: FrameId = this.timeline.activeFrameId,
+  ): PixelBuffer {
+    return this.timeline.ensureNormalCel(this.timeline.indexOf(frameId), layerId);
+  }
+
   // --- Snapshot -------------------------------------------------------
 
   /** A deep, independent copy — used by History for snapshots. Linked cels stay linked. */

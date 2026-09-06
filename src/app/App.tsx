@@ -1,12 +1,20 @@
+import { useEffect, useState } from 'react';
+
 import { AppShell } from './components/AppShell';
+import { EditorSession } from './EditorSession';
 
 /**
- * Root application component.
- *
- * Phase 0: renders the static editor shell only. It holds no document state and
- * performs no mutations — the Document Model, Commands and Renderer arrive in
- * later phases. React remains presentation only (PROJECT_CORE §4, Rule 3).
+ * Root application component. It owns the single {@link EditorSession}; React
+ * below this point is presentation only (PROJECT_CORE §4, Rule 3).
  */
 export function App() {
-  return <AppShell />;
+  const [session] = useState(() => new EditorSession());
+
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      (globalThis as { __obsipix?: EditorSession }).__obsipix = session;
+    }
+  }, [session]);
+
+  return <AppShell session={session} />;
 }

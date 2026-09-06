@@ -181,6 +181,24 @@ export class Timeline {
   }
 
   /**
+   * The drawable buffer for `layerId` at `frameIndex`. A normal or linked cel
+   * yields its buffer directly; an empty, hold or missing cel becomes a new
+   * normal cel first — seeded from the artwork the frame was already showing.
+   */
+  ensureNormalCel(frameIndex: number, layerId: LayerId): PixelBuffer {
+    const frame = this.frameAt(frameIndex);
+    const existing = frame.getCel(layerId);
+    if (existing && (existing.type === 'normal' || existing.type === 'linked')) {
+      return existing.requireBuffer();
+    }
+    const shown = this.resolveBuffer(frameIndex, layerId);
+    const buffer =
+      shown?.clone() ?? PixelBuffer.create(this.#dimensions.width, this.#dimensions.height);
+    frame.setCel(layerId, Cel.normal(this.#ids.cel(), buffer));
+    return buffer;
+  }
+
+  /**
    * The effective pixel buffer for `layerId` at `frameIndex`, resolving holds
    * back through earlier frames. Returns `null` when nothing is displayed
    * (empty cel, or a hold with no earlier artwork).

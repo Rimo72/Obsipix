@@ -1,16 +1,60 @@
+import { useEffect } from 'react';
+
+import { ERASER_TOOL_ID } from '@core/tools/EraserTool';
+import { PENCIL_TOOL_ID } from '@core/tools/PencilTool';
+
+import type { EditorSession } from '../EditorSession';
+import { useEditorSessionVersion } from '../useEditorSession';
 import { CanvasStage } from './CanvasStage';
 import './AppShell.css';
 
-const TOOLS = ['Pencil', 'Eraser'] as const;
-const ACTIONS = ['Undo', 'Redo', 'Save'] as const;
+const TOOLS: readonly { readonly id: string; readonly label: string; readonly key: string }[] = [
+  { id: PENCIL_TOOL_ID, label: 'Pencil', key: 'B' },
+  { id: ERASER_TOOL_ID, label: 'Eraser', key: 'E' },
+];
 
-/**
- * The editor shell: header, toolbar, canvas stage and status bar.
- *
- * The toolbar controls are inert until the input system and command pipeline
- * are wired in (Coding Phase 5). The canvas already renders the document.
- */
-export function AppShell() {
+interface AppShellProps {
+  readonly session: EditorSession;
+}
+
+/** The editor shell: header, toolbar, canvas stage and status bar. */
+export function AppShell({ session }: AppShellProps) {
+  useEditorSessionVersion(session);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      const mod = event.ctrlKey || event.metaKey;
+      const key = event.key.toLowerCase();
+      if (mod && key === 'z') {
+        event.preventDefault();
+        if (event.shiftKey) {
+          session.redo();
+        } else {
+          session.undo();
+        }
+      } else if (mod && key === 'y') {
+        event.preventDefault();
+        session.redo();
+      } else if (!mod && key === 'b') {
+        session.setTool(PENCIL_TOOL_ID);
+      } else if (!mod && key === 'e') {
+        session.setTool(ERASER_TOOL_ID);
+      } else if (!mod && key === 'x') {
+        session.swapColors();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [session]);
+
+  const { width, height } = session.document.dimensions;
+  const zoomPercent = Math.round(session.viewport.zoom * 100);
+
   return (
     <div className="app-shell">
       <header className="app-shell__header">
@@ -19,28 +63,66 @@ export function AppShell() {
 
       <div className="app-shell__toolbar" role="toolbar" aria-label="Editor tools">
         <div className="app-shell__tool-group" aria-label="Tools">
-          {TOOLS.map((tool) => (
-            <button key={tool} type="button" className="app-shell__button" disabled>
-              {tool}
-            </button>
-          ))}
+          {TOOLS.map((tool) => {
+            const active = session.activeToolId === tool.id;
+            return (
+              <button
+                key={tool.id}
+                type="button"
+                className={
+                  active ? 'app-shell__button app-shell__button--active' : 'app-shell__button'
+                }
+                aria-pressed={active}
+                title={`${tool.label} (${tool.key})`}
+                onClick={() => {
+                  session.setTool(tool.id);
+                }}
+              >
+                {tool.label}
+              </button>
+            );
+          })}
         </div>
-        <div className="app-shell__tool-group" aria-label="Actions">
-          {ACTIONS.map((action) => (
-            <button key={action} type="button" className="app-shell__button" disabled>
-              {action}
-            </button>
-          ))}
+
+        <div className="app-shell__tool-group" aria-label="History">
+          <button
+            type="button"
+            className="app-shell__button"
+            disabled={!session.canUndo}
+            title="Undo (Ctrl+Z)"
+            onClick={() => {
+              session.undo();
+            }}
+          >
+            Undo
+          </button>
+          <button
+            type="button"
+            className="app-shell__button"
+            disabled={!session.canRedo}
+            title="Redo (Ctrl+Shift+Z)"
+            onClick={() => {
+              session.redo();
+            }}
+          >
+            Redo
+          </button>
+          <button type="button" className="app-shell__button" disabled title="Save — Phase 6">
+            Save
+          </button>
         </div>
       </div>
 
       <main className="app-shell__stage" aria-label="Canvas">
-        <CanvasStage />
+        <CanvasStage session={session} />
       </main>
 
       <footer className="app-shell__statusbar">
-        <span data-testid="status-dimensions">32 &times; 32</span>
-        <span data-testid="status-zoom">100%</span>
+        <span data-testid="status-dimensions">
+          {width} &times; {height}
+        </span>
+        <span data-testid="status-zoom">{zoomPercent}%</span>
+        <span data-testid="status-tool">{session.activeToolId}</span>
       </footer>
     </div>
   );

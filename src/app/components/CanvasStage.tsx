@@ -1,21 +1,23 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef, type PointerEvent as ReactPointerEvent } from 'react';
 
 import { CanvasRenderer, DEFAULT_CHECKERBOARD } from '@rendering/CanvasRenderer';
-import { Viewport } from '@rendering/Viewport';
 
-import { buildReferenceDocument } from '../referenceDocument';
+import type { EditorSession } from '../EditorSession';
+import { toPointerInput } from '../pointerAdapter';
 import './CanvasStage.css';
 
 const FIT_PADDING = 24;
+const ZOOM_WHEEL_STEP = 1.15;
 
-/**
- * Displays the document on a `<canvas>`. Phase 4: read-only — it shows a static
- * reference document and re-fits on resize. Interaction arrives in Phase 5.
- */
-export function CanvasStage() {
+interface CanvasStageProps {
+  readonly session: EditorSession;
+}
+
+/** The interactive canvas: renders the document and routes pointer input to the session. */
+export function CanvasStage({ session }: CanvasStageProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const document = useMemo(() => buildReferenceDocument(), []);
+  const panRef = useRef<{ active: boolean; x: number; y: number }>({ active: false, x: 0, y: 0 });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -28,38 +30,126 @@ export function CanvasStage() {
     try {
       renderer = new CanvasRenderer(canvas);
     } catch (error) {
-      // Renderer failures stay isolated from document state (PROJECT_CORE §3.16).
       console.warn('Obsipix: canvas rendering is unavailable', error);
       return;
     }
 
-    const viewport = new Viewport();
-    const draw = (): void => {
+    let frame = 0;
+    const paint = (): void => {
+      frame = 0;
       const rect = container.getBoundingClientRect();
       const width = Math.max(1, Math.floor(rect.width));
       const height = Math.max(1, Math.floor(rect.height));
       canvas.style.width = `${String(width)}px`;
       canvas.style.height = `${String(height)}px`;
-      viewport.fit(width, height, document.dimensions, FIT_PADDING);
-      // one checkerboard square per document pixel so it reads as transparency, not noise
-      const checkerSize = Math.max(4, Math.round(viewport.zoom / 2));
-      renderer.render(document, viewport, {
+      const checkerSize = Math.max(4, Math.round(session.viewport.zoom / 2));
+      renderer.render(session.document, session.viewport, {
         devicePixelRatio: window.devicePixelRatio || 1,
         checkerboard: { ...DEFAULT_CHECKERBOARD, size: checkerSize },
       });
     };
-
-    draw();
-    const observer = new ResizeObserver(draw);
-    observer.observe(container);
-    return () => {
-      observer.disconnect();
+    const schedule = (): void => {
+      if (!frame) {
+        frame = requestAnimationFrame(paint);
+      }
     };
-  }, [document]);
+
+    const fitToContainer = (): void => {
+      const rect = container.getBoundingClientRect();
+      session.viewport.fit(
+        Math.max(1, rect.width),
+        Math.max(1, rect.height),
+        session.document.dimensions,
+        FIT_PADDING,
+      );
+      session.touch();
+    };
+
+    fitToContainer();
+    schedule();
+
+    const unsubscribe = session.subscribe(schedule);
+    const observer = new ResizeObserver(fitToContainer);
+    observer.observe(container);
+
+    const onWheel = (event: WheelEvent): void => {
+      event.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const anchor = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+      const factor = event.deltaY < 0 ? ZOOM_WHEEL_STEP : 1 / ZOOM_WHEEL_STEP;
+      session.viewport.zoomAround(anchor, factor);
+      session.touch();
+    };
+    canvas.addEventListener('wheel', onWheel, { passive: false });
+
+    return () => {
+      unsubscribe();
+      observer.disconnect();
+      canvas.removeEventListener('wheel', onWheel);
+      if (frame) {
+        cancelAnimationFrame(frame);
+      }
+    };
+  }, [session]);
+
+  const getCanvasEl = (): HTMLCanvasElement | null => canvasRef.current;
+
+  const handlePointerDown = (event: ReactPointerEvent<HTMLCanvasElement>): void => {
+    const element = getCanvasEl();
+    if (!element) {
+      return;
+    }
+    element.setPointerCapture(event.pointerId);
+    const input = toPointerInput(event.nativeEvent, element, session.viewport);
+    if (input.buttons.middle) {
+      panRef.current = { active: true, x: event.clientX, y: event.clientY };
+      return;
+    }
+    session.pointerDown(input);
+  };
+
+  const handlePointerMove = (event: ReactPointerEvent<HTMLCanvasElement>): void => {
+    const element = getCanvasEl();
+    if (!element) {
+      return;
+    }
+    if (panRef.current.active) {
+      session.viewport.panBy(event.clientX - panRef.current.x, event.clientY - panRef.current.y);
+      panRef.current = { active: true, x: event.clientX, y: event.clientY };
+      session.touch();
+      return;
+    }
+    session.pointerMove(toPointerInput(event.nativeEvent, element, session.viewport));
+  };
+
+  const endInteraction = (event: ReactPointerEvent<HTMLCanvasElement>): void => {
+    const element = getCanvasEl();
+    if (element?.hasPointerCapture(event.pointerId)) {
+      element.releasePointerCapture(event.pointerId);
+    }
+    if (panRef.current.active) {
+      panRef.current = { active: false, x: 0, y: 0 };
+      return;
+    }
+    if (element) {
+      session.pointerUp(toPointerInput(event.nativeEvent, element, session.viewport));
+    }
+  };
 
   return (
     <div ref={containerRef} className="canvas-stage" data-testid="canvas-stage">
-      <canvas ref={canvasRef} className="canvas-stage__canvas" data-testid="editor-canvas" />
+      <canvas
+        ref={canvasRef}
+        className="canvas-stage__canvas"
+        data-testid="editor-canvas"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={endInteraction}
+        onPointerCancel={endInteraction}
+        onContextMenu={(event) => {
+          event.preventDefault();
+        }}
+      />
     </div>
   );
 }

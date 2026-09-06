@@ -1042,7 +1042,7 @@ V1 Release
   2       Document / Layers             COMPLETE
   3       Commands / History            COMPLETE
   4       Renderer / Coordinates        COMPLETE
-  5       Input / Vertical Slice        NOT STARTED
+  5       Input / Vertical Slice        COMPLETE
   6       Persistence / PNG             NOT STARTED
   7       Core Editor                   NOT STARTED
   8       Selection / Transform         NOT STARTED

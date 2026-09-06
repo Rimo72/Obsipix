@@ -50,6 +50,16 @@
   cursor: not-allowed;
 }
 
+.app-shell__button:not(:disabled) {
+  cursor: pointer;
+}
+
+.app-shell__button--active {
+  color: var(--obsipix-bg);
+  background: var(--obsipix-accent);
+  border-color: var(--obsipix-accent);
+}
+
 .app-shell__stage {
   position: relative;
   min-height: 0;

@@ -15,6 +15,18 @@ export interface Transaction {
   execute(command: Command): CommandResult;
 }
 
+/**
+ * An open interactive edit (a brush stroke). The caller mutates `document`
+ * directly for live feedback, then {@link StrokeHandle.commit}s it as a single
+ * history entry or {@link StrokeHandle.cancel}s it with no trace
+ * (PROJECT_CORE §10 "continuous stroke = one history entry").
+ */
+export interface StrokeHandle {
+  readonly document: Document;
+  commit(): void;
+  cancel(): void;
+}
+
 const DEFAULT_LIMIT = 100;
 
 interface Snapshot {
@@ -38,6 +50,7 @@ export class History {
   readonly #redo: Snapshot[] = [];
   readonly #limit: number;
   #transactionDepth = 0;
+  #strokeOpen = false;
 
   constructor(document: Document, options: HistoryOptions = {}) {
     this.#document = document;
@@ -69,8 +82,22 @@ export class History {
     return this.#undo.length;
   }
 
+  /** True while an interactive stroke is open (see {@link History.begin}). */
+  get isStrokeOpen(): boolean {
+    return this.#strokeOpen;
+  }
+
   #context(): CommandContext {
     return { document: this.#document };
+  }
+
+  #assertIdle(action: string): void {
+    if (this.#strokeOpen) {
+      throw new EditorError('history/stroke-open', `Cannot ${action} while a stroke is open`);
+    }
+    if (this.#transactionDepth > 0) {
+      throw new EditorError('history/in-transaction', `Cannot ${action} inside a transaction`);
+    }
   }
 
   #commit(previous: Document, label: string): void {
@@ -84,12 +111,7 @@ export class History {
 
   /** Execute one command as a single history entry. Rolls back if it throws. */
   execute(command: Command): CommandResult {
-    if (this.#transactionDepth > 0) {
-      throw new EditorError(
-        'history/nested-execute',
-        'Run commands through the transaction context while a transaction is open',
-      );
-    }
+    this.#assertIdle('execute a command');
     const snapshot = this.#document.clone();
     let result: CommandResult;
     try {
@@ -107,6 +129,7 @@ export class History {
    * change it made is discarded and the error propagates (PROJECT_CORE §10).
    */
   transaction(label: string, run: (transaction: Transaction) => void): CommandResult {
+    this.#assertIdle('start a transaction');
     const snapshot = this.#document.clone();
     const affectedLayerIds = new Set<LayerId>();
     const affectedFrameIds = new Set<FrameId>();
@@ -142,8 +165,44 @@ export class History {
     };
   }
 
-  /** Step back one entry. Returns `false` at the start of history. */
+  /**
+   * Open an interactive stroke. The caller mutates the returned handle's
+   * `document` directly (it is the live document) and finishes with
+   * `commit()` — one history entry — or `cancel()` — nothing recorded.
+   */
+  begin(label: string): StrokeHandle {
+    this.#assertIdle('begin a stroke');
+    const snapshot = this.#document.clone();
+    this.#strokeOpen = true;
+    let settled = false;
+    const settle = (): boolean => {
+      if (settled || !this.#strokeOpen) {
+        return false;
+      }
+      settled = true;
+      this.#strokeOpen = false;
+      return true;
+    };
+    return {
+      document: this.#document,
+      commit: () => {
+        if (settle()) {
+          this.#commit(snapshot, label);
+        }
+      },
+      cancel: () => {
+        if (settle()) {
+          this.#document = snapshot;
+        }
+      },
+    };
+  }
+
+  /** Step back one entry. Returns `false` at the start of history or during a stroke. */
   undo(): boolean {
+    if (this.#strokeOpen) {
+      return false;
+    }
     const entry = this.#undo.pop();
     if (!entry) {
       return false;
@@ -153,8 +212,11 @@ export class History {
     return true;
   }
 
-  /** Step forward one entry. Returns `false` when there is nothing to redo. */
+  /** Step forward one entry. Returns `false` when there is nothing to redo or during a stroke. */
   redo(): boolean {
+    if (this.#strokeOpen) {
+      return false;
+    }
     const entry = this.#redo.pop();
     if (!entry) {
       return false;

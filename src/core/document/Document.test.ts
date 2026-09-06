@@ -113,6 +113,41 @@ describe('Document cels', () => {
   });
 });
 
+describe('Document.ensureDrawableBuffer', () => {
+  it('returns the active normal cel buffer directly', () => {
+    const document = newDocument();
+    const direct = document.resolveBuffer(document.layers.activeLayerId);
+    expect(document.ensureDrawableBuffer()).toBe(direct);
+  });
+
+  it('converts an empty cel into a drawable normal cel', () => {
+    const document = newDocument();
+    const layerId = document.layers.activeLayerId;
+    const frameId = document.addEmptyFrame();
+    document.setActiveFrame(frameId);
+
+    const buffer = document.ensureDrawableBuffer();
+    buffer.setPixel(0, 0, BLACK);
+
+    expect(document.timeline.requireFrame(frameId).requireCel(layerId).type).toBe('normal');
+    expect(
+      rgbaEquals(document.resolveBuffer(layerId, frameId)?.getPixel(0, 0) ?? TRANSPARENT, BLACK),
+    ).toBe(true);
+  });
+
+  it('seeds a hold cel from the artwork it was showing', () => {
+    const document = newDocument();
+    const layerId = document.layers.activeLayerId;
+    document.resolveBuffer(layerId)?.setPixel(3, 3, BLACK);
+    const frameId = document.addEmptyFrame();
+    document.holdCel(frameId, layerId);
+    document.setActiveFrame(frameId);
+
+    const buffer = document.ensureDrawableBuffer();
+    expect(rgbaEquals(buffer.getPixel(3, 3), BLACK)).toBe(true);
+  });
+});
+
 describe('Document revision tracking', () => {
   it('is clean when created and dirty after a revision advance', () => {
     const document = newDocument();

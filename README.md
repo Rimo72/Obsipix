@@ -58,10 +58,12 @@ src/
     ├── types/        ids, geometry, color primitives
     ├── pixels/       PixelBuffer — authoritative RGBA pixel store
     ├── document/     Document, layers, frames, cels, selection, invariants
-    ├── history/      Command interface + snapshot-based undo/redo & transactions
+    ├── history/      Command interface + snapshot undo/redo, transactions, strokes
+    ├── tools/        Tool interface, Pencil/Eraser, brush, stroke rasterisation
     └── errors/       EditorError (structured, severity-tagged)
 src/rendering/        browser-facing: Viewport (coordinate transforms),
                       Compositor (flatten layers), CanvasRenderer (layered passes)
+src/app/              React shell, EditorSession, pointer adapter
 tests/
 ├── unit/             standalone unit specs (co-located *.test.ts also allowed)
 └── e2e/              Playwright specs
@@ -78,5 +80,6 @@ Directories are created only when a phase needs them.
 | 2     | Document / Layers           | COMPLETE    |
 | 3     | Commands / History          | COMPLETE    |
 | 4     | Renderer / Coordinates      | COMPLETE    |
-| 5     | Input / Vertical Slice      | NOT STARTED |
-| 6+    | see `OBSIPIX_CODING_PHASES` | NOT STARTED |
+| 5     | Input / Vertical Slice      | COMPLETE    |
+| 6     | Persistence / PNG           | NOT STARTED |
+| 7+    | see `OBSIPIX_CODING_PHASES` | NOT STARTED |

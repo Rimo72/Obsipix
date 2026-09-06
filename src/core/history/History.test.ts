@@ -8,7 +8,7 @@ import { BLACK, TRANSPARENT, rgbaEquals } from '@core/types/color';
 import type { LayerId } from '@core/types/ids';
 
 import { command, mutation } from './Command';
-import { History } from './History';
+import { History, type StrokeHandle } from './History';
 
 function activeLayer(document: Document): LayerId {
   return document.layers.activeLayerId;
@@ -209,5 +209,55 @@ describe('History.clear', () => {
     expect(history.canUndo).toBe(false);
     expect(history.canRedo).toBe(false);
     expect(rgbaEquals(pixel(history, 1, 1), BLACK)).toBe(true);
+  });
+});
+
+describe('History.begin (interactive stroke)', () => {
+  function drawOn(handle: StrokeHandle, x: number, y: number): void {
+    handle.document.resolveBuffer(handle.document.layers.activeLayerId)?.setPixel(x, y, BLACK);
+  }
+
+  it('commits an interactive stroke as one entry', () => {
+    const handle = history.begin('Pencil');
+    drawOn(handle, 0, 0);
+    drawOn(handle, 1, 1);
+    drawOn(handle, 2, 2);
+    handle.commit();
+
+    expect(history.depth).toBe(1);
+    expect(history.undoLabel).toBe('Pencil');
+    expect(history.document.revision).toBe(1);
+
+    history.undo();
+    expect(rgbaEquals(pixel(history, 1, 1), TRANSPARENT)).toBe(true);
+  });
+
+  it('cancel discards every change and records nothing', () => {
+    const handle = history.begin('Pencil');
+    drawOn(handle, 4, 4);
+    handle.cancel();
+
+    expect(history.canUndo).toBe(false);
+    expect(history.document.revision).toBe(0);
+    expect(rgbaEquals(pixel(history, 4, 4), TRANSPARENT)).toBe(true);
+  });
+
+  it('is inert after it has been settled', () => {
+    const handle = history.begin('Pencil');
+    drawOn(handle, 0, 0);
+    handle.commit();
+    handle.cancel(); // no-op
+    handle.commit(); // no-op
+    expect(history.depth).toBe(1);
+  });
+
+  it('blocks execute / undo / begin while a stroke is open', () => {
+    const handle = history.begin('Pencil');
+    expect(() => history.execute(paint(0, 0))).toThrow(EditorError);
+    expect(() => history.begin('Another')).toThrow(EditorError);
+    expect(history.undo()).toBe(false);
+    expect(history.isStrokeOpen).toBe(true);
+    handle.cancel();
+    expect(history.isStrokeOpen).toBe(false);
   });
 });
