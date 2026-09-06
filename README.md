@@ -57,7 +57,9 @@ src/
 └── core/             browser-independent engine
     ├── types/        ids, geometry, color primitives
     ├── pixels/       PixelBuffer — authoritative RGBA pixel store
-    └── document/     Document, layers, frames, cels, selection, invariants
+    ├── document/     Document, layers, frames, cels, selection, invariants
+    ├── history/      Command interface + snapshot-based undo/redo & transactions
+    └── errors/       EditorError (structured, severity-tagged)
 tests/
 ├── unit/             standalone unit specs (co-located *.test.ts also allowed)
 └── e2e/              Playwright specs
@@ -72,5 +74,6 @@ Directories are created only when a phase needs them.
 | 0     | Repository / Foundation     | COMPLETE    |
 | 1     | Pixel Engine                | COMPLETE    |
 | 2     | Document / Layers           | COMPLETE    |
-| 3     | Commands / History          | NOT STARTED |
-| 4+    | see `OBSIPIX_CODING_PHASES` | NOT STARTED |
+| 3     | Commands / History          | COMPLETE    |
+| 4     | Renderer / Coordinates      | NOT STARTED |
+| 5+    | see `OBSIPIX_CODING_PHASES` | NOT STARTED |
