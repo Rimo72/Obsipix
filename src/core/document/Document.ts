@@ -90,9 +90,13 @@ export class Document {
     this.#revision += 1;
   }
 
-  /** Record that the current revision has been persisted. */
-  markSaved(): void {
-    this.#savedRevision = this.#revision;
+  /**
+   * Record which revision is persisted. Defaults to the current revision;
+   * the History layer passes an explicit value so that undoing past a save
+   * point still reports the document as dirty (PROJECT_CORE §8.7).
+   */
+  markSaved(revision: Revision = this.revision): void {
+    this.#savedRevision = revision;
   }
 
   // --- Layers -------------------------------------------------------------

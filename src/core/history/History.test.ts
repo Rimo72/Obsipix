@@ -212,6 +212,50 @@ describe('History.clear', () => {
   });
 });
 
+describe('History dirty / save-point tracking', () => {
+  it('is clean at first and dirty after an edit', () => {
+    expect(history.isDirty).toBe(false);
+    history.execute(paint(1, 1));
+    expect(history.isDirty).toBe(true);
+    expect(history.document.isDirty).toBe(true);
+  });
+
+  it('is clean again after markSaved, and after redoing back to that point', () => {
+    history.execute(paint(1, 1));
+    history.execute(paint(2, 2));
+    history.markSaved();
+    expect(history.isDirty).toBe(false);
+
+    history.undo();
+    expect(history.isDirty).toBe(true); // an earlier state differs from the saved one
+
+    history.redo();
+    expect(history.isDirty).toBe(false); // back at the saved state
+  });
+
+  it('reports dirty when undoing past the save point', () => {
+    history.execute(paint(1, 1)); // rev 1
+    history.markSaved(); // saved at rev 1
+    history.execute(paint(2, 2)); // rev 2, dirty
+    expect(history.isDirty).toBe(true);
+
+    history.undo(); // back to rev 1 == saved
+    expect(history.isDirty).toBe(false);
+
+    history.undo(); // back to rev 0, before the save
+    expect(history.isDirty).toBe(true);
+    expect(history.document.isDirty).toBe(true);
+  });
+
+  it('reset() adopts the new document as the saved state', () => {
+    history.execute(paint(1, 1));
+    expect(history.isDirty).toBe(true);
+    history.reset(createDefaultDocument(createSequentialIdFactory()));
+    expect(history.isDirty).toBe(false);
+    expect(history.canUndo).toBe(false);
+  });
+});
+
 describe('History.begin (interactive stroke)', () => {
   function drawOn(handle: StrokeHandle, x: number, y: number): void {
     handle.document.resolveBuffer(handle.document.layers.activeLayerId)?.setPixel(x, y, BLACK);

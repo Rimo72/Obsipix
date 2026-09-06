@@ -1,87 +1,10 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
-interface ObsipixSession {
-  viewport: { documentToCanvas(p: { x: number; y: number }): { x: number; y: number } };
-  document: {
-    layers: { activeLayerId: string };
-    resolveBuffer(
-      id: string,
-    ): { getPixel(x: number, y: number): { r: number; g: number; b: number; a: number } } | null;
-  };
-  history: { depth: number };
-  canUndo: boolean;
-  canRedo: boolean;
-}
-
-declare global {
-  interface Window {
-    __obsipix?: ObsipixSession;
-  }
-}
-
-async function ready(page: Page): Promise<void> {
-  await page.goto('/');
-  await expect(page.getByTestId('editor-canvas')).toBeVisible();
-  await page.waitForFunction(() => {
-    const canvas = document.querySelector<HTMLCanvasElement>('[data-testid="editor-canvas"]');
-    return !!window.__obsipix && !!canvas && canvas.width > 1;
-  });
-}
-
-function screenForPixel(page: Page, px: number, py: number): Promise<{ x: number; y: number }> {
-  return page.evaluate(
-    ({ px: x, py: y }) => {
-      const session = window.__obsipix;
-      const canvas = document.querySelector<HTMLCanvasElement>('[data-testid="editor-canvas"]');
-      if (!session || !canvas) {
-        throw new Error('session/canvas missing');
-      }
-      const rect = canvas.getBoundingClientRect();
-      const point = session.viewport.documentToCanvas({ x: x + 0.5, y: y + 0.5 });
-      return { x: rect.left + point.x, y: rect.top + point.y };
-    },
-    { px, py },
-  );
-}
-
-function inspect(page: Page): Promise<{
-  depth: number;
-  canUndo: boolean;
-  canRedo: boolean;
-  alpha: Record<number, number>;
-}> {
-  return page.evaluate(() => {
-    const session = window.__obsipix;
-    if (!session) {
-      throw new Error('session missing');
-    }
-    const buffer = session.document.resolveBuffer(session.document.layers.activeLayerId);
-    const alpha: Record<number, number> = {};
-    for (const x of [5, 12, 20]) {
-      alpha[x] = buffer ? buffer.getPixel(x, 5).a : 0;
-    }
-    return {
-      depth: session.history.depth,
-      canUndo: session.canUndo,
-      canRedo: session.canRedo,
-      alpha,
-    };
-  });
-}
-
-async function dragPixels(page: Page, from: [number, number], to: [number, number]): Promise<void> {
-  const start = await screenForPixel(page, from[0], from[1]);
-  const end = await screenForPixel(page, to[0], to[1]);
-  await page.mouse.move(start.x, start.y);
-  await page.mouse.down();
-  await page.mouse.move(end.x, end.y, { steps: 12 });
-  await page.mouse.up();
-}
+import { dragPixels, inspect, open, screenForPixel } from './support';
 
 test.describe('vertical slice', () => {
   test('draw, erase, undo, redo end to end', async ({ page }) => {
-    await page.setViewportSize({ width: 1000, height: 800 });
-    await ready(page);
+    await open(page);
 
     // --- draw a horizontal line across row 5 ---
     await dragPixels(page, [5, 5], [20, 5]);

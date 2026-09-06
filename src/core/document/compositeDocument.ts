@@ -1,7 +1,8 @@
-import type { Document } from '@core/document/Document';
 import { PixelBuffer } from '@core/pixels/PixelBuffer';
 import { rgba } from '@core/types/color';
 import type { FrameId } from '@core/types/ids';
+
+import type { Document } from './Document';
 
 function channel(value: number): number {
   return Math.min(255, Math.max(0, Math.round(value)));

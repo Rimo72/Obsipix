@@ -17,13 +17,13 @@ describe('App shell', () => {
     expect(screen.getByTestId('editor-canvas').tagName).toBe('CANVAS');
   });
 
-  it('starts on the pencil tool with undo/redo disabled', () => {
+  it('starts on the pencil tool with undo/redo disabled and no unsaved changes', () => {
     render(<App />);
     expect(screen.getByRole('button', { name: 'Pencil' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'Eraser' })).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Redo' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+    expect(screen.getByTestId('status-dirty')).toHaveTextContent('saved');
   });
 
   it('switches the active tool when a toolbar button is clicked', () => {

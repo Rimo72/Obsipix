@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { createDefaultDocument } from '@core/document/DocumentFactory';
-import { createSequentialIdFactory } from '@core/document/IdFactory';
-import type { Document } from '@core/document/Document';
 import { BLACK, TRANSPARENT, WHITE, rgba, rgbaEquals } from '@core/types/color';
 
-import { compositeDocument } from './Compositor';
+import { compositeDocument } from './compositeDocument';
+import type { Document } from './Document';
+import { createDefaultDocument } from './DocumentFactory';
+import { createSequentialIdFactory } from './IdFactory';
 
 function newDocument(): Document {
   return createDefaultDocument(createSequentialIdFactory());

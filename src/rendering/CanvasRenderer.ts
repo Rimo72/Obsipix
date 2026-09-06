@@ -1,7 +1,7 @@
+import { compositeDocument } from '@core/document/compositeDocument';
 import type { Document } from '@core/document/Document';
 import type { FrameId } from '@core/types/ids';
 
-import { compositeDocument } from './Compositor';
 import type { Viewport } from './Viewport';
 
 export interface CheckerboardStyle {

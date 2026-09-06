@@ -1,6 +1,9 @@
 import { createDefaultDocument } from '@core/document/DocumentFactory';
 import type { Document } from '@core/document/Document';
 import { History, type StrokeHandle } from '@core/history/History';
+import { exportPng } from '@core/persistence/png';
+import { parseDocument } from '@core/persistence/parse';
+import { serializeDocument } from '@core/persistence/serialize';
 import { DEFAULT_BRUSH, type Brush } from '@core/tools/Brush';
 import { EraserTool, ERASER_TOOL_ID } from '@core/tools/EraserTool';
 import { PencilTool, PENCIL_TOOL_ID } from '@core/tools/PencilTool';
@@ -33,6 +36,7 @@ export class EditorSession {
   #brush: Brush = DEFAULT_BRUSH;
 
   #stroke: StrokeHandle | null = null;
+  #fileName: string | null = null;
   readonly #listeners = new Set<() => void>();
   #version = 0;
 
@@ -46,6 +50,55 @@ export class EditorSession {
 
   get document(): Document {
     return this.history.document;
+  }
+
+  get isDirty(): boolean {
+    return this.history.isDirty;
+  }
+
+  /** The name the project was last saved / opened as, or `null` for an unsaved project. */
+  get fileName(): string | null {
+    return this.#fileName;
+  }
+
+  // --- Persistence (PROJECT_CORE §3.10, §13) ------------------------------
+
+  /** Serialize the current document to `.obsipix` bytes. */
+  serialize(): Uint8Array {
+    return serializeDocument(this.document);
+  }
+
+  /** Record that the project has been saved under `name`. */
+  markSaved(name: string): void {
+    this.history.markSaved();
+    this.#fileName = name;
+    this.#emit();
+  }
+
+  /** Replace the document with one parsed from `bytes`. Throws on a bad file — the current document is untouched. */
+  open(bytes: Uint8Array, name: string): void {
+    const document = parseDocument(bytes);
+    if (this.#stroke) {
+      this.cancelStroke();
+    }
+    this.history.reset(document);
+    this.#fileName = name;
+    this.#emit();
+  }
+
+  /** Discard the current project and start a fresh default document. */
+  newDocument(): void {
+    if (this.#stroke) {
+      this.cancelStroke();
+    }
+    this.history.reset(createDefaultDocument());
+    this.#fileName = null;
+    this.#emit();
+  }
+
+  /** A flattened PNG of the active frame — no editor overlays. */
+  exportPngBytes(): Uint8Array {
+    return exportPng(this.document);
   }
 
   get activeToolId(): string {

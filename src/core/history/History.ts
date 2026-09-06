@@ -1,6 +1,6 @@
 import type { Document } from '@core/document/Document';
 import { EditorError } from '@core/errors/EditorError';
-import type { FrameId, LayerId } from '@core/types/ids';
+import type { FrameId, LayerId, Revision } from '@core/types/ids';
 
 import type { Command, CommandContext, CommandResult } from './Command';
 
@@ -51,14 +51,34 @@ export class History {
   readonly #limit: number;
   #transactionDepth = 0;
   #strokeOpen = false;
+  #savedRevision: number;
 
   constructor(document: Document, options: HistoryOptions = {}) {
     this.#document = document;
     this.#limit = Math.max(1, options.limit ?? DEFAULT_LIMIT);
+    this.#savedRevision = document.revision;
   }
 
   get document(): Document {
     return this.#document;
+  }
+
+  /**
+   * True when the current document differs from the last {@link History.markSaved}
+   * point — correct even after undoing past that point.
+   */
+  get isDirty(): boolean {
+    return this.#document.revision !== this.#savedRevision;
+  }
+
+  /** Mark the current state as the saved one. */
+  markSaved(): void {
+    this.#savedRevision = this.#document.revision;
+    this.#syncSavedRevision();
+  }
+
+  #syncSavedRevision(): void {
+    this.#document.markSaved(this.#savedRevision as Revision);
   }
 
   get canUndo(): boolean {
@@ -107,6 +127,7 @@ export class History {
     }
     this.#redo.length = 0;
     this.#document.advanceRevision();
+    this.#syncSavedRevision();
   }
 
   /** Execute one command as a single history entry. Rolls back if it throws. */
@@ -193,6 +214,7 @@ export class History {
       cancel: () => {
         if (settle()) {
           this.#document = snapshot;
+          this.#syncSavedRevision();
         }
       },
     };
@@ -209,6 +231,7 @@ export class History {
     }
     this.#redo.push({ document: this.#document, label: entry.label });
     this.#document = entry.document;
+    this.#syncSavedRevision();
     return true;
   }
 
@@ -223,6 +246,7 @@ export class History {
     }
     this.#undo.push({ document: this.#document, label: entry.label });
     this.#document = entry.document;
+    this.#syncSavedRevision();
     return true;
   }
 
@@ -230,5 +254,18 @@ export class History {
   clear(): void {
     this.#undo.length = 0;
     this.#redo.length = 0;
+  }
+
+  /**
+   * Swap in a different document and drop all history — for opening a file or
+   * starting a new project. The new document becomes the saved state.
+   */
+  reset(document: Document): void {
+    this.#assertIdle('reset history');
+    this.#document = document;
+    this.#undo.length = 0;
+    this.#redo.length = 0;
+    this.#savedRevision = document.revision;
+    this.#syncSavedRevision();
   }
 }

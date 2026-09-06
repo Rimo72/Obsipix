@@ -1,17 +1,38 @@
 .app-shell {
-  display: grid;
-  grid-template-rows:
-    var(--obsipix-header-height)
-    var(--obsipix-toolbar-height)
-    1fr
-    var(--obsipix-statusbar-height);
+  display: flex;
+  flex-direction: column;
   height: 100%;
   overflow: hidden;
 }
 
 .app-shell__header {
+  height: var(--obsipix-header-height);
+  flex: 0 0 auto;
+}
+
+.app-shell__toolbar {
+  height: var(--obsipix-toolbar-height);
+  flex: 0 0 auto;
+  overflow-x: auto;
+}
+
+.app-shell__stage {
+  flex: 1 1 auto;
+}
+
+.app-shell__error {
+  flex: 0 0 auto;
+}
+
+.app-shell__statusbar {
+  height: var(--obsipix-statusbar-height);
+  flex: 0 0 auto;
+}
+
+.app-shell__header {
   display: flex;
   align-items: center;
+  gap: 12px;
   padding: 0 12px;
   background: var(--obsipix-surface);
   border-bottom: 1px solid var(--obsipix-border);
@@ -20,6 +41,22 @@
 .app-shell__brand {
   font-weight: 600;
   letter-spacing: 0.02em;
+}
+
+.app-shell__title {
+  font-size: 12px;
+  color: var(--obsipix-text-muted);
+}
+
+.app-shell__error {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: #ffb4a8;
+  background: #3a2422;
+  border-top: 1px solid #5a2f2b;
 }
 
 .app-shell__toolbar {

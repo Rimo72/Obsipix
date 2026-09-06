@@ -2,6 +2,7 @@ import { PixelBuffer } from '@core/pixels/PixelBuffer';
 import type { Dimensions } from '@core/types/geometry';
 import type { FrameId, LayerId } from '@core/types/ids';
 
+import type { AnimationTag } from './AnimationTag';
 import { Cel } from './Cel';
 import { Frame } from './Frame';
 import type { IdFactory } from './IdFactory';
@@ -20,6 +21,7 @@ export class Timeline {
   readonly #ids: IdFactory;
   readonly #dimensions: Dimensions;
   readonly #frames: Frame[];
+  readonly #tags: AnimationTag[] = [];
   #activeFrameId: FrameId;
 
   constructor(ids: IdFactory, dimensions: Dimensions, firstFrame: Frame) {
@@ -27,6 +29,53 @@ export class Timeline {
     this.#dimensions = dimensions;
     this.#frames = [firstFrame];
     this.#activeFrameId = firstFrame.id;
+  }
+
+  /** Rebuild a timeline from pre-constructed frames (used by the deserializer). */
+  static restore(
+    ids: IdFactory,
+    dimensions: Dimensions,
+    frames: readonly Frame[],
+    activeFrameId: FrameId,
+    tags: readonly AnimationTag[],
+  ): Timeline {
+    const [first, ...rest] = frames;
+    if (!first) {
+      throw new RangeError('A timeline needs at least one frame');
+    }
+    const timeline = new Timeline(ids, dimensions, first);
+    for (const frame of rest) {
+      timeline.#frames.push(frame);
+    }
+    timeline.#activeFrameId = timeline.has(activeFrameId) ? activeFrameId : first.id;
+    timeline.restoreTags(tags);
+    return timeline;
+  }
+
+  has(frameId: FrameId): boolean {
+    return this.#frames.some((frame) => frame.id === frameId);
+  }
+
+  get tags(): readonly AnimationTag[] {
+    return this.#tags;
+  }
+
+  addTag(tag: Omit<AnimationTag, 'id'>): AnimationTag {
+    const created: AnimationTag = { ...tag, id: this.#ids.animationTag() };
+    this.#tags.push(created);
+    return created;
+  }
+
+  removeTag(id: AnimationTag['id']): void {
+    const index = this.#tags.findIndex((tag) => tag.id === id);
+    if (index >= 0) {
+      this.#tags.splice(index, 1);
+    }
+  }
+
+  /** Replace all tags (used by the deserializer). */
+  restoreTags(tags: readonly AnimationTag[]): void {
+    this.#tags.splice(0, this.#tags.length, ...tags.map((tag) => ({ ...tag })));
   }
 
   get frames(): readonly Frame[] {
@@ -225,6 +274,7 @@ export class Timeline {
       copy.#frames.push(frame.clone(bufferMap));
     }
     copy.#activeFrameId = this.#activeFrameId;
+    copy.restoreTags(this.#tags);
     return copy;
   }
 }
