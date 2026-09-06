@@ -86,5 +86,5 @@ Directories are created only when a phase needs them.
 | 7     | Core Editor Features        | COMPLETE    |
 | 8     | Selection / Transform       | COMPLETE    |
 | 9     | Palettes                    | COMPLETE    |
-| 10    | Animation                   | NOT STARTED |
+| 10    | Animation                   | COMPLETE    |
 | 11+   | see `OBSIPIX_CODING_PHASES` | NOT STARTED |

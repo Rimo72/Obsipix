@@ -102,6 +102,45 @@ describe('Timeline linked cels', () => {
   });
 });
 
+describe('Timeline playback + onion-skin settings', () => {
+  it('defaults to 12 fps and disabled onion skin', () => {
+    const timeline = newTimeline();
+    expect(timeline.playbackFps).toBe(12);
+    expect(timeline.onionSkin).toEqual({
+      enabled: false,
+      previous: 1,
+      next: 1,
+      opacity: 0.4,
+    });
+  });
+
+  it('applyUniformFps sets playbackFps and every frame duration', () => {
+    const timeline = newTimeline();
+    timeline.appendEmptyFrame([LAYER]);
+    timeline.applyUniformFps(10);
+    expect(timeline.playbackFps).toBe(10);
+    expect(timeline.frames.map((frame) => frame.durationMs)).toEqual([100, 100]);
+    expect(timeline.durationMs).toBe(200);
+  });
+
+  it('clamps onion-skin settings to sane ranges', () => {
+    const timeline = newTimeline();
+    timeline.setOnionSkin({ previous: 99, next: -3, opacity: 5 });
+    expect(timeline.onionSkin.previous).toBe(8);
+    expect(timeline.onionSkin.next).toBe(0);
+    expect(timeline.onionSkin.opacity).toBe(1);
+  });
+
+  it('carries playback + onion settings through clone', () => {
+    const timeline = newTimeline();
+    timeline.setPlaybackFps(24);
+    timeline.setOnionSkin({ enabled: true, previous: 3 });
+    const copy = timeline.clone(new Map<PixelBuffer, PixelBuffer>());
+    expect(copy.playbackFps).toBe(24);
+    expect(copy.onionSkin).toEqual({ enabled: true, previous: 3, next: 1, opacity: 0.4 });
+  });
+});
+
 describe('Timeline.clone', () => {
   it('keeps linked cels linked within the copy', () => {
     const timeline = newTimeline();

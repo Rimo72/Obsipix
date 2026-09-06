@@ -10,6 +10,7 @@ import { ColorControls } from './ColorControls';
 import { LayerPanel } from './LayerPanel';
 import { PalettePanel } from './PalettePanel';
 import { SelectionControls } from './SelectionControls';
+import { TimelinePanel } from './TimelinePanel';
 import { ToolRail } from './ToolRail';
 import './AppShell.css';
 
@@ -90,6 +91,15 @@ export function AppShell({ session }: AppShellProps) {
         session.commitFloat();
       } else if (!mod && key === 'escape') {
         session.cancelFloat();
+      } else if (!mod && key === ' ') {
+        event.preventDefault();
+        session.togglePlay();
+      } else if (!mod && key === ',') {
+        event.preventDefault();
+        session.prevFrame();
+      } else if (!mod && key === '.') {
+        event.preventDefault();
+        session.nextFrame();
       } else if (!mod && key in arrows) {
         event.preventDefault();
         const [dx, dy] = arrows[key] ?? [0, 0];
@@ -198,6 +208,8 @@ export function AppShell({ session }: AppShellProps) {
           <PalettePanel session={session} />
         </div>
       </div>
+
+      <TimelinePanel session={session} />
 
       {error !== null && (
         <div className="app-shell__error" role="alert" data-testid="file-error">

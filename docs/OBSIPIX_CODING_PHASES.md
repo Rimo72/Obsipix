@@ -1047,7 +1047,7 @@ V1 Release
   7       Core Editor                   COMPLETE
   8       Selection / Transform         COMPLETE
   9       Palettes                      COMPLETE
-  10      Animation                     NOT STARTED
+  10      Animation                     COMPLETE
   11      Lifecycle / Recovery          NOT STARTED
   12      UI Completion                 NOT STARTED
   13      Hardening                     NOT STARTED

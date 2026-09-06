@@ -56,8 +56,8 @@ cel they link to. Exactly one cel per shared blob is `normal`; the rest are
     ],
     "activeFrameId": "frm_…",
     "tags":      [ { "id", "name", "startFrame", "endFrame", "direction", "color?", "fps?" } ],
-    "playback":  {},   // reserved (Phase 10)
-    "onionSkin": {}    // reserved (Phase 10)
+    "playback":  { "fps?": 12 },
+    "onionSkin": { "enabled?": false, "previous?": 1, "next?": 1, "opacity?": 0.4 }
   },
   "palettes": [ { "id", "name", "colors": [ { "rgba": [r,g,b,a], "name?" } ] } ]
 }

@@ -39,6 +39,17 @@ export interface SelectionOverlay {
   readonly height: number;
 }
 
+/** One flattened neighbour frame drawn as onion skin (transient — never in the document). */
+export interface OnionOverlay {
+  readonly bytes: Uint8ClampedArray;
+  readonly width: number;
+  readonly height: number;
+  /** 0..1 draw opacity. */
+  readonly opacity: number;
+  /** `true` for an earlier frame (drawn behind the artwork), `false` for a later one (drawn over). */
+  readonly before: boolean;
+}
+
 export interface RenderOptions {
   readonly frameId?: FrameId;
   readonly devicePixelRatio?: number;
@@ -50,6 +61,8 @@ export interface RenderOptions {
   readonly preview?: readonly PreviewStamp[] | null;
   /** A floating selection drawn over the artwork (transient — never in the document). */
   readonly float?: FloatOverlay | null;
+  /** Onion-skin neighbour frames (transient — never in the document). */
+  readonly onion?: readonly OnionOverlay[] | null;
   /** The active selection mask, drawn as marching ants. */
   readonly selection?: SelectionOverlay | null;
 }
@@ -135,6 +148,12 @@ export class CanvasRenderer {
       );
     }
 
+    for (const frame of options.onion ?? []) {
+      if (frame.before) {
+        this.#paintOnion(ctx, frame, viewport.zoom, originX, originY);
+      }
+    }
+
     this.#paintArtwork(
       ctx,
       document,
@@ -146,6 +165,12 @@ export class CanvasRenderer {
       scaledWidth,
       scaledHeight,
     );
+
+    for (const frame of options.onion ?? []) {
+      if (!frame.before) {
+        this.#paintOnion(ctx, frame, viewport.zoom, originX, originY);
+      }
+    }
 
     if (options.float) {
       this.#paintFloat(ctx, options.float, viewport.zoom, originX, originY);
@@ -203,6 +228,41 @@ export class CanvasRenderer {
       float.width * zoom,
       float.height * zoom,
     );
+  }
+
+  #paintOnion(
+    ctx: CanvasRenderingContext2D,
+    onion: OnionOverlay,
+    zoom: number,
+    originX: number,
+    originY: number,
+  ): void {
+    if (this.#artwork.width < onion.width) {
+      this.#artwork.width = onion.width;
+    }
+    if (this.#artwork.height < onion.height) {
+      this.#artwork.height = onion.height;
+    }
+    const image = this.#artworkCtx.createImageData(onion.width, onion.height);
+    image.data.set(onion.bytes);
+    this.#artworkCtx.clearRect(0, 0, this.#artwork.width, this.#artwork.height);
+    this.#artworkCtx.putImageData(image, 0, 0);
+
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+    ctx.globalAlpha = Math.max(0, Math.min(1, onion.opacity));
+    ctx.drawImage(
+      this.#artwork,
+      0,
+      0,
+      onion.width,
+      onion.height,
+      originX,
+      originY,
+      onion.width * zoom,
+      onion.height * zoom,
+    );
+    ctx.restore();
   }
 
   #paintMarchingAnts(

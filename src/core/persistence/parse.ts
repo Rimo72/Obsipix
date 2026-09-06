@@ -224,12 +224,24 @@ export function parseDocument(fileBytes: Uint8Array, ids: IdFactory = createIdFa
     return tag;
   });
 
+  const onion = metadata.animation.onionSkin;
   const timeline = Timeline.restore(
     ids,
     dimensions,
     frames,
     brand<FrameId>(metadata.animation.activeFrameId),
     tags,
+    {
+      ...(typeof metadata.animation.playback.fps === 'number'
+        ? { playbackFps: metadata.animation.playback.fps }
+        : {}),
+      onionSkin: {
+        enabled: onion.enabled === true,
+        previous: typeof onion.previous === 'number' ? onion.previous : 1,
+        next: typeof onion.next === 'number' ? onion.next : 1,
+        opacity: typeof onion.opacity === 'number' ? onion.opacity : 0.4,
+      },
+    },
   );
 
   const palettes: Palette[] = metadata.palettes.map((paletteData) => ({

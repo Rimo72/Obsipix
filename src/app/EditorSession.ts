@@ -1,4 +1,5 @@
 import { compositeDocument } from '@core/document/compositeDocument';
+import { onionSkinFrames } from '@core/document/onionFrames';
 import { createDefaultDocument } from '@core/document/DocumentFactory';
 import type { Document } from '@core/document/Document';
 import {
@@ -12,6 +13,23 @@ import {
   rotateSelectionCommand,
   selectAllCommand,
 } from '@core/document/editCommands';
+import {
+  addEmptyFrameCommand,
+  addFrameCommand,
+  addTagCommand,
+  applyFpsCommand,
+  clearCelCommand,
+  deleteFrameCommand,
+  deleteTagCommand,
+  duplicateFrameCommand,
+  holdCelCommand,
+  linkCelCommand,
+  makeCelUniqueCommand,
+  moveFrameCommand,
+  setFrameDurationCommand,
+  updateTagCommand,
+  type TagPatch,
+} from '@core/document/animationCommands';
 import {
   addLayerCommand,
   clearLayerCommand,
@@ -68,7 +86,7 @@ import { flipHorizontal, flipVertical, rotateQuarter, type Quarter } from '@core
 import type { PreviewStamp, Tool, ToolContext } from '@core/tools/Tool';
 import { BLACK, TRANSPARENT, WHITE, rgbaEquals, type RGBA } from '@core/types/color';
 import type { Dimensions } from '@core/types/geometry';
-import type { LayerId, PaletteColorId, PaletteId } from '@core/types/ids';
+import type { AnimationTagId, FrameId, LayerId, PaletteColorId, PaletteId } from '@core/types/ids';
 
 import { Viewport } from '@rendering/Viewport';
 
@@ -122,6 +140,10 @@ export class EditorSession {
   #recentColors: readonly RGBA[] = [];
   #fileName: string | null = null;
   #viewSize: { width: number; height: number } | null = null;
+
+  #playing = false;
+  #playMode: 'loop' | 'once' = 'loop';
+  #playTimer: number | null = null;
 
   readonly #listeners = new Set<() => void>();
   #version = 0;
@@ -439,6 +461,7 @@ export class EditorSession {
   }
 
   #discardInteraction(): void {
+    this.pause();
     if (this.#stroke) {
       this.cancelStroke();
     }
@@ -809,6 +832,213 @@ export class EditorSession {
 
   flatten(): void {
     this.runCommand(flattenCommand());
+  }
+
+  // --- Animation: frames, cels, tags (PROJECT_CORE §3.9) --------------
+
+  addFrame(): void {
+    this.runCommand(addFrameCommand());
+  }
+
+  addEmptyFrame(): void {
+    this.runCommand(addEmptyFrameCommand());
+  }
+
+  duplicateActiveFrame(): void {
+    this.runCommand(duplicateFrameCommand(this.document.timeline.activeFrameId));
+  }
+
+  deleteActiveFrame(): void {
+    if (this.document.timeline.frameCount > 1) {
+      this.runCommand(deleteFrameCommand(this.document.timeline.activeFrameId));
+    }
+  }
+
+  moveFrame(frameId: FrameId, toIndex: number): void {
+    this.runCommand(moveFrameCommand(frameId, toIndex));
+  }
+
+  setFrameDuration(frameId: FrameId, durationMs: number): void {
+    this.runCommand(setFrameDurationCommand(frameId, durationMs));
+  }
+
+  applyFps(fps: number): void {
+    this.runCommand(applyFpsCommand(fps));
+  }
+
+  linkCel(sourceFrameId: FrameId, targetFrameId: FrameId, layerId: LayerId): void {
+    this.runCommand(linkCelCommand(sourceFrameId, targetFrameId, layerId));
+  }
+
+  holdCel(frameId: FrameId, layerId: LayerId): void {
+    this.runCommand(holdCelCommand(frameId, layerId));
+  }
+
+  makeCelUnique(frameId: FrameId, layerId: LayerId): void {
+    this.runCommand(makeCelUniqueCommand(frameId, layerId));
+  }
+
+  clearCel(frameId: FrameId, layerId: LayerId): void {
+    this.runCommand(clearCelCommand(frameId, layerId));
+  }
+
+  addTag(name: string, startFrame: number, endFrame: number): void {
+    this.runCommand(addTagCommand(name, startFrame, endFrame));
+  }
+
+  updateTag(tagId: AnimationTagId, patch: TagPatch): void {
+    this.runCommand(updateTagCommand(tagId, patch));
+  }
+
+  deleteTag(tagId: AnimationTagId): void {
+    this.runCommand(deleteTagCommand(tagId));
+  }
+
+  // --- Onion skin (transient toggle, persisted setting; not undoable) ---
+
+  toggleOnionSkin(): void {
+    this.document.timeline.setOnionSkin({ enabled: !this.document.timeline.onionSkin.enabled });
+    this.#emit();
+  }
+
+  setOnionSkin(patch: Partial<{ previous: number; next: number; opacity: number }>): void {
+    this.document.timeline.setOnionSkin(patch);
+    this.#emit();
+  }
+
+  get onionSkin(): { enabled: boolean; previous: number; next: number; opacity: number } {
+    return { ...this.document.timeline.onionSkin };
+  }
+
+  /** Flattened neighbour frames for the renderer's onion pass; empty while playing. */
+  onionOverlays(): {
+    bytes: Uint8ClampedArray;
+    width: number;
+    height: number;
+    opacity: number;
+    before: boolean;
+  }[] {
+    if (this.#playing) {
+      return [];
+    }
+    return onionSkinFrames(this.document, this.document.timeline.onionSkin).map((frame) => ({
+      bytes: frame.buffer.toBytes(),
+      width: frame.buffer.width,
+      height: frame.buffer.height,
+      opacity: frame.opacity,
+      before: frame.before,
+    }));
+  }
+
+  // --- Playback (transient — never in history or the file) -------------
+
+  get isPlaying(): boolean {
+    return this.#playing;
+  }
+
+  get playMode(): 'loop' | 'once' {
+    return this.#playMode;
+  }
+
+  setPlayMode(mode: 'loop' | 'once'): void {
+    this.#playMode = mode;
+    this.#emit();
+  }
+
+  togglePlay(): void {
+    if (this.#playing) {
+      this.pause();
+    } else {
+      this.play();
+    }
+  }
+
+  play(): void {
+    if (this.#playing || this.document.timeline.frameCount < 2) {
+      return;
+    }
+    this.#commitFloat();
+    this.#playing = true;
+    this.#scheduleNextFrame();
+    this.#emit();
+  }
+
+  pause(): void {
+    if (!this.#playing) {
+      return;
+    }
+    this.#playing = false;
+    if (this.#playTimer !== null) {
+      clearTimeout(this.#playTimer);
+      this.#playTimer = null;
+    }
+    this.#emit();
+  }
+
+  stop(): void {
+    this.pause();
+    this.firstFrame();
+  }
+
+  firstFrame(): void {
+    this.pause();
+    this.document.setActiveFrame(this.document.timeline.frameAt(0).id);
+    this.#emit();
+  }
+
+  lastFrame(): void {
+    this.pause();
+    const timeline = this.document.timeline;
+    this.document.setActiveFrame(timeline.frameAt(timeline.frameCount - 1).id);
+    this.#emit();
+  }
+
+  nextFrame(): void {
+    this.pause();
+    this.#step(1);
+  }
+
+  prevFrame(): void {
+    this.pause();
+    this.#step(-1);
+  }
+
+  #step(delta: number): void {
+    const timeline = this.document.timeline;
+    const index = timeline.indexOf(timeline.activeFrameId);
+    const next = (index + delta + timeline.frameCount) % timeline.frameCount;
+    this.document.setActiveFrame(timeline.frameAt(next).id);
+    this.#emit();
+  }
+
+  /** Hold on the current frame for its duration, then advance (or stop). */
+  #scheduleNextFrame(): void {
+    const durationMs = Math.max(1, this.document.timeline.activeFrame.durationMs);
+    this.#playTimer = window.setTimeout(() => {
+      if (!this.#playing) {
+        return;
+      }
+      if (this.#advancePlayback()) {
+        this.#emit();
+        this.#scheduleNextFrame();
+      } else {
+        this.pause();
+      }
+    }, durationMs);
+  }
+
+  #advancePlayback(): boolean {
+    const timeline = this.document.timeline;
+    const index = timeline.indexOf(timeline.activeFrameId);
+    if (index + 1 >= timeline.frameCount) {
+      if (this.#playMode === 'once') {
+        return false;
+      }
+      this.document.setActiveFrame(timeline.frameAt(0).id);
+      return true;
+    }
+    this.document.setActiveFrame(timeline.frameAt(index + 1).id);
+    return true;
   }
 
   // --- Subscription ------------------------------------------------

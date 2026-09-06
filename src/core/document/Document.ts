@@ -223,9 +223,12 @@ export class Document {
 
   // --- Frames -----------------------------------------------------------
 
+  addFrame(): FrameId {
+    return this.timeline.appendFrame(this.layers.layerIds(), 'normal-transparent').id;
+  }
+
   addEmptyFrame(): FrameId {
-    const frame = this.timeline.appendEmptyFrame(this.layers.layerIds());
-    return frame.id;
+    return this.timeline.appendFrame(this.layers.layerIds(), 'empty').id;
   }
 
   duplicateFrame(frameId: FrameId): FrameId {
@@ -234,6 +237,14 @@ export class Document {
 
   removeFrame(frameId: FrameId): void {
     this.timeline.removeFrame(frameId);
+  }
+
+  moveFrame(frameId: FrameId, toIndex: number): void {
+    this.timeline.moveFrame(frameId, toIndex);
+  }
+
+  setFrameDuration(frameId: FrameId, durationMs: number): void {
+    this.timeline.requireFrame(frameId).setDurationMs(durationMs);
   }
 
   setActiveFrame(frameId: FrameId): void {

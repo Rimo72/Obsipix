@@ -32,6 +32,8 @@ function fingerprint(document: Document): unknown {
         };
       }),
     })),
+    playbackFps: document.timeline.playbackFps,
+    onionSkin: { ...document.timeline.onionSkin },
     tags: document.timeline.tags.map((tag) => ({
       name: tag.name,
       startFrame: tag.startFrame,
@@ -79,6 +81,10 @@ function buildRichDocument(): Document {
   const frame3 = document.addEmptyFrame();
   document.linkCel(frame1, frame3, overlay);
   document.holdCel(frame3, hidden);
+
+  // playback + onion-skin settings
+  document.timeline.setPlaybackFps(15);
+  document.timeline.setOnionSkin({ enabled: true, previous: 2, next: 3, opacity: 0.6 });
 
   // a tag
   document.timeline.addTag({

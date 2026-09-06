@@ -105,8 +105,13 @@ export function serializeDocument(document: Document): Uint8Array {
           : {}),
         ...(tag.fps !== undefined ? { fps: tag.fps } : {}),
       })),
-      playback: {},
-      onionSkin: {},
+      playback: { fps: document.timeline.playbackFps },
+      onionSkin: {
+        enabled: document.timeline.onionSkin.enabled,
+        previous: document.timeline.onionSkin.previous,
+        next: document.timeline.onionSkin.next,
+        opacity: document.timeline.onionSkin.opacity,
+      },
     },
     palettes: document.palettes.map((palette) => ({
       id: palette.id,

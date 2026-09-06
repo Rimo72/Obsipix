@@ -50,6 +50,7 @@ export function CanvasStage({ session }: CanvasStageProps) {
         checkerboard: { ...DEFAULT_CHECKERBOARD, size: checkerSize },
         preview: session.preview,
         float: session.floatingPreview,
+        onion: session.onionOverlays(),
         selection: selection.active
           ? {
               data: selection.snapshotMask(),

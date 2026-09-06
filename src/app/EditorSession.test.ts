@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { selectRectCommand } from '@core/document/editCommands';
 import { ERASER_TOOL_ID } from '@core/tools/EraserTool';
@@ -204,5 +204,125 @@ describe('EditorSession selection & float', () => {
     session.setTool(ERASER_TOOL_ID);
     expect(session.hasFloat).toBe(false);
     expect(rgbaEquals(pixel(session, 9, 5), BLACK)).toBe(true);
+  });
+});
+
+describe('EditorSession animation', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function threeFrames(): EditorSession {
+    const session = new EditorSession();
+    session.addFrame();
+    session.addFrame();
+    session.firstFrame();
+    return session;
+  }
+
+  it('frame commands add history entries and update the active frame', () => {
+    const session = new EditorSession();
+    expect(session.document.timeline.frameCount).toBe(1);
+
+    session.addFrame();
+    expect(session.document.timeline.frameCount).toBe(2);
+    expect(session.history.depth).toBe(1);
+
+    session.duplicateActiveFrame();
+    expect(session.document.timeline.frameCount).toBe(3);
+
+    session.deleteActiveFrame();
+    expect(session.document.timeline.frameCount).toBe(2);
+
+    session.undo();
+    expect(session.document.timeline.frameCount).toBe(3);
+  });
+
+  it('never deletes the last remaining frame', () => {
+    const session = new EditorSession();
+    session.deleteActiveFrame();
+    expect(session.document.timeline.frameCount).toBe(1);
+    expect(session.history.depth).toBe(0);
+  });
+
+  it('step navigation wraps and stays within the frame list', () => {
+    const session = threeFrames();
+    const ids = session.document.timeline.frames.map((frame) => frame.id);
+
+    expect(session.document.timeline.activeFrameId).toBe(ids[0]);
+    session.nextFrame();
+    expect(session.document.timeline.activeFrameId).toBe(ids[1]);
+    session.prevFrame();
+    session.prevFrame();
+    expect(session.document.timeline.activeFrameId).toBe(ids[2]); // wrapped
+    session.lastFrame();
+    expect(session.document.timeline.activeFrameId).toBe(ids[2]);
+    session.firstFrame();
+    expect(session.document.timeline.activeFrameId).toBe(ids[0]);
+  });
+
+  it('play requires at least two frames and toggles isPlaying', () => {
+    const single = new EditorSession();
+    single.play();
+    expect(single.isPlaying).toBe(false);
+
+    const session = threeFrames();
+    session.play();
+    expect(session.isPlaying).toBe(true);
+    session.pause();
+    expect(session.isPlaying).toBe(false);
+  });
+
+  it('advances frames during playback and loops', () => {
+    vi.useFakeTimers();
+    const session = threeFrames();
+    session.applyFps(20); // 50ms per frame
+    const ids = session.document.timeline.frames.map((frame) => frame.id);
+
+    session.play();
+    vi.advanceTimersByTime(50);
+    expect(session.document.timeline.activeFrameId).toBe(ids[1]);
+    vi.advanceTimersByTime(50);
+    expect(session.document.timeline.activeFrameId).toBe(ids[2]);
+    vi.advanceTimersByTime(50);
+    expect(session.document.timeline.activeFrameId).toBe(ids[0]); // looped
+    expect(session.isPlaying).toBe(true);
+
+    session.pause();
+  });
+
+  it('play-once stops at the final frame', () => {
+    vi.useFakeTimers();
+    const session = threeFrames();
+    session.applyFps(20);
+    session.setPlayMode('once');
+    const ids = session.document.timeline.frames.map((frame) => frame.id);
+
+    session.play();
+    vi.advanceTimersByTime(500);
+    expect(session.document.timeline.activeFrameId).toBe(ids[2]);
+    expect(session.isPlaying).toBe(false);
+  });
+
+  it('onion overlays are exposed when enabled and suppressed while playing', () => {
+    const session = threeFrames();
+    expect(session.onionOverlays()).toEqual([]);
+
+    session.nextFrame(); // middle frame
+    session.toggleOnionSkin();
+    expect(session.onionSkin.enabled).toBe(true);
+    expect(session.onionOverlays().length).toBe(2);
+
+    session.play();
+    expect(session.onionOverlays()).toEqual([]);
+    session.pause();
+  });
+
+  it('onion-skin toggling is not an undoable command', () => {
+    const session = threeFrames();
+    const depth = session.history.depth;
+    session.toggleOnionSkin();
+    session.setOnionSkin({ previous: 3 });
+    expect(session.history.depth).toBe(depth);
   });
 });

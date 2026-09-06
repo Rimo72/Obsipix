@@ -4,8 +4,11 @@ import type { FrameId, LayerId } from '@core/types/ids';
 
 import type { AnimationTag } from './AnimationTag';
 import { Cel } from './Cel';
-import { Frame } from './Frame';
+import { DEFAULT_FRAME_DURATION_MS, Frame } from './Frame';
+import { DEFAULT_ONION_SKIN, type OnionSkinSettings } from './OnionSkin';
 import type { IdFactory } from './IdFactory';
+
+export const DEFAULT_PLAYBACK_FPS = 12;
 
 /** How a fresh cel should be created when a layer column is added. */
 export type NewCelKind = 'empty' | 'normal-transparent';
@@ -23,12 +26,52 @@ export class Timeline {
   readonly #frames: Frame[];
   readonly #tags: AnimationTag[] = [];
   #activeFrameId: FrameId;
+  #playbackFps = DEFAULT_PLAYBACK_FPS;
+  #onionSkin: OnionSkinSettings = { ...DEFAULT_ONION_SKIN };
 
   constructor(ids: IdFactory, dimensions: Dimensions, firstFrame: Frame) {
     this.#ids = ids;
     this.#dimensions = { width: dimensions.width, height: dimensions.height };
     this.#frames = [firstFrame];
     this.#activeFrameId = firstFrame.id;
+  }
+
+  // --- Playback / onion-skin settings (persisted, PROJECT_CORE §13.6) -----
+
+  get playbackFps(): number {
+    return this.#playbackFps;
+  }
+
+  setPlaybackFps(fps: number): void {
+    if (Number.isFinite(fps) && fps > 0) {
+      this.#playbackFps = fps;
+    }
+  }
+
+  get onionSkin(): Readonly<OnionSkinSettings> {
+    return this.#onionSkin;
+  }
+
+  setOnionSkin(patch: Partial<OnionSkinSettings>): void {
+    const next = { ...this.#onionSkin, ...patch };
+    next.previous = Math.max(0, Math.min(8, Math.round(next.previous)));
+    next.next = Math.max(0, Math.min(8, Math.round(next.next)));
+    next.opacity = Math.max(0.05, Math.min(1, next.opacity));
+    this.#onionSkin = next;
+  }
+
+  /** Total run time of the animation in milliseconds. */
+  get durationMs(): number {
+    return this.#frames.reduce((total, frame) => total + frame.durationMs, 0);
+  }
+
+  /** Set every frame's duration from a frames-per-second value. */
+  applyUniformFps(fps: number): void {
+    this.setPlaybackFps(fps);
+    const durationMs = Math.max(1, Math.round(1000 / fps));
+    for (const frame of this.#frames) {
+      frame.setDurationMs(durationMs);
+    }
   }
 
   /** Update the size new cels are created at (document resize). */
@@ -70,6 +113,7 @@ export class Timeline {
     frames: readonly Frame[],
     activeFrameId: FrameId,
     tags: readonly AnimationTag[],
+    settings?: { readonly playbackFps?: number; readonly onionSkin?: OnionSkinSettings },
   ): Timeline {
     const [first, ...rest] = frames;
     if (!first) {
@@ -81,6 +125,12 @@ export class Timeline {
     }
     timeline.#activeFrameId = timeline.has(activeFrameId) ? activeFrameId : first.id;
     timeline.restoreTags(tags);
+    if (settings?.playbackFps !== undefined) {
+      timeline.setPlaybackFps(settings.playbackFps);
+    }
+    if (settings?.onionSkin) {
+      timeline.setOnionSkin(settings.onionSkin);
+    }
     return timeline;
   }
 
@@ -96,6 +146,16 @@ export class Timeline {
     const created: AnimationTag = { ...tag, id: this.#ids.animationTag() };
     this.#tags.push(created);
     return created;
+  }
+
+  updateTag(id: AnimationTag['id'], patch: Partial<Omit<AnimationTag, 'id'>>): void {
+    const tag = this.#tags.find((entry) => entry.id === id);
+    if (!tag) {
+      return;
+    }
+    Object.assign(tag, patch);
+    tag.startFrame = Math.max(0, Math.min(tag.startFrame, this.#frames.length - 1));
+    tag.endFrame = Math.max(tag.startFrame, Math.min(tag.endFrame, this.#frames.length - 1));
   }
 
   removeTag(id: AnimationTag['id']): void {
@@ -161,14 +221,19 @@ export class Timeline {
     );
   }
 
-  /** Append a blank frame with an empty cel for each layer. */
-  appendEmptyFrame(layerIds: readonly LayerId[]): Frame {
-    const frame = new Frame(this.#ids.frame());
+  /** Append a frame with a fresh cel of `kind` for each layer. */
+  appendFrame(layerIds: readonly LayerId[], kind: NewCelKind = 'empty'): Frame {
+    const frame = new Frame(this.#ids.frame(), DEFAULT_FRAME_DURATION_MS);
     for (const layerId of layerIds) {
-      frame.setCel(layerId, Cel.empty(this.#ids.cel()));
+      frame.setCel(layerId, this.#newCel(kind));
     }
     this.#frames.push(frame);
     return frame;
+  }
+
+  /** Append a blank frame with an empty cel for each layer. */
+  appendEmptyFrame(layerIds: readonly LayerId[]): Frame {
+    return this.appendFrame(layerIds, 'empty');
   }
 
   /**
@@ -307,6 +372,8 @@ export class Timeline {
     }
     copy.#activeFrameId = this.#activeFrameId;
     copy.restoreTags(this.#tags);
+    copy.#playbackFps = this.#playbackFps;
+    copy.#onionSkin = { ...this.#onionSkin };
     return copy;
   }
 }

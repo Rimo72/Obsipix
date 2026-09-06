@@ -10,9 +10,19 @@ interface ObsipixSession {
     activePaletteId: string | null;
     resolveBuffer(
       id: string,
+      frameId?: string,
     ): { getPixel(x: number, y: number): { r: number; g: number; b: number; a: number } } | null;
+    timeline: {
+      frameCount: number;
+      activeFrameId: string;
+      playbackFps: number;
+      frames: readonly { id: string; durationMs: number }[];
+      indexOf(id: string): number;
+    };
   };
   history: { depth: number };
+  isPlaying: boolean;
+  firstFrame(): void;
   foreground: { r: number; g: number; b: number; a: number };
   background: { r: number; g: number; b: number; a: number };
   recentColors: readonly { r: number; g: number; b: number; a: number }[];

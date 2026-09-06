@@ -91,9 +91,13 @@ export interface ObsipixMetadata {
     readonly frames: readonly ObsipixFrameData[];
     readonly activeFrameId: string;
     readonly tags: readonly ObsipixTagData[];
-    /** Reserved for Phase 10 playback / onion-skin settings. */
-    readonly playback: Readonly<Record<string, unknown>>;
-    readonly onionSkin: Readonly<Record<string, unknown>>;
+    readonly playback: { readonly fps?: number };
+    readonly onionSkin: {
+      readonly enabled?: boolean;
+      readonly previous?: number;
+      readonly next?: number;
+      readonly opacity?: number;
+    };
   };
   readonly palettes: readonly ObsipixPaletteData[];
 }
