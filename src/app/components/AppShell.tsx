@@ -1,13 +1,14 @@
+import { CanvasStage } from './CanvasStage';
 import './AppShell.css';
 
 const TOOLS = ['Pencil', 'Eraser'] as const;
 const ACTIONS = ['Undo', 'Redo', 'Save'] as const;
 
 /**
- * The static editor shell: header, toolbar, canvas stage and status bar.
+ * The editor shell: header, toolbar, canvas stage and status bar.
  *
- * Every control here is inert in Phase 0. Wiring happens once the input system
- * and command pipeline exist (Coding Phases 3 & 5).
+ * The toolbar controls are inert until the input system and command pipeline
+ * are wired in (Coding Phase 5). The canvas already renders the document.
  */
 export function AppShell() {
   return (
@@ -34,7 +35,7 @@ export function AppShell() {
       </div>
 
       <main className="app-shell__stage" aria-label="Canvas">
-        <div className="app-shell__canvas-placeholder">Canvas</div>
+        <CanvasStage />
       </main>
 
       <footer className="app-shell__statusbar">

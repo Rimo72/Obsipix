@@ -1041,7 +1041,7 @@ V1 Release
   1       Pixel Engine                  COMPLETE
   2       Document / Layers             COMPLETE
   3       Commands / History            COMPLETE
-  4       Renderer / Coordinates        NOT STARTED
+  4       Renderer / Coordinates        COMPLETE
   5       Input / Vertical Slice        NOT STARTED
   6       Persistence / PNG             NOT STARTED
   7       Core Editor                   NOT STARTED

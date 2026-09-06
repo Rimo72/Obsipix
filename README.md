@@ -60,6 +60,8 @@ src/
     ├── document/     Document, layers, frames, cels, selection, invariants
     ├── history/      Command interface + snapshot-based undo/redo & transactions
     └── errors/       EditorError (structured, severity-tagged)
+src/rendering/        browser-facing: Viewport (coordinate transforms),
+                      Compositor (flatten layers), CanvasRenderer (layered passes)
 tests/
 ├── unit/             standalone unit specs (co-located *.test.ts also allowed)
 └── e2e/              Playwright specs
@@ -75,5 +77,6 @@ Directories are created only when a phase needs them.
 | 1     | Pixel Engine                | COMPLETE    |
 | 2     | Document / Layers           | COMPLETE    |
 | 3     | Commands / History          | COMPLETE    |
-| 4     | Renderer / Coordinates      | NOT STARTED |
-| 5+    | see `OBSIPIX_CODING_PHASES` | NOT STARTED |
+| 4     | Renderer / Coordinates      | COMPLETE    |
+| 5     | Input / Vertical Slice      | NOT STARTED |
+| 6+    | see `OBSIPIX_CODING_PHASES` | NOT STARTED |

@@ -27,6 +27,7 @@
     "baseUrl": ".",
     "paths": {
       "@core/*": ["src/core/*"],
+      "@rendering/*": ["src/rendering/*"],
       "@app/*": ["src/app/*"],
       "@editor/*": ["src/editor/*"],
       "@infrastructure/*": ["src/infrastructure/*"]
