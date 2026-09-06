@@ -149,6 +149,7 @@ export class EditorSession {
   #playing = false;
   #playMode: 'loop' | 'once' = 'loop';
   #playTimer: number | null = null;
+  #cursor: { x: number; y: number } | null = null;
 
   readonly #listeners = new Set<() => void>();
   #version = 0;
@@ -485,6 +486,23 @@ export class EditorSession {
 
   pointerMove(input: PointerInput): void {
     this.#activeTool().onPointerMove(input, this.#context());
+    const { x, y } = input.pixel;
+    if (!this.#cursor || this.#cursor.x !== x || this.#cursor.y !== y) {
+      this.#cursor = { x, y };
+      this.#emit();
+    }
+  }
+
+  /** Last known pointer position in document pixels, or `null` when off-canvas. */
+  get cursor(): { readonly x: number; readonly y: number } | null {
+    return this.#cursor;
+  }
+
+  clearCursor(): void {
+    if (this.#cursor) {
+      this.#cursor = null;
+      this.#emit();
+    }
   }
 
   pointerUp(input: PointerInput): void {

@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 
 import { expect, test } from '@playwright/test';
 
-import { dragPixels, inspect, open } from './support';
+import { dragPixels, inspect, menuAction, open } from './support';
 
 test.describe('persistence', () => {
   test('save an .obsipix project and reopen it with the artwork intact', async ({ page }) => {
@@ -16,7 +16,7 @@ test.describe('persistence', () => {
 
     // --- save ---
     const downloadPromise = page.waitForEvent('download');
-    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await menuAction(page, 'File', 'Save');
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toMatch(/\.obsipix$/);
     const savedPath = await download.path();
@@ -39,7 +39,7 @@ test.describe('persistence', () => {
         buffer: bytes,
       });
     });
-    await page.getByRole('button', { name: 'Open', exact: true }).click();
+    await menuAction(page, 'File', 'Open…');
 
     await page.waitForFunction(() => {
       const session = window.__obsipix;
@@ -71,9 +71,9 @@ test.describe('persistence', () => {
         buffer: Buffer.from('OBSIPIX\0 not a real file at all'),
       });
     });
-    await page.getByRole('button', { name: 'Open', exact: true }).click();
+    await menuAction(page, 'File', 'Open…');
 
-    await expect(page.getByTestId('file-error')).toBeVisible();
+    await expect(page.getByTestId('toast')).toHaveAttribute('data-level', 'error');
     // current artwork is untouched
     const after = await inspect(page, [8]);
     expect(after.alpha[8]).toBeGreaterThan(0);

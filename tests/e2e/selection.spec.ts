@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { dragPixels, open, screenForPixel } from './support';
+import { dragPixels, menuAction, open, screenForPixel } from './support';
 
 function alphaAt(page: Page, x: number, y: number): Promise<number> {
   return page.evaluate(
@@ -74,8 +74,8 @@ test.describe('selection and transform', () => {
 
   test('canvas resize changes the reported dimensions', async ({ page }) => {
     await open(page);
-    await page.getByRole('button', { name: 'Resize…' }).click();
-    await page.getByRole('dialog').getByRole('button', { name: 'Canvas size' }).click();
+    await menuAction(page, 'Image', 'Resize…');
+    await page.getByRole('dialog').getByRole('tab', { name: 'Canvas size' }).click();
 
     const widthField = page.getByRole('dialog').getByLabel('Width');
     await widthField.fill('48');

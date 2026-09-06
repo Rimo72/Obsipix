@@ -1,36 +1,46 @@
-import { useState } from 'react';
-
 import type { EditorSession } from '../EditorSession';
-import { ResizeDialog } from './ResizeDialog';
 import './SelectionControls.css';
 
 interface SelectionControlsProps {
   readonly session: EditorSession;
 }
 
+/**
+ * Context-sensitive controls for the options bar (PROJECT_CORE §17): float
+ * actions while a selection is lifted, selection actions while one is active,
+ * and the transform actions otherwise.
+ */
 export function SelectionControls({ session }: SelectionControlsProps) {
-  const [resizing, setResizing] = useState<'image' | 'canvas' | null>(null);
-  const hasSelection = session.document.selection.active;
+  const selection = session.document.selection;
+  const bounds = selection.bounds();
+  const floating = session.hasFloat;
 
   return (
     <div className="selection-controls" aria-label="Selection and transform">
-      <button
-        type="button"
-        onClick={() => {
-          session.selectAll();
-        }}
-      >
-        All
-      </button>
-      <button
-        type="button"
-        disabled={!hasSelection}
-        onClick={() => {
-          session.deselect();
-        }}
-      >
-        None
-      </button>
+      {floating ? (
+        <span className="selection-controls__label">Floating selection</span>
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              session.selectAll();
+            }}
+          >
+            All
+          </button>
+          <button
+            type="button"
+            disabled={!selection.active}
+            onClick={() => {
+              session.deselect();
+            }}
+          >
+            None
+          </button>
+        </>
+      )}
+
       <button
         type="button"
         title="Flip horizontal"
@@ -52,6 +62,7 @@ export function SelectionControls({ session }: SelectionControlsProps) {
       <button
         type="button"
         title="Rotate 90° counter-clockwise"
+        aria-label="Rotate counter-clockwise"
         onClick={() => {
           session.rotate('ccw');
         }}
@@ -61,39 +72,50 @@ export function SelectionControls({ session }: SelectionControlsProps) {
       <button
         type="button"
         title="Rotate 90° clockwise"
+        aria-label="Rotate clockwise"
         onClick={() => {
           session.rotate('cw');
         }}
       >
         &#8635;
       </button>
-      <button
-        type="button"
-        disabled={!hasSelection}
-        onClick={() => {
-          session.deleteSelection();
-        }}
-      >
-        Delete
-      </button>
-      <button
-        type="button"
-        onClick={() => {
-          setResizing('image');
-        }}
-      >
-        Resize&hellip;
-      </button>
 
-      {resizing !== null && (
-        <ResizeDialog
-          mode={resizing}
-          session={session}
-          onClose={() => {
-            setResizing(null);
+      {floating ? (
+        <>
+          <button
+            type="button"
+            className="selection-controls__primary"
+            onClick={() => {
+              session.commitFloat();
+            }}
+          >
+            Commit
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              session.cancelFloat();
+            }}
+          >
+            Cancel
+          </button>
+        </>
+      ) : (
+        <button
+          type="button"
+          disabled={!selection.active}
+          onClick={() => {
+            session.deleteSelection();
           }}
-          onModeChange={setResizing}
-        />
+        >
+          Delete
+        </button>
+      )}
+
+      {bounds && !floating && (
+        <span className="selection-controls__readout" data-testid="selection-size">
+          {bounds.width} × {bounds.height}
+        </span>
       )}
     </div>
   );

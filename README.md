@@ -74,18 +74,19 @@ Directories are created only when a phase needs them.
 
 ## Phase status
 
-| Phase | Area                        | Status      |
-| ----- | --------------------------- | ----------- |
-| 0     | Repository / Foundation     | COMPLETE    |
-| 1     | Pixel Engine                | COMPLETE    |
-| 2     | Document / Layers           | COMPLETE    |
-| 3     | Commands / History          | COMPLETE    |
-| 4     | Renderer / Coordinates      | COMPLETE    |
-| 5     | Input / Vertical Slice      | COMPLETE    |
-| 6     | Persistence / PNG           | COMPLETE    |
-| 7     | Core Editor Features        | COMPLETE    |
-| 8     | Selection / Transform       | COMPLETE    |
-| 9     | Palettes                    | COMPLETE    |
-| 10    | Animation                   | COMPLETE    |
+| Phase | Area                         | Status      |
+| ----- | ---------------------------- | ----------- |
+| 0     | Repository / Foundation      | COMPLETE    |
+| 1     | Pixel Engine                 | COMPLETE    |
+| 2     | Document / Layers            | COMPLETE    |
+| 3     | Commands / History           | COMPLETE    |
+| 4     | Renderer / Coordinates       | COMPLETE    |
+| 5     | Input / Vertical Slice       | COMPLETE    |
+| 6     | Persistence / PNG            | COMPLETE    |
+| 7     | Core Editor Features         | COMPLETE    |
+| 8     | Selection / Transform        | COMPLETE    |
+| 9     | Palettes                     | COMPLETE    |
+| 10    | Animation                    | COMPLETE    |
 | 11    | Lifecycle / Recovery / Input | COMPLETE    |
-| 12+   | see `OBSIPIX_CODING_PHASES` | NOT STARTED |
+| 12    | UI Completion                | COMPLETE    |
+| 13+   | see `OBSIPIX_CODING_PHASES`  | NOT STARTED |

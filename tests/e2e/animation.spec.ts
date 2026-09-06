@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 
 import { expect, test } from '@playwright/test';
 
-import { dragPixels, open } from './support';
+import { dragPixels, menuAction, open } from './support';
 
 function frameAlpha(
   page: import('@playwright/test').Page,
@@ -47,7 +47,7 @@ test.describe('animation', () => {
 
     // --- save ---
     const downloadPromise = page.waitForEvent('download');
-    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await menuAction(page, 'File', 'Save');
     const download = await downloadPromise;
     const bytes = await readFile(await download.path());
 
@@ -61,7 +61,7 @@ test.describe('animation', () => {
         buffer: bytes,
       });
     });
-    await page.getByRole('button', { name: 'Open', exact: true }).click();
+    await menuAction(page, 'File', 'Open…');
 
     await page.waitForFunction(() => (window.__obsipix?.document.timeline.frameCount ?? 0) === 2);
     expect(await frameAlpha(page, 0, 10, 4)).toBeGreaterThan(0);

@@ -152,6 +152,9 @@ export function CanvasStage({ session }: CanvasStageProps) {
         onPointerMove={handlePointerMove}
         onPointerUp={endInteraction}
         onPointerCancel={endInteraction}
+        onPointerLeave={() => {
+          session.clearCursor();
+        }}
         onContextMenu={(event) => {
           event.preventDefault();
         }}

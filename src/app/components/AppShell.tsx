@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { EditorSession } from '../EditorSession';
 import {
@@ -19,10 +19,14 @@ import { CanvasStage } from './CanvasStage';
 import { ColorControls } from './ColorControls';
 import { KeyboardHelp } from './KeyboardHelp';
 import { LayerPanel } from './LayerPanel';
+import { MenuBar, type MenuDef } from './MenuBar';
 import { PalettePanel } from './PalettePanel';
 import { RecoveryPrompt } from './RecoveryPrompt';
+import { ResizeDialog } from './ResizeDialog';
 import { SelectionControls } from './SelectionControls';
+import { StatusBar } from './StatusBar';
 import { TimelinePanel } from './TimelinePanel';
+import { useToasts } from './toastContext';
 import { ToolRail } from './ToolRail';
 import './AppShell.css';
 
@@ -41,32 +45,38 @@ function isTextTarget(target: EventTarget | null): boolean {
   );
 }
 
-/** The editor shell: header, tool rail, canvas stage, side panels, timeline and status bar. */
+/** The editor shell: menu bar, options bar, tool rail, canvas, side panels, timeline, status bar. */
 export function AppShell({ session, autosaveRecovery }: AppShellProps) {
   useEditorSessionVersion(session);
-  const [error, setError] = useState<string | null>(null);
+  const { notify } = useToasts();
+
   const [helpOpen, setHelpOpen] = useState(false);
+  const [resizing, setResizing] = useState<'image' | 'canvas' | null>(null);
 
-  const { recovery, recover, discardRecovery, resolveAutosave } = useAutosaveRecovery(
-    session,
-    autosaveRecovery ?? {},
-  );
-
-  // Keep the shortcut handler stable while reading fresh values each keydown.
-  const handlers = useRef({ recover, discardRecovery, resolveAutosave, setError, setHelpOpen });
-  handlers.current = { recover, discardRecovery, resolveAutosave, setError, setHelpOpen };
+  const { recovery, recover, discardRecovery, deferRecovery, resolveAutosave } =
+    useAutosaveRecovery(session, autosaveRecovery ?? {});
 
   const confirmDiscard = (): boolean =>
     !session.isDirty || window.confirm('Discard unsaved changes?');
 
   const runSave = (): void => {
-    setError(saveProject(session));
-    resolveAutosave();
+    const message = saveProject(session);
+    if (message) {
+      notify(message, 'error');
+    } else {
+      notify(`Saved ${session.fileName ?? ''}`.trim(), 'success');
+      resolveAutosave();
+    }
   };
 
   const runSaveAs = (): void => {
-    setError(saveProjectAs(session));
-    resolveAutosave();
+    const message = saveProjectAs(session);
+    if (message) {
+      notify(message, 'error');
+    } else if (session.fileName) {
+      notify(`Saved ${session.fileName}`, 'success');
+      resolveAutosave();
+    }
   };
 
   const handleOpen = (): void => {
@@ -74,8 +84,9 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
       return;
     }
     void openProject(session).then((message) => {
-      setError(message);
-      if (message === null) {
+      if (message) {
+        notify(message, 'error');
+      } else {
         resolveAutosave();
       }
     });
@@ -85,7 +96,6 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
     if (confirmDiscard()) {
       newProject(session);
       resolveAutosave();
-      setError(null);
     }
   };
 
@@ -93,7 +103,6 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
     if (confirmDiscard()) {
       closeProject(session);
       resolveAutosave();
-      setError(null);
     }
   };
 
@@ -102,41 +111,47 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
       return;
     }
     void importPng(session, mode).then((message) => {
-      setError(message);
-      if (message === null && mode === 'document') {
-        resolveAutosave();
+      if (message) {
+        notify(message, 'error');
+      } else {
+        notify(
+          mode === 'document' ? 'Opened PNG as a new document' : 'Imported PNG as a layer',
+          'success',
+        );
+        if (mode === 'document') {
+          resolveAutosave();
+        }
       }
     });
   };
+
+  // Stable handles for the keydown listener, refreshed every render.
+  const handlers = useRef({
+    runSave,
+    runSaveAs,
+    handleOpen,
+    handleNew,
+    recover,
+    notify,
+    setHelpOpen,
+  });
+  handlers.current = { runSave, runSaveAs, handleOpen, handleNew, recover, notify, setHelpOpen };
 
   useEffect(() => {
     const dispatch: Record<ShortcutCommand, () => void> = {
       undo: () => session.undo(),
       redo: () => session.redo(),
       save: () => {
-        setError(saveProject(session));
-        handlers.current.resolveAutosave();
+        handlers.current.runSave();
       },
       'save-as': () => {
-        setError(saveProjectAs(session));
-        handlers.current.resolveAutosave();
+        handlers.current.runSaveAs();
       },
       open: () => {
-        if (!session.isDirty || window.confirm('Discard unsaved changes?')) {
-          void openProject(session).then((message) => {
-            setError(message);
-            if (message === null) {
-              handlers.current.resolveAutosave();
-            }
-          });
-        }
+        handlers.current.handleOpen();
       },
       new: () => {
-        if (!session.isDirty || window.confirm('Discard unsaved changes?')) {
-          newProject(session);
-          handlers.current.resolveAutosave();
-          setError(null);
-        }
+        handlers.current.handleNew();
       },
       'select-all': () => session.selectAll(),
       deselect: () => session.deselect(),
@@ -205,8 +220,9 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
         try {
           const image = await decodePng(new Uint8Array(await file.arrayBuffer()));
           session.importAsLayer(image, file.name.replace(/\.[a-z]+$/i, '') || 'Pasted');
+          handlers.current.notify('Pasted image as a layer', 'success');
         } catch {
-          handlers.current.setError('The pasted image could not be imported.');
+          handlers.current.notify('The pasted image could not be imported.', 'error');
         }
       })();
     };
@@ -228,74 +244,156 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
     };
   }, [session]);
 
-  const { width, height } = session.document.dimensions;
-  const zoomPercent = Math.round(session.viewport.zoom * 100);
+  const menus = useMemo<MenuDef[]>(
+    () => [
+      {
+        label: 'File',
+        items: [
+          { label: 'New', shortcut: 'Ctrl+N', onSelect: handleNew },
+          { label: 'Open…', shortcut: 'Ctrl+O', onSelect: handleOpen },
+          null,
+          { label: 'Save', shortcut: 'Ctrl+S', onSelect: runSave },
+          { label: 'Save As…', shortcut: 'Ctrl+Shift+S', onSelect: runSaveAs },
+          null,
+          {
+            label: 'Open PNG…',
+            onSelect: () => {
+              handleImport('document');
+            },
+          },
+          {
+            label: 'Import PNG as Layer…',
+            onSelect: () => {
+              handleImport('layer');
+            },
+          },
+          {
+            label: 'Export PNG',
+            onSelect: () => {
+              exportProjectPng(session);
+            },
+          },
+          null,
+          { label: 'Close', onSelect: handleClose },
+        ],
+      },
+      {
+        label: 'Edit',
+        items: [
+          {
+            label: 'Undo',
+            shortcut: 'Ctrl+Z',
+            disabled: !session.canUndo,
+            onSelect: () => session.undo(),
+          },
+          {
+            label: 'Redo',
+            shortcut: 'Ctrl+Shift+Z',
+            disabled: !session.canRedo,
+            onSelect: () => session.redo(),
+          },
+          null,
+          { label: 'Cut', shortcut: 'Ctrl+X', onSelect: () => session.cut() },
+          { label: 'Copy', shortcut: 'Ctrl+C', onSelect: () => session.copy() },
+          {
+            label: 'Paste',
+            shortcut: 'Ctrl+V',
+            disabled: !session.canPaste,
+            onSelect: () => session.paste(),
+          },
+          {
+            label: 'Delete Selection',
+            shortcut: 'Del',
+            disabled: !session.document.selection.active,
+            onSelect: () => session.deleteSelection(),
+          },
+          null,
+          { label: 'Select All', shortcut: 'Ctrl+A', onSelect: () => session.selectAll() },
+          {
+            label: 'Deselect',
+            shortcut: 'Ctrl+D',
+            disabled: !session.document.selection.active,
+            onSelect: () => session.deselect(),
+          },
+        ],
+      },
+      {
+        label: 'Image',
+        items: [
+          {
+            label: 'Resize…',
+            onSelect: () => {
+              setResizing('image');
+            },
+          },
+          null,
+          { label: 'Flip Horizontal', onSelect: () => session.flip('horizontal') },
+          { label: 'Flip Vertical', onSelect: () => session.flip('vertical') },
+          { label: 'Rotate 90° CW', onSelect: () => session.rotate('cw') },
+          { label: 'Rotate 90° CCW', onSelect: () => session.rotate('ccw') },
+          null,
+          {
+            label: 'Flatten Layers',
+            disabled: session.document.layers.count < 2,
+            onSelect: () => session.flatten(),
+          },
+        ],
+      },
+      {
+        label: 'View',
+        items: [
+          { label: 'Zoom In', shortcut: '+', onSelect: () => session.zoomIn() },
+          { label: 'Zoom Out', shortcut: '-', onSelect: () => session.zoomOut() },
+          { label: 'Fit to Window', shortcut: '0', onSelect: () => session.fitView() },
+          null,
+          {
+            label: 'Grid',
+            checked: session.showGrid,
+            onSelect: () => session.toggleGrid(),
+          },
+          {
+            label: 'Checkerboard',
+            checked: session.showCheckerboard,
+            onSelect: () => session.toggleCheckerboard(),
+          },
+          null,
+          {
+            label: 'Onion Skin',
+            checked: session.onionSkin.enabled,
+            onSelect: () => session.toggleOnionSkin(),
+          },
+        ],
+      },
+      {
+        label: 'Help',
+        items: [
+          {
+            label: 'Keyboard Shortcuts',
+            shortcut: '?',
+            onSelect: () => {
+              setHelpOpen(true);
+            },
+          },
+        ],
+      },
+    ],
+    // handlers close over the current render; the shell re-renders on every
+    // session change so the config is always fresh.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [session, session.getVersion()],
+  );
+
   const title = `${session.fileName ?? session.document.metadata.name}${session.isDirty ? ' •' : ''}`;
 
   return (
     <div className="app-shell">
       <header className="app-shell__header">
         <span className="app-shell__brand">Obsipix</span>
+        <MenuBar menus={menus} />
         <span className="app-shell__title" data-testid="project-title">
           {title}
         </span>
         <div className="app-shell__spacer" />
-        <div className="app-shell__group">
-          <button type="button" className="app-shell__button" onClick={handleNew}>
-            New
-          </button>
-          <button type="button" className="app-shell__button" onClick={handleOpen}>
-            Open
-          </button>
-          <button
-            type="button"
-            className="app-shell__button"
-            title="Save (Ctrl+S)"
-            onClick={runSave}
-          >
-            Save
-          </button>
-          <button
-            type="button"
-            className="app-shell__button"
-            title="Save As (Ctrl+Shift+S)"
-            onClick={runSaveAs}
-          >
-            Save As
-          </button>
-          <button
-            type="button"
-            className="app-shell__button"
-            title="Import a PNG as a new layer"
-            onClick={() => {
-              handleImport('layer');
-            }}
-          >
-            Import PNG
-          </button>
-          <button
-            type="button"
-            className="app-shell__button"
-            title="Open a PNG as a new document"
-            onClick={() => {
-              handleImport('document');
-            }}
-          >
-            Open PNG
-          </button>
-          <button
-            type="button"
-            className="app-shell__button"
-            onClick={() => {
-              exportProjectPng(session);
-            }}
-          >
-            Export PNG
-          </button>
-          <button type="button" className="app-shell__button" onClick={handleClose}>
-            Close
-          </button>
-        </div>
         <div className="app-shell__group">
           <button
             type="button"
@@ -352,93 +450,32 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
 
       <TimelinePanel session={session} />
 
-      {error !== null && (
-        <div className="app-shell__error" role="alert" data-testid="file-error">
-          {error}
-          <button
-            type="button"
-            className="app-shell__button"
-            onClick={() => {
-              setError(null);
-            }}
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
-
-      <footer className="app-shell__statusbar">
-        <span data-testid="status-dimensions">
-          {width} &times; {height}
-        </span>
-        <span data-testid="status-zoom">{zoomPercent}%</span>
-        <span data-testid="status-tool">{session.activeToolId}</span>
-        <span data-testid="status-dirty">{session.isDirty ? 'unsaved' : 'saved'}</span>
-        <div className="app-shell__spacer" />
-        <button
-          type="button"
-          className={
-            session.showGrid ? 'app-shell__toggle app-shell__toggle--on' : 'app-shell__toggle'
-          }
-          aria-pressed={session.showGrid}
-          onClick={() => {
-            session.toggleGrid();
-          }}
-        >
-          Grid
-        </button>
-        <button
-          type="button"
-          className={
-            session.showCheckerboard
-              ? 'app-shell__toggle app-shell__toggle--on'
-              : 'app-shell__toggle'
-          }
-          aria-pressed={session.showCheckerboard}
-          onClick={() => {
-            session.toggleCheckerboard();
-          }}
-        >
-          Checker
-        </button>
-        <button
-          type="button"
-          className="app-shell__toggle"
-          aria-label="Zoom out"
-          onClick={() => {
-            session.zoomOut();
-          }}
-        >
-          &minus;
-        </button>
-        <button
-          type="button"
-          className="app-shell__toggle"
-          aria-label="Zoom in"
-          onClick={() => {
-            session.zoomIn();
-          }}
-        >
-          +
-        </button>
-        <button
-          type="button"
-          className="app-shell__toggle"
-          onClick={() => {
-            session.fitView();
-          }}
-        >
-          Fit
-        </button>
-      </footer>
+      <StatusBar session={session} />
 
       {recovery && (
         <RecoveryPrompt
           snapshot={recovery}
           onRecover={() => {
-            setError(recover());
+            const message = recover();
+            if (message) {
+              notify(message, 'error');
+            } else {
+              notify('Recovered unsaved work — remember to save it', 'info');
+            }
           }}
           onDiscard={discardRecovery}
+          onDefer={deferRecovery}
+        />
+      )}
+
+      {resizing !== null && (
+        <ResizeDialog
+          mode={resizing}
+          session={session}
+          onClose={() => {
+            setResizing(null);
+          }}
+          onModeChange={setResizing}
         />
       )}
 

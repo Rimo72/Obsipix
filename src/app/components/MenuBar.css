@@ -1,0 +1,93 @@
+.menu-bar {
+  display: flex;
+  align-items: stretch;
+  flex: 0 0 auto;
+}
+
+.menu-bar__menu {
+  position: relative;
+}
+
+.menu-bar__button {
+  height: 100%;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--obsipix-text);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.menu-bar__button:hover,
+.menu-bar__button--open {
+  background: var(--obsipix-surface-raised);
+}
+
+.menu-bar__dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 70;
+  min-width: 220px;
+  padding: 4px;
+  background: var(--obsipix-surface-raised);
+  border: 1px solid var(--obsipix-border);
+  border-radius: 6px;
+  box-shadow: 0 10px 32px rgb(0 0 0 / 45%);
+}
+
+.menu-bar__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  color: var(--obsipix-text);
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.menu-bar__item:hover:not(:disabled),
+.menu-bar__item:focus-visible {
+  background: var(--obsipix-accent);
+  color: var(--obsipix-bg);
+  outline: none;
+}
+
+.menu-bar__item:disabled {
+  color: var(--obsipix-text-muted);
+  cursor: not-allowed;
+}
+
+.menu-bar__item-check {
+  flex: 0 0 12px;
+  font-size: 11px;
+}
+
+.menu-bar__item-label {
+  flex: 1 1 auto;
+}
+
+.menu-bar__item-shortcut {
+  flex: 0 0 auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: var(--obsipix-text-muted);
+}
+
+.menu-bar__item:hover:not(:disabled) .menu-bar__item-shortcut,
+.menu-bar__item:focus-visible .menu-bar__item-shortcut {
+  color: inherit;
+}
+
+.menu-bar__separator {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--obsipix-border);
+}

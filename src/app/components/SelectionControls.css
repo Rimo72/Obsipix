@@ -19,3 +19,23 @@
   color: var(--obsipix-text-muted);
   cursor: not-allowed;
 }
+
+.selection-controls button.selection-controls__primary {
+  color: var(--obsipix-bg);
+  background: var(--obsipix-accent);
+  border-color: var(--obsipix-accent);
+}
+
+.selection-controls__label {
+  padding: 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--obsipix-accent);
+}
+
+.selection-controls__readout {
+  padding: 0 4px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--obsipix-text-muted);
+}

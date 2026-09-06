@@ -2,7 +2,7 @@ import { deflateSync } from 'node:zlib';
 
 import { expect, test } from '@playwright/test';
 
-import { inspect, open } from './support';
+import { inspect, menuAction, open } from './support';
 
 const CRC_TABLE = (() => {
   const table = new Uint32Array(256);
@@ -71,7 +71,7 @@ test.describe('lifecycle', () => {
       void dialog.accept('my-sprite');
     });
     const downloadPromise = page.waitForEvent('download');
-    await page.getByRole('button', { name: 'Save As' }).click();
+    await menuAction(page, 'File', 'Save As…');
     const download = await downloadPromise;
 
     expect(download.suggestedFilename()).toBe('my-sprite.obsipix');
@@ -89,7 +89,7 @@ test.describe('lifecycle', () => {
         buffer: makePng(6, 6, [200, 40, 40, 255]),
       });
     });
-    await page.getByRole('button', { name: 'Import PNG' }).click();
+    await menuAction(page, 'File', 'Import PNG as Layer…');
 
     await page.waitForFunction(
       (previous) => {
@@ -121,7 +121,7 @@ test.describe('lifecycle', () => {
         buffer: makePng(20, 10, [0, 128, 255, 255]),
       });
     });
-    await page.getByRole('button', { name: 'Open PNG' }).click();
+    await menuAction(page, 'File', 'Open PNG…');
 
     await expect(page.getByTestId('status-dimensions')).toHaveText('20 × 10');
     expect((await inspect(page, [5])).isDirty).toBe(true);

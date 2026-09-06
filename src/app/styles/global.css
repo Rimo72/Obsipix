@@ -8,6 +8,7 @@
   --obsipix-text: #e4e4e4;
   --obsipix-text-muted: #9a9a9a;
   --obsipix-accent: #4aa3ff;
+  --obsipix-focus: #7cc0ff;
 
   --obsipix-header-height: 36px;
   --obsipix-toolbar-height: 44px;
@@ -25,6 +26,17 @@
 
 * {
   box-sizing: border-box;
+}
+
+:focus-visible {
+  outline: 2px solid var(--obsipix-focus);
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+
+/* pointer users don't need the ring on click; keyboard users always get it */
+:focus:not(:focus-visible) {
+  outline: none;
 }
 
 html,

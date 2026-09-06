@@ -1049,7 +1049,7 @@ V1 Release
   9       Palettes                      COMPLETE
   10      Animation                     COMPLETE
   11      Lifecycle / Recovery          COMPLETE
-  12      UI Completion                 NOT STARTED
+  12      UI Completion                 COMPLETE
   13      Hardening                     NOT STARTED
   14      Testing / Release Candidate   NOT STARTED
   15      V1 Release                    NOT STARTED

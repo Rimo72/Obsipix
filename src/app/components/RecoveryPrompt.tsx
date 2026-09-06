@@ -1,11 +1,14 @@
 import type { RecoverySnapshot } from '@infrastructure/recovery/RecoveryStore';
 
+import { Dialog } from './Dialog';
 import './RecoveryPrompt.css';
 
 interface RecoveryPromptProps {
   readonly snapshot: RecoverySnapshot;
   readonly onRecover: () => void;
   readonly onDiscard: () => void;
+  /** Escape / backdrop: dismiss without deciding — the data is kept for next time. */
+  readonly onDefer: () => void;
 }
 
 function relativeTime(from: number): string {
@@ -26,22 +29,16 @@ function relativeTime(from: number): string {
  * (PROJECT_CORE §3.13). Recovering never overwrites the project file — the
  * restored document is simply loaded as unsaved work.
  */
-export function RecoveryPrompt({ snapshot, onRecover, onDiscard }: RecoveryPromptProps) {
+export function RecoveryPrompt({ snapshot, onRecover, onDiscard, onDefer }: RecoveryPromptProps) {
   return (
-    <div
-      className="recovery-prompt"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Recover unsaved work"
-    >
-      <div className="recovery-prompt__card">
-        <h2 className="recovery-prompt__title">Recover unsaved work?</h2>
-        <p className="recovery-prompt__body">
-          Obsipix found autosaved work
-          {snapshot.fileName ? ` from “${snapshot.fileName}”` : ''} saved{' '}
-          {relativeTime(snapshot.savedAt)}. Recover it, or discard and start fresh.
-        </p>
-        <div className="recovery-prompt__actions">
+    <Dialog
+      title="Recover unsaved work?"
+      onClose={onDefer}
+      footer={
+        <>
+          <button type="button" className="recovery-prompt__button" onClick={onDiscard}>
+            Discard
+          </button>
           <button
             type="button"
             className="recovery-prompt__button recovery-prompt__button--primary"
@@ -49,11 +46,14 @@ export function RecoveryPrompt({ snapshot, onRecover, onDiscard }: RecoveryPromp
           >
             Recover
           </button>
-          <button type="button" className="recovery-prompt__button" onClick={onDiscard}>
-            Discard
-          </button>
-        </div>
-      </div>
-    </div>
+        </>
+      }
+    >
+      <p className="recovery-prompt__body">
+        Obsipix found autosaved work
+        {snapshot.fileName ? ` from “${snapshot.fileName}”` : ''} saved{' '}
+        {relativeTime(snapshot.savedAt)}. Recover it, or discard and start fresh.
+      </p>
+    </Dialog>
   );
 }

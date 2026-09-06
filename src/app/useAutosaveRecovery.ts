@@ -29,6 +29,8 @@ export interface AutosaveRecovery {
   readonly recover: () => string | null;
   /** Throw the snapshot away. */
   readonly discardRecovery: () => void;
+  /** Dismiss the prompt but keep the data — the next reload asks again. */
+  readonly deferRecovery: () => void;
   /** Clear recovery data after a real Save / New / Open / import. */
   readonly resolveAutosave: () => void;
 }
@@ -109,9 +111,13 @@ export function useAutosaveRecovery(
     void autosave.resolve();
   }, [autosave]);
 
+  const deferRecovery = useCallback(() => {
+    setRecovery(null);
+  }, []);
+
   const resolveAutosave = useCallback(() => {
     void autosave.resolve();
   }, [autosave]);
 
-  return { recovery, recover, discardRecovery, resolveAutosave };
+  return { recovery, recover, discardRecovery, deferRecovery, resolveAutosave };
 }

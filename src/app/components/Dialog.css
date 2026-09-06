@@ -1,0 +1,76 @@
+.dialog__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgb(0 0 0 / 50%);
+}
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 48px);
+  background: var(--obsipix-surface);
+  border: 1px solid var(--obsipix-border);
+  border-radius: 8px;
+  box-shadow: 0 16px 48px rgb(0 0 0 / 50%);
+}
+
+.dialog--sm {
+  width: min(320px, 100%);
+}
+
+.dialog--md {
+  width: min(480px, 100%);
+}
+
+.dialog--lg {
+  width: min(680px, 100%);
+}
+
+.dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--obsipix-border);
+}
+
+.dialog__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.dialog__close {
+  padding: 0 6px;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--obsipix-text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.dialog__close:hover {
+  color: var(--obsipix-text);
+}
+
+.dialog__body {
+  padding: 16px;
+  overflow-y: auto;
+  font-size: 13px;
+}
+
+.dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--obsipix-border);
+}

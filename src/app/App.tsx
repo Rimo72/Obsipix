@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { AppShell } from './components/AppShell';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { ToastProvider } from './components/Toasts';
 import { EditorSession } from './EditorSession';
 import type { AutosaveRecoveryOptions } from './useAutosaveRecovery';
 
@@ -29,7 +30,9 @@ export function App() {
 
   return (
     <ErrorBoundary>
-      <AppShell session={session} autosaveRecovery={AUTOSAVE_OPTIONS} />
+      <ToastProvider>
+        <AppShell session={session} autosaveRecovery={AUTOSAVE_OPTIONS} />
+      </ToastProvider>
     </ErrorBoundary>
   );
 }

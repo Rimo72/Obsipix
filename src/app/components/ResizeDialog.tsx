@@ -1,6 +1,9 @@
 import { useState } from 'react';
 
+import { MAX_DOCUMENT_DIMENSION } from '@core/document/defaults';
+
 import type { EditorSession } from '../EditorSession';
+import { Dialog } from './Dialog';
 import './ResizeDialog.css';
 
 type Mode = 'image' | 'canvas';
@@ -17,81 +20,100 @@ export function ResizeDialog({ mode, session, onClose, onModeChange }: ResizeDia
   const [width, setWidth] = useState(String(current.width));
   const [height, setHeight] = useState(String(current.height));
 
+  const parsed = { w: Number.parseInt(width, 10), h: Number.parseInt(height, 10) };
+  const valid =
+    Number.isInteger(parsed.w) &&
+    Number.isInteger(parsed.h) &&
+    parsed.w >= 1 &&
+    parsed.h >= 1 &&
+    parsed.w <= MAX_DOCUMENT_DIMENSION &&
+    parsed.h <= MAX_DOCUMENT_DIMENSION;
+
   const apply = (): void => {
-    const w = Number.parseInt(width, 10);
-    const h = Number.parseInt(height, 10);
-    if (!Number.isInteger(w) || !Number.isInteger(h) || w < 1 || h < 1 || w > 8192 || h > 8192) {
+    if (!valid) {
       return;
     }
     if (mode === 'image') {
-      session.resizeImage({ width: w, height: h });
+      session.resizeImage({ width: parsed.w, height: parsed.h });
     } else {
-      session.resizeCanvas({ width: w, height: h });
+      session.resizeCanvas({ width: parsed.w, height: parsed.h });
     }
     onClose();
   };
 
   return (
-    <div className="resize-dialog__backdrop" role="dialog" aria-modal="true" aria-label="Resize">
-      <div className="resize-dialog">
-        <div className="resize-dialog__tabs">
-          <button
-            type="button"
-            className={mode === 'image' ? 'is-active' : undefined}
-            onClick={() => {
-              onModeChange('image');
-            }}
-          >
-            Image size
-          </button>
-          <button
-            type="button"
-            className={mode === 'canvas' ? 'is-active' : undefined}
-            onClick={() => {
-              onModeChange('canvas');
-            }}
-          >
-            Canvas size
-          </button>
-        </div>
-        <p className="resize-dialog__hint">
-          {mode === 'image'
-            ? 'Scales the artwork (nearest-neighbour).'
-            : 'Changes the canvas bounds, centred, without scaling artwork.'}
-        </p>
-        <label className="resize-dialog__field">
-          Width
-          <input
-            type="number"
-            min={1}
-            max={8192}
-            value={width}
-            onChange={(event) => {
-              setWidth(event.target.value);
-            }}
-          />
-        </label>
-        <label className="resize-dialog__field">
-          Height
-          <input
-            type="number"
-            min={1}
-            max={8192}
-            value={height}
-            onChange={(event) => {
-              setHeight(event.target.value);
-            }}
-          />
-        </label>
-        <div className="resize-dialog__actions">
-          <button type="button" onClick={onClose}>
+    <Dialog
+      title="Resize"
+      onClose={onClose}
+      footer={
+        <>
+          <button type="button" className="resize-dialog__button" onClick={onClose}>
             Cancel
           </button>
-          <button type="button" className="is-primary" onClick={apply}>
+          <button
+            type="button"
+            className="resize-dialog__button is-primary"
+            disabled={!valid}
+            onClick={apply}
+          >
             Apply
           </button>
-        </div>
+        </>
+      }
+    >
+      <div className="resize-dialog__tabs" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === 'image'}
+          className={mode === 'image' ? 'is-active' : undefined}
+          onClick={() => {
+            onModeChange('image');
+          }}
+        >
+          Image size
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === 'canvas'}
+          className={mode === 'canvas' ? 'is-active' : undefined}
+          onClick={() => {
+            onModeChange('canvas');
+          }}
+        >
+          Canvas size
+        </button>
       </div>
-    </div>
+      <p className="resize-dialog__hint">
+        {mode === 'image'
+          ? 'Scales the artwork (nearest-neighbour).'
+          : 'Changes the canvas bounds, centred, without scaling artwork.'}
+      </p>
+      <label className="resize-dialog__field">
+        Width
+        <input
+          type="number"
+          min={1}
+          max={MAX_DOCUMENT_DIMENSION}
+          value={width}
+          onChange={(event) => {
+            setWidth(event.target.value);
+          }}
+        />
+      </label>
+      <label className="resize-dialog__field">
+        Height
+        <input
+          type="number"
+          min={1}
+          max={MAX_DOCUMENT_DIMENSION}
+          value={height}
+          onChange={(event) => {
+            setHeight(event.target.value);
+          }}
+        />
+      </label>
+    </Dialog>
   );
 }
