@@ -42,16 +42,15 @@
   cursor: pointer;
 }
 
+/* Portalled to <body> so the options bar's overflow never clips it. */
 .color-controls__popover {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  z-index: 20;
-  padding: 8px;
+  position: fixed;
+  z-index: 60;
+  padding: 10px;
   background: var(--obsipix-surface-raised);
   border: 1px solid var(--obsipix-border);
   border-radius: 6px;
-  box-shadow: 0 6px 20px rgb(0 0 0 / 40%);
+  box-shadow: 0 8px 28px rgb(0 0 0 / 45%);
 }
 
 .color-controls__field {

@@ -75,6 +75,37 @@ test.describe('v2 editor additions', () => {
     expect(await page.evaluate(() => window.__obsipix?.viewport.panX ?? 0)).not.toBe(panBefore);
   });
 
+  test('colour selector edits the foreground across modes', async ({ page }) => {
+    await open(page);
+
+    await page.getByRole('button', { name: /Foreground colour/ }).click();
+    const picker = page.getByRole('group', { name: 'Foreground colour' });
+    await expect(picker).toBeVisible();
+
+    // RGB mode: set a pure red
+    await picker.getByRole('tab', { name: 'RGB' }).click();
+    await picker.getByLabel('R value').fill('255');
+    await picker.getByLabel('G value').fill('0');
+    await picker.getByLabel('B value').fill('0');
+    await expect(picker.getByLabel(/hex value/)).toHaveValue('#ff0000');
+    expect(await page.evaluate(() => window.__obsipix?.foreground)).toMatchObject({
+      r: 255,
+      g: 0,
+      b: 0,
+    });
+
+    // HEX with alpha
+    const hex = picker.getByLabel(/hex value/);
+    await hex.fill('#00ff0080');
+    await hex.blur();
+    expect(await page.evaluate(() => window.__obsipix?.foreground)).toMatchObject({
+      r: 0,
+      g: 255,
+      b: 0,
+      a: 128,
+    });
+  });
+
   test('eyedropper Merged / Layer sampling modes', async ({ page }) => {
     await open(page);
     // black on the base layer, then an empty layer on top
