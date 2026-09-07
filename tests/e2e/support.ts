@@ -1,9 +1,18 @@
 import { expect, type Page } from '@playwright/test';
 
+interface Cel {
+  readonly type: 'normal' | 'linked' | 'empty' | 'hold';
+}
+
 interface ObsipixSession {
   viewport: { documentToCanvas(p: { x: number; y: number }): { x: number; y: number } };
   document: {
-    layers: { activeLayerId: string };
+    metadata: { name: string };
+    layers: {
+      activeLayerId: string;
+      count: number;
+      layers: readonly { id: string; name: string; opacity: number; visible: boolean }[];
+    };
     dimensions: { width: number; height: number };
     selection: { active: boolean };
     palettes: { id: string; name: string; colors: unknown[] }[];
@@ -16,13 +25,22 @@ interface ObsipixSession {
       frameCount: number;
       activeFrameId: string;
       playbackFps: number;
-      frames: readonly { id: string; durationMs: number }[];
+      frames: readonly {
+        id: string;
+        durationMs: number;
+        getCel(layerId: string): Cel | undefined;
+      }[];
+      tags: readonly { name: string; startFrame: number; endFrame: number }[];
       indexOf(id: string): number;
     };
   };
   history: { depth: number };
   isPlaying: boolean;
   firstFrame(): void;
+  nextFrame(): void;
+  setActiveFrame(id: string): void;
+  setLayerOpacity(layerId: string, opacity: number): void;
+  linkCel(sourceFrameId: string, targetFrameId: string, layerId: string): void;
   foreground: { r: number; g: number; b: number; a: number };
   background: { r: number; g: number; b: number; a: number };
   recentColors: readonly { r: number; g: number; b: number; a: number }[];
@@ -94,6 +112,27 @@ export async function dragPixels(
   await page.mouse.down();
   await page.mouse.move(end.x, end.y, { steps: 12 });
   await page.mouse.up();
+}
+
+/** One pixel of a layer at a frame (defaults: active layer, active frame). */
+export function pixelAt(
+  page: Page,
+  x: number,
+  y: number,
+  opts: { layerId?: string; frameId?: string } = {},
+): Promise<{ r: number; g: number; b: number; a: number }> {
+  return page.evaluate(
+    ({ x: px, y: py, layerId, frameId }) => {
+      const session = window.__obsipix;
+      if (!session) {
+        throw new Error('session missing');
+      }
+      const layer = layerId ?? session.document.layers.activeLayerId;
+      const buffer = session.document.resolveBuffer(layer, frameId);
+      return buffer ? buffer.getPixel(px, py) : { r: 0, g: 0, b: 0, a: 0 };
+    },
+    { x, y, layerId: opts.layerId, frameId: opts.frameId },
+  );
 }
 
 export interface SliceState {

@@ -29,12 +29,18 @@ export function LayerPanel({ session }: LayerPanelProps) {
 
   return (
     <aside className="layer-panel" aria-label="Layers">
-      <div className="layer-panel__toolbar">
-        <button type="button" title="Add layer" onClick={() => session.addLayer()}>
+      <div className="layer-panel__toolbar" role="group" aria-label="Layer actions">
+        <button
+          type="button"
+          aria-label="Add layer"
+          title="Add layer"
+          onClick={() => session.addLayer()}
+        >
           +
         </button>
         <button
           type="button"
+          aria-label="Duplicate layer"
           title="Duplicate layer"
           onClick={() => session.duplicateActiveLayer()}
         >
@@ -42,6 +48,7 @@ export function LayerPanel({ session }: LayerPanelProps) {
         </button>
         <button
           type="button"
+          aria-label="Delete layer"
           title="Delete layer"
           disabled={count <= 1}
           onClick={() => session.removeActiveLayer()}
@@ -50,6 +57,7 @@ export function LayerPanel({ session }: LayerPanelProps) {
         </button>
         <button
           type="button"
+          aria-label="Move layer up"
           title="Move up"
           disabled={activeIndex >= count - 1}
           onClick={() => session.moveLayer(activeId, activeIndex + 1)}
@@ -58,6 +66,7 @@ export function LayerPanel({ session }: LayerPanelProps) {
         </button>
         <button
           type="button"
+          aria-label="Move layer down"
           title="Move down"
           disabled={activeIndex <= 0}
           onClick={() => session.moveLayer(activeId, activeIndex - 1)}
@@ -66,6 +75,7 @@ export function LayerPanel({ session }: LayerPanelProps) {
         </button>
         <button
           type="button"
+          aria-label="Merge layer down"
           title="Merge down"
           disabled={activeIndex <= 0}
           onClick={() => session.mergeActiveLayerDown()}

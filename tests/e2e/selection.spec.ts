@@ -41,7 +41,7 @@ test.describe('selection and transform', () => {
     expect(await page.evaluate(() => window.__obsipix?.document.selection.active)).toBe(true);
 
     // move it with the Move tool
-    await page.getByRole('button', { name: 'Move' }).click();
+    await page.getByRole('button', { name: 'Move', exact: true }).click();
     await dragScreen(page, [6, 6], [20, 6]);
     // while floating, the source has a hole
     expect(await alphaAt(page, 6, 6)).toBe(0);

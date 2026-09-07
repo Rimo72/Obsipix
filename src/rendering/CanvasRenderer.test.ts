@@ -14,9 +14,12 @@ class RecordingContext {
   fillStyle = '';
   strokeStyle = '';
   lineWidth = 1;
+  lineDashOffset = 0;
+  globalAlpha = 1;
   lastDrawImage: readonly number[] = [];
   putImageDataCalls = 0;
 
+  setLineDash = vi.fn();
   save = vi.fn(() => this.ops.push('save'));
   restore = vi.fn(() => this.ops.push('restore'));
   setTransform = vi.fn(() => this.ops.push('setTransform'));
@@ -122,6 +125,46 @@ describe('CanvasRenderer', () => {
     // the visible context only ever receives drawImage for artwork.
     expect(canvas.context.putImageDataCalls).toBe(0);
     expect(canvas.context.drawImage).toHaveBeenCalledTimes(1);
+  });
+
+  it('draws onion / float / selection overlays after the artwork and never into it', () => {
+    const document = createDefaultDocument(createSequentialIdFactory());
+    const layerId = document.layers.activeLayerId;
+    document.resolveBuffer(layerId)?.setPixel(1, 1, BLACK);
+    const before = document.resolveBuffer(layerId)?.toBytes();
+
+    const renderer = new CanvasRenderer(asCanvas(canvas));
+    renderer.render(document, new Viewport({ zoom: 8 }), {
+      showGrid: false,
+      showCheckerboard: false,
+      onion: [
+        {
+          bytes: new Uint8ClampedArray(32 * 32 * 4),
+          width: 32,
+          height: 32,
+          opacity: 0.4,
+          before: true,
+        },
+        {
+          bytes: new Uint8ClampedArray(32 * 32 * 4),
+          width: 32,
+          height: 32,
+          opacity: 0.4,
+          before: false,
+        },
+      ],
+      float: { bytes: new Uint8ClampedArray(4 * 4 * 4), width: 4, height: 4, x: 2, y: 2 },
+      selection: { data: new Uint8Array(32 * 32).fill(1), width: 32, height: 32 },
+    });
+
+    const ops = canvas.context.ops;
+    const firstArtwork = ops.indexOf('drawImage');
+    // artwork + before-onion + after-onion + float
+    expect(ops.filter((op) => op === 'drawImage').length).toBe(4);
+    // the marching-ants stroke happens after the artwork
+    expect(ops.indexOf('stroke')).toBeGreaterThan(firstArtwork);
+    // rendering is read-only: the document buffer is byte-for-byte unchanged
+    expect(document.resolveBuffer(layerId)?.toBytes()).toEqual(before);
   });
 
   it('hides the grid below its minimum zoom', () => {
