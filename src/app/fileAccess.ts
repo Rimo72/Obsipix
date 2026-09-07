@@ -4,8 +4,7 @@
  * input are used.
  */
 
-export function downloadBytes(bytes: Uint8Array, fileName: string, mimeType: string): void {
-  const blob = new Blob([bytes as BlobPart], { type: mimeType });
+export function downloadBlob(blob: Blob, fileName: string): void {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
@@ -17,6 +16,10 @@ export function downloadBytes(bytes: Uint8Array, fileName: string, mimeType: str
   setTimeout(() => {
     URL.revokeObjectURL(url);
   }, 1000);
+}
+
+export function downloadBytes(bytes: Uint8Array, fileName: string, mimeType: string): void {
+  downloadBlob(new Blob([bytes as BlobPart], { type: mimeType }), fileName);
 }
 
 export interface PickedFile {

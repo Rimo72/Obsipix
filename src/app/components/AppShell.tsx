@@ -9,6 +9,7 @@ import {
   saveProject,
   saveProjectAs,
 } from '../fileCommands';
+import { runExport } from '../imageExport';
 import { decodePng } from '../pngDecode';
 import { resolveShortcut, type ShortcutCommand } from '../shortcuts';
 import { useAutosaveRecovery, type AutosaveRecoveryOptions } from '../useAutosaveRecovery';
@@ -16,6 +17,7 @@ import { useEditorSessionVersion } from '../useEditorSession';
 import { BrushControls } from './BrushControls';
 import { CanvasStage } from './CanvasStage';
 import { ColorControls } from './ColorControls';
+import { ExportDialog } from './ExportDialog';
 import { EyedropperControls } from './EyedropperControls';
 import { KeyboardHelp } from './KeyboardHelp';
 import { LayerPanel } from './LayerPanel';
@@ -59,6 +61,7 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
   const [helpOpen, setHelpOpen] = useState(false);
   const [resizing, setResizing] = useState<'image' | 'canvas' | null>(null);
   const [newDialogOpen, setNewDialogOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   const { recovery, recover, discardRecovery, deferRecovery, resolveAutosave } =
     useAutosaveRecovery(session, autosaveRecovery ?? {});
@@ -275,6 +278,13 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
             label: 'Import PNG as Layer…',
             onSelect: () => {
               handleImport('layer');
+            },
+          },
+          null,
+          {
+            label: 'Export…',
+            onSelect: () => {
+              setExportOpen(true);
             },
           },
           {
@@ -495,6 +505,21 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
             session.newDocument(options);
             resolveAutosave();
             setNewDialogOpen(false);
+          }}
+        />
+      )}
+
+      {exportOpen && (
+        <ExportDialog
+          session={session}
+          onClose={() => {
+            setExportOpen(false);
+          }}
+          onExport={(settings) => {
+            setExportOpen(false);
+            void runExport(session, settings).then((message) => {
+              notify(message ?? `Exported ${settings.fileName}`, message ? 'error' : 'success');
+            });
           }}
         />
       )}
