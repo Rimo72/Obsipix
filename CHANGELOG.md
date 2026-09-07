@@ -3,6 +3,52 @@
 All notable changes to Obsipix are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## 1.1.0 — 2026-09-07
+
+The v2 spec delta: the genuinely-new, in-scope items from the vendored v2
+specification ([`docs/PROJECT_CORE_OBSIPIX.md`](docs/PROJECT_CORE_OBSIPIX.md)),
+applied on top of V1 in three individually-tested batches. Everything in v2
+still marked "Future" or "Post-V1" remains out of scope.
+
+### Added
+
+- **New Document dialog** — size presets (16 / 32 / 48 / 64 / 128) plus a
+  free size field, and a background choice (transparent / white / black).
+  Replaces the fixed-size "New".
+- **Colour Selector panel** — a full picker behind the colour swatches: RGB,
+  HSV, HSL and Gray models with linked sliders and numeric fields, a
+  saturation-value square, hue and alpha bars, and a HEX field that accepts
+  3-, 4-, 6- and 8-digit input.
+- **Invert Selection** (`Ctrl+Shift+I`, Edit menu) — undoable.
+- **Eyedropper sampling modes** — Merged (composite) or Layer (active layer
+  only), chosen from the options bar when the eyedropper is active.
+- **Expanded Export** (`File ▸ Export…`) —
+  - Current frame as PNG, JPEG, WebP or GIF, with integer scale presets
+    (1× / 2× / 4× / 8×) and an optional transparent background.
+  - Animation as an animated GIF via a from-scratch GIF89a encoder (LZW,
+    palette quantisation, Netscape 2.0 loop, per-frame delays).
+  - Sprite sheet — horizontal, vertical or grid layout with configurable
+    columns and spacing; PNG or WebP.
+  - The quick `File ▸ Export PNG` item is retained.
+- **Zoom presets** — `1` and `2` set 100 % / 200 % zoom about the canvas
+  centre.
+
+### Changed
+
+- **Shortcut map aligned to v2** (breaking): `M` = Move (was Select), `R` =
+  Rectangle (was `U`), `S` = Rectangle-select, `Space` + drag = hold-to-pan
+  (Space no longer toggles playback — use the timeline transport or focus
+  the timeline), `Ctrl+Shift+A` = Deselect (was `Ctrl+D`). Press `?` for the
+  updated reference.
+- Maximum document dimension is now enforced at the command and factory
+  boundary, not only in the UI.
+
+### Quality
+
+- 390 unit / integration tests, 34 Playwright end-to-end specs (new
+  `v2.spec.ts` and `export.spec.ts`). Each batch passed the full
+  `npm run check` and the full e2e suite before commit.
+
 ## 1.0.0 — 2026-09-07
 
 First production release. Obsipix is a browser-based pixel-art editor with exact
@@ -67,4 +113,4 @@ implemented **and** tested behind an exit gate.
 
 ### Known limitations
 
-See the "Known limitations (V1)" section of [`README.md`](README.md).
+See the "Known limitations" section of [`README.md`](README.md).

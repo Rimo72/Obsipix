@@ -5,37 +5,52 @@ what you draw is what gets stored, one integer pixel at a time — no smoothing,
 surprises. It runs entirely in the browser and keeps your work in a small,
 data-only `.obsipix` project file.
 
-**V1 is released.** Live build: <https://rimo72.github.io/Obsipix/>
+**Released — V1.1** (the v2 spec delta on top of V1). Live build:
+<https://rimo72.github.io/Obsipix/>
 
 The authoritative specification is [`docs/PROJECT_CORE_OBSIPIX.md`](docs/PROJECT_CORE_OBSIPIX.md);
 the build history is [`docs/OBSIPIX_CODING_PHASES.md`](docs/OBSIPIX_CODING_PHASES.md);
 release notes are in [`CHANGELOG.md`](CHANGELOG.md).
 
-## What V1 does
+## What Obsipix does
 
 - **Canvas** — transparent RGBA canvas, exact nearest-neighbour zoom, pan, grid and
   checkerboard overlays, image / canvas resize with anchors.
-- **Drawing** — Pencil, Eraser, Eyedropper, Fill, Line, Rectangle, Ellipse; square
-  or round brush in fixed sizes; foreground / background colours with quick swap.
+- **Drawing** — Pencil, Eraser, Eyedropper, Fill, Line, Rectangle, Ellipse, Move;
+  square or round brush in fixed sizes; foreground / background colours with quick
+  swap; a full colour selector (RGB / HSV / HSL / Gray, SV square, hue & alpha bars,
+  3/4/6/8-digit HEX); eyedropper samples the composite or the active layer.
 - **Layers** — add / duplicate / delete / reorder, visibility, lock, opacity, merge
   down, merge visible, flatten.
-- **Selection & transform** — rectangular and lasso select, marching ants, move as a
-  floating selection, nudge, flip, rotate, delete, cut / copy / paste.
+- **Selection & transform** — rectangular and lasso select, marching ants, invert
+  selection, move as a floating selection, nudge, flip, rotate, delete,
+  cut / copy / paste.
 - **Palettes** — PICO-8 default, create / duplicate / rename / delete, per-colour
   edit and naming, recent-colours strip.
 - **Animation** — frames with per-frame durations, cel types (normal, empty, hold,
   linked + Make Unique), reorder, playback (play / pause / step / first / last,
   loop or once), FPS, onion skin, animation tags.
-- **Files** — New, Open, Save, Save As, Close; `.obsipix` round-trips the whole
-  project; PNG export of the current frame; open a PNG as a document or import it
+- **Files** — New (size presets + background), Open, Save, Save As, Close;
+  `.obsipix` round-trips the whole project; open a PNG as a document or import it
   as a layer; paste an image from the clipboard.
+- **Export** — `File ▸ Export…` writes the current frame (PNG / JPEG / WebP / GIF,
+  integer scale, optional transparent background), an animated GIF, or a sprite
+  sheet (horizontal / vertical / grid). `File ▸ Export PNG` is the one-click path.
 - **Safety net** — autosave to browser storage (~30 s) with a startup recovery
   prompt that never overwrites your project file; corrupt-file rejection; a
   top-level error boundary.
 - **Keyboard-first** — a documented shortcut map (press `?` for the reference), a
   full menu bar, and context-sensitive controls.
 
-## Known limitations (V1)
+## Shortcuts (v2 map)
+
+`B` Pencil · `E` Eraser · `I` Eyedropper · `G` Fill · `L` Line · `R` Rectangle ·
+`O` Ellipse · `S` Rectangle-select · `Q` Lasso · `M` Move · `X` swap colours.
+`Space` + drag pans. `1` / `2` set 100 % / 200 % zoom. `Ctrl+Z` / `Ctrl+Shift+Z`
+undo / redo, `Ctrl+A` select all, `Ctrl+Shift+A` deselect, `Ctrl+Shift+I` invert
+selection. Press `?` for the full reference.
+
+## Known limitations
 
 - Single document at a time; no tabs or multi-document workspace.
 - No shortcut-remapping UI — the keymap is fixed (and documented under `?`).

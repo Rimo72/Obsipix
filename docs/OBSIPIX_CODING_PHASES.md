@@ -929,6 +929,42 @@ RELEASE READY
 
 ------------------------------------------------------------------------
 
+# Phase 16 --- v2 Spec Delta
+
+## Goal
+
+Apply the genuinely-new, in-scope items from
+`PROJECT_CORE_OBSIPIX.md` (the vendored v2 spec) on top of the frozen
+V1. Everything else in v2 that is described as "Future" or "Post-V1"
+stays out.
+
+## Build (shipped in three tested batches)
+
+-   Batch 1 --- New Document dialog (size presets + background choice),
+    v2 shortcut remap (M = Move, R = Rectangle, S = Select, Space + drag
+    = hold-to-pan, Ctrl+Shift+A = Deselect, Ctrl+Shift+I = Invert,
+    1 / 2 = zoom presets), Invert Selection command, Eyedropper
+    Merged / Layer sampling modes.
+-   Batch 2 --- full Colour Selector panel: RGB / HSV / HSL / Gray
+    models, saturation-value square, hue and alpha bars, HEX field
+    accepting 3/4/6/8-digit input.
+-   Batch 3 --- Expanded Export: Export dialog with PNG / JPEG / WebP /
+    GIF and integer scale presets; from-scratch GIF89a animation
+    encoder; sprite-sheet export (horizontal / vertical / grid).
+
+## Not built
+
+-   Multi-document workspace, shortcut-remapping UI, synced recovery,
+    and every other v2 item still marked Future / Post-V1.
+
+## Exit gate
+
+Each batch passed the full `npm run check` (typecheck + lint +
+format:check + unit + build) and the full Playwright suite before it
+was committed and pushed. Final: 390 unit tests, 34 e2e specs.
+
+------------------------------------------------------------------------
+
 # Coding Rules for Every Phase
 
 ## Rule 1 --- Core is authoritative
@@ -1053,6 +1089,7 @@ V1 Release
   13      Hardening                     COMPLETE
   14      Testing / Release Candidate   COMPLETE
   15      V1 Release                    COMPLETE
+  16      v2 Spec Delta                 COMPLETE
 
 # Definition of a Coding Phase
 
