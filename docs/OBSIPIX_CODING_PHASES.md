@@ -1052,7 +1052,7 @@ V1 Release
   12      UI Completion                 COMPLETE
   13      Hardening                     COMPLETE
   14      Testing / Release Candidate   COMPLETE
-  15      V1 Release                    NOT STARTED
+  15      V1 Release                    COMPLETE
 
 # Definition of a Coding Phase
 

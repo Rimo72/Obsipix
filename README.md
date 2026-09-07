@@ -1,9 +1,51 @@
 # Obsipix
 
-A web-first pixel-art editor built around exact logical-pixel editing.
+**Obsipix** is a web-first pixel-art editor built around exact logical-pixel editing:
+what you draw is what gets stored, one integer pixel at a time — no smoothing, no
+surprises. It runs entirely in the browser and keeps your work in a small,
+data-only `.obsipix` project file.
+
+**V1 is released.** Live build: <https://rimo72.github.io/Obsipix/>
 
 The authoritative specification is [`docs/PROJECT_CORE_OBSIPIX.md`](docs/PROJECT_CORE_OBSIPIX.md);
-the build order and phase status is [`docs/OBSIPIX_CODING_PHASES.md`](docs/OBSIPIX_CODING_PHASES.md).
+the build history is [`docs/OBSIPIX_CODING_PHASES.md`](docs/OBSIPIX_CODING_PHASES.md);
+release notes are in [`CHANGELOG.md`](CHANGELOG.md).
+
+## What V1 does
+
+- **Canvas** — transparent RGBA canvas, exact nearest-neighbour zoom, pan, grid and
+  checkerboard overlays, image / canvas resize with anchors.
+- **Drawing** — Pencil, Eraser, Eyedropper, Fill, Line, Rectangle, Ellipse; square
+  or round brush in fixed sizes; foreground / background colours with quick swap.
+- **Layers** — add / duplicate / delete / reorder, visibility, lock, opacity, merge
+  down, merge visible, flatten.
+- **Selection & transform** — rectangular and lasso select, marching ants, move as a
+  floating selection, nudge, flip, rotate, delete, cut / copy / paste.
+- **Palettes** — PICO-8 default, create / duplicate / rename / delete, per-colour
+  edit and naming, recent-colours strip.
+- **Animation** — frames with per-frame durations, cel types (normal, empty, hold,
+  linked + Make Unique), reorder, playback (play / pause / step / first / last,
+  loop or once), FPS, onion skin, animation tags.
+- **Files** — New, Open, Save, Save As, Close; `.obsipix` round-trips the whole
+  project; PNG export of the current frame; open a PNG as a document or import it
+  as a layer; paste an image from the clipboard.
+- **Safety net** — autosave to browser storage (~30 s) with a startup recovery
+  prompt that never overwrites your project file; corrupt-file rejection; a
+  top-level error boundary.
+- **Keyboard-first** — a documented shortcut map (press `?` for the reference), a
+  full menu bar, and context-sensitive controls.
+
+## Known limitations (V1)
+
+- Single document at a time; no tabs or multi-document workspace.
+- No shortcut-remapping UI — the keymap is fixed (and documented under `?`).
+- Autosave/recovery data lives in the current browser only (IndexedDB); it is not
+  synced and is not a substitute for saving the `.obsipix` file.
+- The selection outline stays at the pre-move position while a selection is
+  floating; it snaps to the final position on commit.
+- No first-run / empty-canvas hint.
+- PNG import is limited to images up to 4096 px on a side.
+- Tag playback ranges are stored but not yet used to drive playback.
 
 ## Requirements
 
@@ -33,6 +75,14 @@ npm run dev
 | `npm run test:e2e`     | Playwright end-to-end run                          |
 | `npm run check`        | typecheck + lint + format:check + test + build     |
 
+## Deployment
+
+Every push to `main` runs the full CI pipeline
+([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) and, on success, deploys
+the production build to GitHub Pages
+([`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)). The build uses
+`base: '/Obsipix/'`; local dev and the E2E server stay at the root.
+
 ## Architecture boundaries
 
 These boundaries are the coding contract for every phase (PROJECT_CORE §4):
@@ -54,41 +104,38 @@ Core code (`src/core`) must not depend on React or browser APIs.
 ```
 src/
 ├── app/              application shell (React presentation)
-└── core/             browser-independent engine
-    ├── types/        ids, geometry, color primitives
-    ├── pixels/       PixelBuffer — authoritative RGBA pixel store
-    ├── document/     Document, layers, frames, cels, selection, invariants
-    ├── history/      Command interface + snapshot undo/redo, transactions, strokes
-    ├── tools/        Pencil/Eraser/Eyedropper/Fill/Line/Rect/Ellipse/Select/Move, brush, shapes, transform
-    ├── persistence/  .obsipix serializer/parser (CRC + RLE), PNG encoder
-    └── errors/       EditorError (structured, severity-tagged)
-src/rendering/        browser-facing: Viewport (coordinate transforms),
-                      CanvasRenderer (layered passes)
-src/app/              React shell, EditorSession, pointer + file glue
+│   └── components/   menu bar, panels, dialogs, toasts, canvas stage
+├── core/             browser-independent engine
+│   ├── types/        ids, geometry, color primitives
+│   ├── pixels/       PixelBuffer — authoritative RGBA pixel store
+│   ├── document/     Document, layers, frames, cels, selection, commands, invariants
+│   ├── history/      Command interface + snapshot undo/redo, transactions, strokes
+│   ├── tools/        Pencil/Eraser/Eyedropper/Fill/Line/Rect/Ellipse/Select/Move, brush, shapes, transform
+│   ├── persistence/  .obsipix serializer/parser (CRC + RLE), PNG encoder, resource limits
+│   └── errors/       EditorError (structured, severity-tagged)
+├── rendering/        browser-facing: Viewport (coordinate transforms), CanvasRenderer (layered passes)
+└── infrastructure/   IndexedDB recovery storage
 tests/
-├── unit/             standalone unit specs (co-located *.test.ts also allowed)
-└── e2e/              Playwright specs
+└── e2e/              Playwright specs (unit specs are co-located as *.test.ts)
 ```
-
-Directories are created only when a phase needs them.
 
 ## Phase status
 
-| Phase | Area                          | Status      |
-| ----- | ----------------------------- | ----------- |
-| 0     | Repository / Foundation       | COMPLETE    |
-| 1     | Pixel Engine                  | COMPLETE    |
-| 2     | Document / Layers             | COMPLETE    |
-| 3     | Commands / History            | COMPLETE    |
-| 4     | Renderer / Coordinates        | COMPLETE    |
-| 5     | Input / Vertical Slice        | COMPLETE    |
-| 6     | Persistence / PNG             | COMPLETE    |
-| 7     | Core Editor Features          | COMPLETE    |
-| 8     | Selection / Transform         | COMPLETE    |
-| 9     | Palettes                      | COMPLETE    |
-| 10    | Animation                     | COMPLETE    |
-| 11    | Lifecycle / Recovery / Input  | COMPLETE    |
-| 12    | UI Completion                 | COMPLETE    |
-| 13    | Hardening                     | COMPLETE    |
-| 14    | Full Test / Release Candidate | COMPLETE    |
-| 15    | V1 Release                    | NOT STARTED |
+| Phase | Area                          | Status   |
+| ----- | ----------------------------- | -------- |
+| 0     | Repository / Foundation       | COMPLETE |
+| 1     | Pixel Engine                  | COMPLETE |
+| 2     | Document / Layers             | COMPLETE |
+| 3     | Commands / History            | COMPLETE |
+| 4     | Renderer / Coordinates        | COMPLETE |
+| 5     | Input / Vertical Slice        | COMPLETE |
+| 6     | Persistence / PNG             | COMPLETE |
+| 7     | Core Editor Features          | COMPLETE |
+| 8     | Selection / Transform         | COMPLETE |
+| 9     | Palettes                      | COMPLETE |
+| 10    | Animation                     | COMPLETE |
+| 11    | Lifecycle / Recovery / Input  | COMPLETE |
+| 12    | UI Completion                 | COMPLETE |
+| 13    | Hardening                     | COMPLETE |
+| 14    | Full Test / Release Candidate | COMPLETE |
+| 15    | V1 Release                    | COMPLETE |

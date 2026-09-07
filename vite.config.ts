@@ -3,7 +3,10 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
+  // Production (build + `vite preview`) is deployed to
+  // https://<user>.github.io/Obsipix/ ; dev and the e2e server stay at the root.
+  base: mode === 'production' ? '/Obsipix/' : '/',
   plugins: [react()],
   resolve: {
     alias: {
@@ -20,4 +23,4 @@ export default defineConfig({
     setupFiles: ['./tests/setup.ts'],
     include: ['src/**/*.{test,spec}.{ts,tsx}', 'tests/unit/**/*.{test,spec}.{ts,tsx}'],
   },
-});
+}));

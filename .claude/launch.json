@@ -6,6 +6,12 @@
       "runtimeExecutable": "C:\\Users\\Rimo72\\AppData\\Local\\Programs\\nodejs\\node.exe",
       "runtimeArgs": ["node_modules/vite/bin/vite.js"],
       "port": 5173
+    },
+    {
+      "name": "obsipix-preview",
+      "runtimeExecutable": "C:\\Users\\Rimo72\\AppData\\Local\\Programs\\nodejs\\node.exe",
+      "runtimeArgs": ["node_modules/vite/bin/vite.js", "preview", "--port", "4173"],
+      "port": 4173
     }
   ]
 }
