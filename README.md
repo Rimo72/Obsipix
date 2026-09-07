@@ -45,6 +45,11 @@ release notes are in [`CHANGELOG.md`](CHANGELOG.md).
   top-level error boundary.
 - **Keyboard-first** — a documented shortcut map (press `?` for the reference), a
   full menu bar, and context-sensitive controls.
+- **Workspace** — a full-height right sidebar of dockable panels (Color Management,
+  Layers, Palettes, Animation Preview) plus the Animation timeline dock; each panel
+  collapses, closes and resizes, the sidebar width is draggable, and the layout is
+  remembered. `View ▸ Panel: …` toggles visibility; `View ▸ Reset Panel Layout`
+  starts over.
 
 ## Shortcuts (v2 map)
 

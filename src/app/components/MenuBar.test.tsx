@@ -67,6 +67,15 @@ describe('MenuBar', () => {
     expect(fileButton).toHaveFocus();
   });
 
+  it('exposes toggle items as checkable menu items', () => {
+    render(<MenuBar menus={buildMenus({ save: vi.fn(), undo: vi.fn(), grid: vi.fn() })} />);
+    fireEvent.click(screen.getByRole('menuitem', { name: 'View' }));
+    expect(screen.getByRole('menuitemcheckbox', { name: 'Grid' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+  });
+
   it('marks disabled items and does not fire them', () => {
     const undo = vi.fn();
     render(<MenuBar menus={buildMenus({ save: vi.fn(), undo, grid: vi.fn() })} />);

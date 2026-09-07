@@ -1062,6 +1062,49 @@ timeline region). Browser-verified with a 4-frame animation.
 
 ------------------------------------------------------------------------
 
+# Phase 20 --- Dockable Panels and Managed Workspace
+
+## Goal
+
+Implement `PROJECT_CORE §111`: a full-height right sidebar whose panels
+can be resized, collapsed, closed and toggled from the View menu, with a
+persisted layout kept entirely out of the document.
+
+## Build
+
+-   `src/app/panelLayout.ts` --- `usePanelLayout` hook: per-panel
+    `{ visible, collapsed, height }` + `sidebarWidth`, clamped,
+    localStorage-persisted, `reset()`. Not session state.
+-   `Panel` --- consistent header (collapse toggle + optional close) and
+    a self-scrolling body.
+-   `ResizeHandle` --- `role="separator"` divider; pointer drag emits
+    deltas, Arrow keys nudge.
+-   `RightSidebar` --- full-height column of `Panel`s (Color Management /
+    Layers / Palettes / Animation Preview) with dividers; last expanded
+    panel flex-fills. Left-edge width handle.
+-   `ColorPanel` --- docked colour selector (FG / BG slot + swap +
+    `ColorPicker`).
+-   Timeline is now the **Animation** panel — a full-width dock below the
+    canvas with the same Panel chrome + a top resize handle.
+-   `View ▸ Panel: …` checkable toggles + `Reset Panel Layout`. MenuBar
+    toggle items became `role="menuitemcheckbox"` with `aria-checked`
+    (Grid / Checkerboard / Onion too); `menuAction` e2e helper matches
+    both roles.
+
+## Rules
+
+-   Panel / layout operations never create history, mark dirty, or touch
+    document data (§111.13).
+
+## Exit gate
+
+Full `npm run check` + Playwright suite. 453 unit tests, 44 e2e specs
+(`panelLayout`, `Panel`, `ResizeHandle`, `RightSidebar`, `ColorPanel`,
+`MenuBar` tests + `panels.spec.ts`). Browser-verified: collapse / close /
+reopen, View-menu checkmarks, keyboard + pointer resize, layout persist.
+
+------------------------------------------------------------------------
+
 # Coding Rules for Every Phase
 
 ## Rule 1 --- Core is authoritative
@@ -1190,6 +1233,7 @@ V1 Release
   17      Sprite Sheet PNG Import        COMPLETE
   18      Color Management Window        COMPLETE
   19      Thumbnails / Anim Preview      COMPLETE
+  20      Dockable Panels / Workspace    COMPLETE
 
 # Definition of a Coding Phase
 

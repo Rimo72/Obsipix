@@ -40,7 +40,7 @@ export function TimelinePanel({ session }: TimelinePanelProps) {
   const [newTag, setNewTag] = useState(false);
 
   return (
-    <section className="timeline-panel" aria-label="Timeline">
+    <div className="timeline-panel">
       <div className="timeline-panel__transport">
         <button
           type="button"
@@ -358,7 +358,7 @@ export function TimelinePanel({ session }: TimelinePanelProps) {
           </button>
         )}
       </div>
-    </section>
+    </div>
   );
 }
 

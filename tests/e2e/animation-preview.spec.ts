@@ -17,7 +17,7 @@ test.describe('timeline thumbnails and animation preview', () => {
     expect(await frames.nth(0).locator('canvas.frame-thumb').count()).toBe(1);
     expect(await frames.nth(1).locator('canvas.frame-thumb').count()).toBe(1);
 
-    const preview = page.getByRole('region', { name: 'Animation preview' });
+    const preview = page.getByRole('region', { name: 'Animation Preview' });
     await expect(preview).toBeVisible();
     await expect(preview.locator('canvas.animation-preview__canvas')).toBeVisible();
 
@@ -35,7 +35,7 @@ test.describe('timeline thumbnails and animation preview', () => {
     await page.getByRole('button', { name: 'Add frame' }).click();
     await dragPixels(page, [4, 10], [10, 10]);
 
-    const preview = page.getByRole('region', { name: 'Animation preview' });
+    const preview = page.getByRole('region', { name: 'Animation Preview' });
     await preview.getByRole('button', { name: '4×' }).click();
     await expect(preview.getByRole('button', { name: '4×' })).toHaveAttribute(
       'aria-pressed',

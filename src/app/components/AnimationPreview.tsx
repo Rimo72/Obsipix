@@ -15,16 +15,7 @@ type Scale = 'fit' | 1 | 2 | 4 | 8;
 type Background = 'checker' | 'white' | 'black';
 
 const SCALES: readonly Scale[] = ['fit', 1, 2, 4, 8];
-const MAX_STAGE_HEIGHT = 128;
-const COLLAPSE_KEY = 'obsipix.animationPreview.collapsed';
-
-function readCollapsed(): boolean {
-  try {
-    return localStorage.getItem(COLLAPSE_KEY) === '1';
-  } catch {
-    return false;
-  }
-}
+const MAX_STAGE_HEIGHT = 200;
 
 const BACKGROUND: Record<Background, FrameBackground> = {
   checker: 'checkerboard',
@@ -42,25 +33,13 @@ const BG_META: Record<Background, { label: string; glyph: string }> = {
  * The dedicated Animation Preview (PROJECT_CORE §110.5): a clean render of the
  * current frame — no grid, selection, onion skin or cursors — that plays the
  * animation in place. Playback drives the same authoritative state as the
- * timeline and never mutates the document (§110.12, §110.14).
+ * timeline and never mutates the document (§110.12, §110.14). Panel chrome
+ * (title, collapse, close) is provided by the enclosing {@link Panel}.
  */
 export function AnimationPreview({ session }: AnimationPreviewProps) {
   const [scale, setScale] = useState<Scale>('fit');
   const [background, setBackground] = useState<Background>('checker');
   const [resizeTick, setResizeTick] = useState(0);
-  const [collapsed, setCollapsed] = useState(readCollapsed);
-
-  const toggleCollapsed = (): void => {
-    setCollapsed((current) => {
-      const next = !current;
-      try {
-        localStorage.setItem(COLLAPSE_KEY, next ? '1' : '0');
-      } catch {
-        // storage unavailable — the choice just won't persist
-      }
-      return next;
-    });
-  };
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -86,7 +65,7 @@ export function AnimationPreview({ session }: AnimationPreviewProps) {
   useEffect(() => {
     const canvas = canvasRef.current;
     const stage = stageRef.current;
-    if (!canvas || !stage || collapsed) {
+    if (!canvas || !stage) {
       return;
     }
 
@@ -106,104 +85,90 @@ export function AnimationPreview({ session }: AnimationPreviewProps) {
     } catch {
       // Frame removed between render and paint — ignore.
     }
-  }, [session, version, scale, background, docW, docH, frameId, resizeTick, collapsed]);
+  }, [session, version, scale, background, docW, docH, frameId, resizeTick]);
 
   const frameIndex = session.document.timeline.indexOf(frameId);
   const frameCount = session.document.timeline.frameCount;
 
   return (
-    <section className="animation-preview" aria-label="Animation preview">
-      <button
-        type="button"
-        className="animation-preview__title"
-        aria-expanded={!collapsed}
-        onClick={toggleCollapsed}
-      >
-        <span className="animation-preview__chevron">{collapsed ? '▸' : '▾'}</span>
-        Animation Preview
-      </button>
+    <div className="animation-preview">
+      <div className="animation-preview__stage" ref={stageRef} data-testid="animation-preview">
+        <canvas ref={canvasRef} className="animation-preview__canvas" />
+      </div>
 
-      {collapsed ? null : (
-        <>
-          <div className="animation-preview__stage" ref={stageRef} data-testid="animation-preview">
-            <canvas ref={canvasRef} className="animation-preview__canvas" />
-          </div>
+      <div className="animation-preview__transport" role="group" aria-label="Preview playback">
+        <button type="button" aria-label="First frame" onClick={() => session.firstFrame()}>
+          {'⏮'}
+        </button>
+        <button type="button" aria-label="Previous frame" onClick={() => session.prevFrame()}>
+          {'◀'}
+        </button>
+        <button
+          type="button"
+          className="animation-preview__play"
+          aria-label={session.isPlaying ? 'Pause' : 'Play'}
+          aria-pressed={session.isPlaying}
+          onClick={() => session.togglePlay()}
+        >
+          {session.isPlaying ? '⏸' : '▶'}
+        </button>
+        <button type="button" aria-label="Next frame" onClick={() => session.nextFrame()}>
+          {'▶'}
+        </button>
+        <button type="button" aria-label="Last frame" onClick={() => session.lastFrame()}>
+          {'⏭'}
+        </button>
+        <button
+          type="button"
+          className={
+            session.playMode === 'loop'
+              ? 'animation-preview__toggle is-on'
+              : 'animation-preview__toggle'
+          }
+          aria-pressed={session.playMode === 'loop'}
+          title="Loop playback"
+          onClick={() => session.setPlayMode(session.playMode === 'loop' ? 'once' : 'loop')}
+        >
+          Loop
+        </button>
+        <span className="animation-preview__count" data-testid="animation-preview-frame">
+          {frameIndex + 1} / {frameCount}
+        </span>
+      </div>
 
-          <div className="animation-preview__transport" role="group" aria-label="Preview playback">
-            <button type="button" aria-label="First frame" onClick={() => session.firstFrame()}>
-              {'⏮'}
-            </button>
-            <button type="button" aria-label="Previous frame" onClick={() => session.prevFrame()}>
-              {'◀'}
-            </button>
+      <div className="animation-preview__options">
+        <div className="animation-preview__seg" role="group" aria-label="Preview scale">
+          {SCALES.map((option) => (
             <button
+              key={String(option)}
               type="button"
-              className="animation-preview__play"
-              aria-label={session.isPlaying ? 'Pause' : 'Play'}
-              aria-pressed={session.isPlaying}
-              onClick={() => session.togglePlay()}
+              aria-pressed={scale === option}
+              className={scale === option ? 'is-on' : undefined}
+              onClick={() => {
+                setScale(option);
+              }}
             >
-              {session.isPlaying ? '⏸' : '▶'}
+              {option === 'fit' ? 'Fit' : `${String(option)}×`}
             </button>
-            <button type="button" aria-label="Next frame" onClick={() => session.nextFrame()}>
-              {'▶'}
-            </button>
-            <button type="button" aria-label="Last frame" onClick={() => session.lastFrame()}>
-              {'⏭'}
-            </button>
+          ))}
+        </div>
+        <div className="animation-preview__seg" role="group" aria-label="Preview background">
+          {(['checker', 'white', 'black'] as const).map((option) => (
             <button
+              key={option}
               type="button"
-              className={
-                session.playMode === 'loop'
-                  ? 'animation-preview__toggle is-on'
-                  : 'animation-preview__toggle'
-              }
-              aria-pressed={session.playMode === 'loop'}
-              title="Loop playback"
-              onClick={() => session.setPlayMode(session.playMode === 'loop' ? 'once' : 'loop')}
+              aria-label={BG_META[option].label}
+              aria-pressed={background === option}
+              className={background === option ? 'is-on' : undefined}
+              onClick={() => {
+                setBackground(option);
+              }}
             >
-              Loop
+              {BG_META[option].glyph}
             </button>
-            <span className="animation-preview__count" data-testid="animation-preview-frame">
-              {frameIndex + 1} / {frameCount}
-            </span>
-          </div>
-
-          <div className="animation-preview__options">
-            <div className="animation-preview__seg" role="group" aria-label="Preview scale">
-              {SCALES.map((option) => (
-                <button
-                  key={String(option)}
-                  type="button"
-                  aria-pressed={scale === option}
-                  className={scale === option ? 'is-on' : undefined}
-                  onClick={() => {
-                    setScale(option);
-                  }}
-                >
-                  {option === 'fit' ? 'Fit' : `${String(option)}×`}
-                </button>
-              ))}
-            </div>
-            <div className="animation-preview__seg" role="group" aria-label="Preview background">
-              {(['checker', 'white', 'black'] as const).map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  aria-label={BG_META[option].label}
-                  aria-pressed={background === option}
-                  className={background === option ? 'is-on' : undefined}
-                  onClick={() => {
-                    setBackground(option);
-                  }}
-                >
-                  {BG_META[option].glyph}
-                </button>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
-    </section>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }

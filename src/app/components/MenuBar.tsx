@@ -179,7 +179,8 @@ export function MenuBar({ menus }: MenuBarProps) {
                         itemsRef.current[itemIndex] = element;
                       }}
                       type="button"
-                      role="menuitem"
+                      role={item.checked === undefined ? 'menuitem' : 'menuitemcheckbox'}
+                      aria-checked={item.checked}
                       className="menu-bar__item"
                       tabIndex={itemIndex === activeItem ? 0 : -1}
                       disabled={item.disabled}

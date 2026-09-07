@@ -79,7 +79,9 @@ test.describe('v2 editor additions', () => {
     await open(page);
 
     await page.getByRole('button', { name: /Foreground colour/ }).click();
-    const picker = page.getByRole('group', { name: 'Foreground colour' });
+    const picker = page
+      .getByTestId('color-popover')
+      .getByRole('group', { name: 'Foreground colour' });
     await expect(picker).toBeVisible();
 
     // RGB mode: set a pure red

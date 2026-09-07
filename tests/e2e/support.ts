@@ -96,9 +96,10 @@ export async function open(page: Page): Promise<void> {
 /** Open a top-level menu and click one of its items (both names matched exactly). */
 export async function menuAction(page: Page, menu: string, item: string): Promise<void> {
   await page.getByRole('menuitem', { name: menu, exact: true }).click();
-  await page
-    .getByRole('menu', { name: menu })
+  const dropdown = page.getByRole('menu', { name: menu });
+  await dropdown
     .getByRole('menuitem', { name: item, exact: true })
+    .or(dropdown.getByRole('menuitemcheckbox', { name: item, exact: true }))
     .click();
 }
 

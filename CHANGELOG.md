@@ -3,6 +3,43 @@
 All notable changes to Obsipix are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## 1.5.0 — 2026-09-07
+
+Dockable panels and a managed workspace
+([`docs/PROJECT_CORE_OBSIPIX.md`](docs/PROJECT_CORE_OBSIPIX.md) §111).
+
+### Added
+
+- **Full-height right sidebar** with independently manageable panels: **Color
+  Management** (the full colour selector bound to the foreground or background),
+  **Layers**, **Palettes** and **Animation Preview**. The timeline is now the
+  **Animation** panel — a full-width dock below the canvas.
+- Every panel has a consistent header and can be **collapsed** (header stays,
+  body hides), **closed**, and **resized** by dragging the divider above it.
+  The **sidebar width** is draggable from its left edge. Dividers are
+  keyboard-operable (`Tab` to a divider, arrow keys to nudge).
+- **View ▸ Panel: …** toggles each panel's visibility, with a check mark and
+  `aria-checked` showing the current state; **View ▸ Reset Panel Layout**
+  restores the defaults.
+- The layout (visibility, collapsed state, panel heights, sidebar width) is
+  saved as a per-browser preference. None of it is document data — panel
+  operations never create history, mark the document dirty, or touch pixels.
+- `src/app/panelLayout.ts` (`usePanelLayout`), the `Panel`, `ResizeHandle`,
+  `RightSidebar` and `ColorPanel` components.
+
+### Changed
+
+- Menu toggle items (Grid, Checkerboard, Onion Skin, the panel toggles) now
+  use `role="menuitemcheckbox"` with `aria-checked`.
+- The Animation Preview panel dropped its own collapse chrome (the panel
+  frame provides it).
+
+### Quality
+
+- 25 new unit tests (`panelLayout`, `Panel`, `ResizeHandle`, `RightSidebar`,
+  `ColorPanel`, `MenuBar`) and `tests/e2e/panels.spec.ts`. 453 unit tests,
+  44 e2e specs.
+
 ## 1.4.0 — 2026-09-07
 
 Timeline thumbnails and a dedicated Animation Preview

@@ -23,7 +23,7 @@ export function PalettePanel({ session, onAddColor, onEditColor }: PalettePanelP
   const colorIndex = palette ? palette.colors.findIndex((color) => color.id === selectedColor) : -1;
 
   return (
-    <section className="palette-panel" aria-label="Palette">
+    <div className="palette-panel">
       <div className="palette-panel__header">
         {renamingPalette && palette ? (
           <input
@@ -191,6 +191,6 @@ export function PalettePanel({ session, onAddColor, onEditColor }: PalettePanelP
           &#8594;
         </button>
       </div>
-    </section>
+    </div>
   );
 }

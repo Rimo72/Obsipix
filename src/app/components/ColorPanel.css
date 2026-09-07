@@ -1,0 +1,61 @@
+.color-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+}
+
+.color-panel__slots {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.color-panel__slot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 0;
+  padding: 4px 6px;
+  font: inherit;
+  font-size: 11px;
+  color: var(--obsipix-text-muted);
+  background: var(--obsipix-surface-raised);
+  border: 1px solid var(--obsipix-border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.color-panel__slot[aria-pressed='true'] {
+  color: var(--obsipix-text);
+  border-color: var(--obsipix-accent);
+}
+
+.color-panel__chip {
+  width: 14px;
+  height: 14px;
+  background-color: #0000;
+  background-image:
+    linear-gradient(45deg, #bbb 25%, transparent 25%),
+    linear-gradient(-45deg, #bbb 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #bbb 75%),
+    linear-gradient(-45deg, transparent 75%, #bbb 75%);
+  background-size: 8px 8px;
+  border: 1px solid var(--obsipix-border);
+  border-radius: 3px;
+}
+
+.color-panel__swap {
+  flex: 0 0 auto;
+  padding: 3px 7px;
+  font: inherit;
+  color: var(--obsipix-text-muted);
+  background: transparent;
+  border: 1px solid var(--obsipix-border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.color-panel .color-picker {
+  width: auto;
+}

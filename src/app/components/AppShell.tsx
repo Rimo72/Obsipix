@@ -16,10 +16,10 @@ import {
 } from '../fileCommands';
 import { runExport } from '../imageExport';
 import { decodePng } from '../pngDecode';
+import { PANEL_TITLE, SIDEBAR_PANELS, usePanelLayout, type PanelId } from '../panelLayout';
 import { resolveShortcut, type ShortcutCommand } from '../shortcuts';
 import { useAutosaveRecovery, type AutosaveRecoveryOptions } from '../useAutosaveRecovery';
 import { useEditorSessionVersion } from '../useEditorSession';
-import { AnimationPreview } from './AnimationPreview';
 import { BrushControls } from './BrushControls';
 import { CanvasStage } from './CanvasStage';
 import { ColorControls } from './ColorControls';
@@ -28,12 +28,13 @@ import { ExportDialog } from './ExportDialog';
 import { EyedropperControls } from './EyedropperControls';
 import { ImportPngDialog } from './ImportPngDialog';
 import { KeyboardHelp } from './KeyboardHelp';
-import { LayerPanel } from './LayerPanel';
 import { MenuBar, type MenuDef } from './MenuBar';
 import { NewDocumentDialog } from './NewDocumentDialog';
-import { PalettePanel } from './PalettePanel';
+import { Panel } from './Panel';
 import { RecoveryPrompt } from './RecoveryPrompt';
 import { ResizeDialog } from './ResizeDialog';
+import { ResizeHandle } from './ResizeHandle';
+import { RightSidebar } from './RightSidebar';
 import { SelectionControls } from './SelectionControls';
 import { StatusBar } from './StatusBar';
 import { TimelinePanel } from './TimelinePanel';
@@ -76,6 +77,8 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
   >(null);
   const [colorDraft, setColorDraft] = useState<RGBA>(session.foreground);
   const [sampling, setSampling] = useState(false);
+
+  const [panelLayout, panelActions] = usePanelLayout();
 
   const { recovery, recover, discardRecovery, deferRecovery, resolveAutosave } =
     useAutosaveRecovery(session, autosaveRecovery ?? {});
@@ -458,6 +461,13 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
             checked: session.onionSkin.enabled,
             onSelect: () => session.toggleOnionSkin(),
           },
+          null,
+          ...([...SIDEBAR_PANELS, 'timeline'] as PanelId[]).map((id) => ({
+            label: `Panel: ${PANEL_TITLE[id]}`,
+            checked: panelLayout.panels[id].visible,
+            onSelect: () => panelActions.toggleVisible(id),
+          })),
+          { label: 'Reset Panel Layout', onSelect: () => panelActions.reset() },
         ],
       },
       {
@@ -476,7 +486,7 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
     // handlers close over the current render; the shell re-renders on every
     // session change so the config is always fresh.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [session, session.getVersion()],
+    [session, session.getVersion(), panelLayout, panelActions],
   );
 
   const title = `${session.fileName ?? session.document.metadata.name}${session.isDirty ? ' •' : ''}`;
@@ -536,17 +546,49 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
 
       <div className="app-shell__body">
         <ToolRail session={session} />
-        <main className="app-shell__stage" aria-label="Canvas">
-          <CanvasStage session={session} />
-        </main>
-        <div className="app-shell__sidebar">
-          <LayerPanel session={session} />
-          <PalettePanel session={session} onAddColor={openAddColor} onEditColor={openEditColor} />
-          <AnimationPreview session={session} />
+        <div className="app-shell__main">
+          <main className="app-shell__stage" aria-label="Canvas">
+            <CanvasStage session={session} />
+          </main>
+          {panelLayout.panels.timeline.visible && (
+            <>
+              <ResizeHandle
+                orientation="row"
+                label={`Resize ${PANEL_TITLE.timeline} panel`}
+                onResize={(dy) => {
+                  panelActions.nudgeHeight('timeline', -dy);
+                }}
+              />
+              <Panel
+                id="timeline"
+                title={PANEL_TITLE.timeline}
+                collapsed={panelLayout.panels.timeline.collapsed}
+                onToggleCollapse={() => {
+                  panelActions.toggleCollapsed('timeline');
+                }}
+                onClose={() => {
+                  panelActions.setVisible('timeline', false);
+                }}
+                className="app-shell__timeline-dock"
+                style={
+                  panelLayout.panels.timeline.collapsed
+                    ? { flex: '0 0 auto' }
+                    : { flex: `0 0 ${String(panelLayout.panels.timeline.height)}px` }
+                }
+              >
+                <TimelinePanel session={session} />
+              </Panel>
+            </>
+          )}
         </div>
+        <RightSidebar
+          session={session}
+          layout={panelLayout}
+          actions={panelActions}
+          onAddColor={openAddColor}
+          onEditColor={openEditColor}
+        />
       </div>
-
-      <TimelinePanel session={session} />
 
       <StatusBar session={session} />
 

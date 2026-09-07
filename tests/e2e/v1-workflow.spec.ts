@@ -119,7 +119,7 @@ test.describe('V1 workflow', () => {
     );
 
     // play briefly then pause
-    const timeline = page.getByRole('region', { name: 'Timeline' });
+    const timeline = page.getByRole('region', { name: 'Animation', exact: true });
     await timeline.getByRole('button', { name: 'Play' }).click();
     await expect.poll(() => page.evaluate(() => window.__obsipix?.isPlaying)).toBe(true);
     await timeline.getByRole('button', { name: 'Pause' }).click();

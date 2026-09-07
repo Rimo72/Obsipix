@@ -18,7 +18,7 @@ test.describe('UI shell', () => {
     const viewMenu = page.getByRole('menu', { name: 'View' });
     await expect(viewMenu).toBeVisible();
 
-    await viewMenu.getByRole('menuitem', { name: 'Grid', exact: true }).click();
+    await viewMenu.getByRole('menuitemcheckbox', { name: 'Grid', exact: true }).click();
     await expect(viewMenu).toBeHidden();
     expect(await gridToggle.getAttribute('aria-pressed')).not.toBe(before);
 

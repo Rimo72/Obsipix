@@ -28,7 +28,7 @@ export function LayerPanel({ session }: LayerPanelProps) {
   };
 
   return (
-    <aside className="layer-panel" aria-label="Layers">
+    <div className="layer-panel">
       <div className="layer-panel__toolbar" role="group" aria-label="Layer actions">
         <button
           type="button"
@@ -175,6 +175,6 @@ export function LayerPanel({ session }: LayerPanelProps) {
           Flatten
         </button>
       </div>
-    </aside>
+    </div>
   );
 }

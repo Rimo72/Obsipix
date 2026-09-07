@@ -70,7 +70,7 @@ test.describe('animation', () => {
     // --- play ---
     await page.evaluate(() => window.__obsipix?.firstFrame());
     const startId = await page.evaluate(() => window.__obsipix?.document.timeline.activeFrameId);
-    const timeline = page.getByRole('region', { name: 'Timeline' });
+    const timeline = page.getByRole('region', { name: 'Animation', exact: true });
     await timeline.getByRole('button', { name: 'Play' }).click();
     await expect
       .poll(() => page.evaluate(() => window.__obsipix?.document.timeline.activeFrameId))
