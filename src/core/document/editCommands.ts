@@ -15,6 +15,7 @@ import {
   type Quarter,
 } from '@core/tools/transform';
 
+import { MAX_DOCUMENT_DIMENSION } from './defaults';
 import type { Document } from './Document';
 import type { SelectionMode } from './Selection';
 
@@ -180,6 +181,9 @@ function assertDimensions(dimensions: Dimensions): void {
     dimensions.height <= 0
   ) {
     throw new RangeError('Resize dimensions must be positive integers');
+  }
+  if (dimensions.width > MAX_DOCUMENT_DIMENSION || dimensions.height > MAX_DOCUMENT_DIMENSION) {
+    throw new RangeError(`Resize dimensions may not exceed ${String(MAX_DOCUMENT_DIMENSION)}px`);
   }
 }
 

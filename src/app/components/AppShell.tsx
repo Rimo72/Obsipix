@@ -431,7 +431,7 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
         </div>
       </header>
 
-      <div className="app-shell__options">
+      <div className="app-shell__options" role="toolbar" aria-label="Tool options">
         <BrushControls session={session} />
         <ColorControls session={session} />
         <SelectionControls session={session} />

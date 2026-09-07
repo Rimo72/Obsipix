@@ -126,6 +126,7 @@ export function LayerPanel({ session }: LayerPanelProps) {
                 <button
                   type="button"
                   className="layer-panel__name"
+                  aria-current={active ? 'true' : undefined}
                   onClick={() => {
                     session.setActiveLayer(layer.id);
                   }}

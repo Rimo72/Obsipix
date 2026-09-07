@@ -1,4 +1,5 @@
 import type { EditorSession } from '../EditorSession';
+import { useEditorCursor } from '../useEditorSession';
 import './StatusBar.css';
 
 interface StatusBarProps {
@@ -9,7 +10,7 @@ interface StatusBarProps {
 export function StatusBar({ session }: StatusBarProps) {
   const { width, height } = session.document.dimensions;
   const zoomPercent = Math.round(session.viewport.zoom * 100);
-  const cursor = session.cursor;
+  const cursor = useEditorCursor(session);
   const selectionBounds = session.document.selection.active
     ? session.document.selection.bounds()
     : null;
@@ -17,7 +18,7 @@ export function StatusBar({ session }: StatusBarProps) {
   const frameNumber = timeline.indexOf(timeline.activeFrameId) + 1;
 
   return (
-    <footer className="status-bar">
+    <footer className="status-bar" aria-label="Status">
       <span data-testid="status-dimensions">
         {width} &times; {height}
       </span>

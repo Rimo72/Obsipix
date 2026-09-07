@@ -21,7 +21,10 @@
 }
 
 .tool-rail__button--active {
+  /* colour + weight + an inset rule, so the active tool reads without colour */
   color: var(--obsipix-bg);
+  font-weight: 700;
   background: var(--obsipix-accent);
   border-color: var(--obsipix-accent);
+  box-shadow: inset 3px 0 0 var(--obsipix-bg);
 }

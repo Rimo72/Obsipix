@@ -33,14 +33,15 @@ export function ColorControls({ session }: ColorControlsProps) {
   const current = editing === 'background' ? session.background : session.foreground;
 
   return (
-    <div className="color-controls" ref={rootRef} aria-label="Colours">
+    <div className="color-controls" ref={rootRef} role="group" aria-label="Colours">
       <div className="color-controls__swatches">
         <button
           type="button"
           className="color-controls__swatch color-controls__swatch--fg"
           style={{ background: rgbaToHex(session.foreground) }}
           title={`Foreground ${rgbaToHex(session.foreground)}`}
-          aria-label="Foreground colour"
+          aria-label={`Foreground colour, ${rgbaToHex(session.foreground)}`}
+          aria-pressed={editing === 'foreground'}
           onClick={() => {
             setEditing((slot) => (slot === 'foreground' ? null : 'foreground'));
           }}
@@ -50,7 +51,8 @@ export function ColorControls({ session }: ColorControlsProps) {
           className="color-controls__swatch color-controls__swatch--bg"
           style={{ background: rgbaToHex(session.background) }}
           title={`Background ${rgbaToHex(session.background)}`}
-          aria-label="Background colour"
+          aria-label={`Background colour, ${rgbaToHex(session.background)}`}
+          aria-pressed={editing === 'background'}
           onClick={() => {
             setEditing((slot) => (slot === 'background' ? null : 'background'));
           }}

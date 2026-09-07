@@ -1050,7 +1050,7 @@ V1 Release
   10      Animation                     COMPLETE
   11      Lifecycle / Recovery          COMPLETE
   12      UI Completion                 COMPLETE
-  13      Hardening                     NOT STARTED
+  13      Hardening                     COMPLETE
   14      Testing / Release Candidate   NOT STARTED
   15      V1 Release                    NOT STARTED
 

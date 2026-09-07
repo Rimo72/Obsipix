@@ -26,6 +26,8 @@ import type {
   PaletteId,
 } from '@core/types/ids';
 
+import { MAX_DOCUMENT_DIMENSION } from '@core/document/defaults';
+
 import { ByteReader } from './ByteWriter';
 import { crc32 } from './crc32';
 import {
@@ -34,6 +36,19 @@ import {
   ObsipixParseError,
   type ObsipixMetadata,
 } from './format';
+import {
+  MAX_BUFFERS,
+  MAX_FRAME_DURATION_MS,
+  MAX_FRAMES,
+  MAX_LAYERS,
+  MAX_METADATA_BYTES,
+  MAX_OBSIPIX_FILE_BYTES,
+  MAX_PALETTE_COLORS,
+  MAX_PALETTES,
+  MAX_PIXEL_SECTION_BYTES,
+  MAX_TAGS,
+  MIN_FRAME_DURATION_MS,
+} from './limits';
 import { decodeRle } from './rle';
 
 // The parse boundary turns untrusted strings from the file into branded ids.
@@ -99,8 +114,24 @@ function readMetadata(bytes: Uint8Array): ObsipixMetadata {
  * is never touched by a failed load (PROJECT_CORE §15).
  */
 export function parseDocument(fileBytes: Uint8Array, ids: IdFactory = createIdFactory()): Document {
+  try {
+    return parseDocumentUnsafe(fileBytes, ids);
+  } catch (error) {
+    // Any failure past the outer guards — a bad varint, an out-of-range slice,
+    // an invariant violation — is a rejected file, never a thrown internal error.
+    if (error instanceof ObsipixParseError) {
+      throw error;
+    }
+    throw new ObsipixParseError('The file is not a valid .obsipix project', error);
+  }
+}
+
+function parseDocumentUnsafe(fileBytes: Uint8Array, ids: IdFactory): Document {
   if (fileBytes.length < OBSIPIX_MAGIC.length + 12) {
     throw new ObsipixParseError('File is too short to be an .obsipix project');
+  }
+  if (fileBytes.length > MAX_OBSIPIX_FILE_BYTES) {
+    throw new ObsipixParseError('File is larger than Obsipix will open');
   }
   for (let i = 0; i < OBSIPIX_MAGIC.length; i += 1) {
     if (fileBytes[i] !== OBSIPIX_MAGIC[i]) {
@@ -122,8 +153,16 @@ export function parseDocument(fileBytes: Uint8Array, ids: IdFactory = createIdFa
   }
   reader.u16();
 
-  const metadata = readMetadata(reader.bytes(reader.u32()));
-  const pixelSection = reader.bytes(reader.u32());
+  const readSection = (max: number, label: string): Uint8Array => {
+    const length = reader.u32();
+    if (length > max || length > reader.remaining) {
+      throw new ObsipixParseError(`The ${label} section length is out of range`);
+    }
+    return reader.bytes(length);
+  };
+
+  const metadata = readMetadata(readSection(MAX_METADATA_BYTES, 'metadata'));
+  const pixelSection = readSection(MAX_PIXEL_SECTION_BYTES, 'pixel');
 
   const dimensions = { width: metadata.document.width, height: metadata.document.height };
   if (
@@ -133,6 +172,31 @@ export function parseDocument(fileBytes: Uint8Array, ids: IdFactory = createIdFa
     dimensions.height <= 0
   ) {
     throw new ObsipixParseError('Invalid document dimensions');
+  }
+  if (dimensions.width > MAX_DOCUMENT_DIMENSION || dimensions.height > MAX_DOCUMENT_DIMENSION) {
+    throw new ObsipixParseError(
+      `Document dimensions exceed the ${String(MAX_DOCUMENT_DIMENSION)}px limit`,
+    );
+  }
+  if (metadata.layers.length > MAX_LAYERS) {
+    throw new ObsipixParseError('The file has too many layers');
+  }
+  if (metadata.animation.frames.length > MAX_FRAMES) {
+    throw new ObsipixParseError('The file has too many frames');
+  }
+  if (metadata.buffers.length > MAX_BUFFERS) {
+    throw new ObsipixParseError('The file has too many pixel buffers');
+  }
+  if (metadata.palettes.length > MAX_PALETTES) {
+    throw new ObsipixParseError('The file has too many palettes');
+  }
+  if (metadata.animation.tags.length > MAX_TAGS) {
+    throw new ObsipixParseError('The file has too many tags');
+  }
+  for (const palette of metadata.palettes) {
+    if (palette.colors.length > MAX_PALETTE_COLORS) {
+      throw new ObsipixParseError('A palette has too many colours');
+    }
   }
 
   const buffers: PixelBuffer[] = metadata.buffers.map((ref, index) => {
@@ -183,8 +247,13 @@ export function parseDocument(fileBytes: Uint8Array, ids: IdFactory = createIdFa
     layers.setActive(brand<LayerId>(metadata.activeLayerId));
   }
 
+  const clampDuration = (value: unknown): number => {
+    const ms = typeof value === 'number' && Number.isFinite(value) ? Math.round(value) : 100;
+    return Math.max(MIN_FRAME_DURATION_MS, Math.min(MAX_FRAME_DURATION_MS, ms));
+  };
+
   const frames: Frame[] = metadata.animation.frames.map((frameData) => {
-    const frame = new Frame(brand<FrameId>(frameData.id), frameData.durationMs);
+    const frame = new Frame(brand<FrameId>(frameData.id), clampDuration(frameData.durationMs));
     for (const [layerId, celData] of Object.entries(frameData.cels)) {
       const celId = brand<CelId>(`cel_${layerId}_${frameData.id}`);
       const layer = brand<LayerId>(layerId);

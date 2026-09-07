@@ -11,3 +11,18 @@ export function useEditorSessionVersion(session: EditorSession): number {
   const getSnapshot = useCallback(() => session.getVersion(), [session]);
   return useSyncExternalStore(subscribe, getSnapshot);
 }
+
+/**
+ * Subscribe only to the high-frequency pointer read-out (PROJECT_CORE §16 —
+ * hover must not drive a full application re-render).
+ */
+export function useEditorCursor(
+  session: EditorSession,
+): { readonly x: number; readonly y: number } | null {
+  const subscribe = useCallback(
+    (onChange: () => void) => session.subscribeCursor(onChange),
+    [session],
+  );
+  useSyncExternalStore(subscribe, () => session.getCursorVersion());
+  return session.cursor;
+}

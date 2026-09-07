@@ -148,6 +148,10 @@ export function CanvasStage({ session }: CanvasStageProps) {
         ref={canvasRef}
         className="canvas-stage__canvas"
         data-testid="editor-canvas"
+        role="img"
+        aria-label={`Drawing canvas, ${String(session.document.dimensions.width)} by ${String(
+          session.document.dimensions.height,
+        )} pixels`}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={endInteraction}

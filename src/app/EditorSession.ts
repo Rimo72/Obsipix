@@ -153,6 +153,8 @@ export class EditorSession {
 
   readonly #listeners = new Set<() => void>();
   #version = 0;
+  readonly #cursorListeners = new Set<() => void>();
+  #cursorVersion = 0;
 
   constructor(options: EditorSessionOptions = {}) {
     this.history = new History(options.document ?? createDefaultDocument());
@@ -489,7 +491,8 @@ export class EditorSession {
     const { x, y } = input.pixel;
     if (!this.#cursor || this.#cursor.x !== x || this.#cursor.y !== y) {
       this.#cursor = { x, y };
-      this.#emit();
+      // A hover moves many times a second; keep it off the main render path.
+      this.#emitCursor();
     }
   }
 
@@ -501,7 +504,26 @@ export class EditorSession {
   clearCursor(): void {
     if (this.#cursor) {
       this.#cursor = null;
-      this.#emit();
+      this.#emitCursor();
+    }
+  }
+
+  /** A light subscription just for the pointer read-out; see {@link pointerMove}. */
+  subscribeCursor(listener: () => void): () => void {
+    this.#cursorListeners.add(listener);
+    return () => {
+      this.#cursorListeners.delete(listener);
+    };
+  }
+
+  getCursorVersion(): number {
+    return this.#cursorVersion;
+  }
+
+  #emitCursor(): void {
+    this.#cursorVersion += 1;
+    for (const listener of this.#cursorListeners) {
+      listener();
     }
   }
 

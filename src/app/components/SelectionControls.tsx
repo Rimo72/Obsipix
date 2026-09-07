@@ -16,7 +16,7 @@ export function SelectionControls({ session }: SelectionControlsProps) {
   const floating = session.hasFloat;
 
   return (
-    <div className="selection-controls" aria-label="Selection and transform">
+    <div className="selection-controls" role="group" aria-label="Selection and transform">
       {floating ? (
         <span className="selection-controls__label">Floating selection</span>
       ) : (

@@ -89,4 +89,5 @@ Directories are created only when a phase needs them.
 | 10    | Animation                    | COMPLETE    |
 | 11    | Lifecycle / Recovery / Input | COMPLETE    |
 | 12    | UI Completion                | COMPLETE    |
-| 13+   | see `OBSIPIX_CODING_PHASES`  | NOT STARTED |
+| 13    | Hardening                    | COMPLETE    |
+| 14+   | see `OBSIPIX_CODING_PHASES`  | NOT STARTED |
