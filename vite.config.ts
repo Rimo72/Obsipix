@@ -4,9 +4,12 @@ import { defineConfig } from 'vitest/config';
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => ({
-  // Production (build + `vite preview`) is deployed to
-  // https://<user>.github.io/Obsipix/ ; dev and the e2e server stay at the root.
-  base: mode === 'production' ? '/Obsipix/' : '/',
+  // Served from the domain root everywhere except GitHub Pages, which hosts the
+  // build under https://<user>.github.io/Obsipix/. Vercel (and any other host)
+  // sets no such prefix, so `VERCEL` — or an explicit DEPLOY_BASE — wins.
+  base:
+    process.env.DEPLOY_BASE ??
+    (process.env.VERCEL ? '/' : mode === 'production' ? '/Obsipix/' : '/'),
   plugins: [react()],
   resolve: {
     alias: {

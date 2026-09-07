@@ -96,11 +96,19 @@ npm run dev
 
 ## Deployment
 
-Every push to `main` runs the full CI pipeline
+Obsipix is a fully static client-side app — no server, no database — so any
+static host works.
+
+**GitHub Pages** (primary): every push to `main` runs the full CI pipeline
 ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) and, on success, deploys
-the production build to GitHub Pages
-([`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)). The build uses
-`base: '/Obsipix/'`; local dev and the E2E server stay at the root.
+to GitHub Pages ([`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)),
+which hosts the build under `/Obsipix/`.
+
+**Vercel** (or Netlify / Cloudflare Pages / any root-domain host): import the
+repo — [`vercel.json`](vercel.json) sets the framework, `npm run build` and
+`dist/`. The Vite `base` is `/` everywhere except a GitHub Pages build: it stays
+`/Obsipix/` there, and `DEPLOY_BASE` overrides it for anything else. Local dev and
+the E2E server always use the root.
 
 ## Architecture boundaries
 
