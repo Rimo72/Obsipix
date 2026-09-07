@@ -965,6 +965,45 @@ was committed and pushed. Final: 390 unit tests, 34 e2e specs.
 
 ------------------------------------------------------------------------
 
+# Phase 17 --- Sprite Sheet PNG Import
+
+## Goal
+
+Implement `Obsipix_V1_Sprite_Sheet_PNG_Import.md`: `File → Open PNG` can
+split a PNG sprite sheet into animation frames.
+
+## Build
+
+-   `src/core/document/spriteSheetImport.ts` --- pure geometry + pixel
+    copies: `describeSpriteSheet` (never throws, drives the live
+    preview), `planSpriteSheet` (throws an `EditorError`),
+    `sliceSpriteSheet` (exact RGBA regions → independent frame buffers,
+    reading order).
+-   `DocumentFactory.createFromFrames` --- one layer, one frame per
+    buffer, default timing.
+-   `EditorSession.importSpriteSheet` --- replaces the project, stays
+    dirty, no history entry; a bad slice throws before anything changes.
+-   `ImportPngDialog` --- mode radio (Single image / Sprite sheet), frame
+    size + spacing + offset fields, detected grid, boundary preview.
+    `choosePng` in `fileCommands` decodes ahead of the dialog.
+
+## Rules
+
+-   No scaling, smoothing or colour conversion during the split.
+-   Spacing and offsets are import-only; they never enter the artwork.
+-   A plain sheet must divide evenly; a mismatch is an error, not a
+    silent crop.
+-   A failed import leaves the current document and history untouched.
+
+## Exit gate
+
+Full `npm run check` + full Playwright suite. 416 unit tests, 36 e2e
+specs (added `spriteSheetImport`, `DocumentFactory.createFromFrames`,
+`ImportPngDialog` tests, an export → import round-trip, and
+`sprite-sheet-import.spec.ts`).
+
+------------------------------------------------------------------------
+
 # Coding Rules for Every Phase
 
 ## Rule 1 --- Core is authoritative
@@ -1090,6 +1129,7 @@ V1 Release
   14      Testing / Release Candidate   COMPLETE
   15      V1 Release                    COMPLETE
   16      v2 Spec Delta                 COMPLETE
+  17      Sprite Sheet PNG Import        COMPLETE
 
 # Definition of a Coding Phase
 

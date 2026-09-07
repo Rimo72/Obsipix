@@ -1,3 +1,4 @@
+import type { ImageData8 } from '@core/document/importCommands';
 import { EditorError } from '@core/errors/EditorError';
 import { ObsipixParseError } from '@core/persistence/format';
 
@@ -85,6 +86,32 @@ export function newProject(session: EditorSession): void {
 /** Close the current project — same result as New; caller confirms unsaved changes. */
 export function closeProject(session: EditorSession): void {
   session.newDocument();
+}
+
+export type ChoosePngResult =
+  | { readonly status: 'cancelled' }
+  | { readonly status: 'error'; readonly message: string }
+  | { readonly status: 'ready'; readonly image: ImageData8; readonly name: string };
+
+/**
+ * Prompt for a PNG and decode it, ready to hand to the import dialog (which
+ * then chooses single-image vs sprite-sheet). Never touches the session.
+ */
+export async function choosePng(): Promise<ChoosePngResult> {
+  const picked = await pickFile('image/png,.png');
+  if (!picked) {
+    return { status: 'cancelled' };
+  }
+  try {
+    const image = await decodePng(picked.bytes);
+    const name = picked.name.replace(/\.png$/i, '') || 'Imported';
+    return { status: 'ready', image, name };
+  } catch (error) {
+    return {
+      status: 'error',
+      message: error instanceof EditorError ? error.message : 'The PNG could not be imported.',
+    };
+  }
 }
 
 type ImportMode = 'document' | 'layer';

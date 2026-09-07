@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import type { ImageData8 } from '@core/document/importCommands';
+
 import type { EditorSession } from '../EditorSession';
 import {
+  choosePng,
   closeProject,
   exportProjectPng,
   importPng,
@@ -19,6 +22,7 @@ import { CanvasStage } from './CanvasStage';
 import { ColorControls } from './ColorControls';
 import { ExportDialog } from './ExportDialog';
 import { EyedropperControls } from './EyedropperControls';
+import { ImportPngDialog } from './ImportPngDialog';
 import { KeyboardHelp } from './KeyboardHelp';
 import { LayerPanel } from './LayerPanel';
 import { MenuBar, type MenuDef } from './MenuBar';
@@ -62,6 +66,7 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
   const [resizing, setResizing] = useState<'image' | 'canvas' | null>(null);
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [pngImport, setPngImport] = useState<{ image: ImageData8; name: string } | null>(null);
 
   const { recovery, recover, discardRecovery, deferRecovery, resolveAutosave } =
     useAutosaveRecovery(session, autosaveRecovery ?? {});
@@ -115,21 +120,22 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
     }
   };
 
-  const handleImport = (mode: 'document' | 'layer'): void => {
-    if (mode === 'document' && !confirmDiscard()) {
+  const handleImportLayer = (): void => {
+    void importPng(session, 'layer').then((message) => {
+      notify(message ?? 'Imported PNG as a layer', message ? 'error' : 'success');
+    });
+  };
+
+  /** File → Open PNG: pick + decode, then let the dialog choose single vs sprite sheet. */
+  const handleOpenPng = (): void => {
+    if (!confirmDiscard()) {
       return;
     }
-    void importPng(session, mode).then((message) => {
-      if (message) {
-        notify(message, 'error');
-      } else {
-        notify(
-          mode === 'document' ? 'Opened PNG as a new document' : 'Imported PNG as a layer',
-          'success',
-        );
-        if (mode === 'document') {
-          resolveAutosave();
-        }
+    void choosePng().then((result) => {
+      if (result.status === 'error') {
+        notify(result.message, 'error');
+      } else if (result.status === 'ready') {
+        setPngImport({ image: result.image, name: result.name });
       }
     });
   };
@@ -268,18 +274,8 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
           { label: 'Save', shortcut: 'Ctrl+S', onSelect: runSave },
           { label: 'Save As…', shortcut: 'Ctrl+Shift+S', onSelect: runSaveAs },
           null,
-          {
-            label: 'Open PNG…',
-            onSelect: () => {
-              handleImport('document');
-            },
-          },
-          {
-            label: 'Import PNG as Layer…',
-            onSelect: () => {
-              handleImport('layer');
-            },
-          },
+          { label: 'Open PNG…', onSelect: handleOpenPng },
+          { label: 'Import PNG as Layer…', onSelect: handleImportLayer },
           null,
           {
             label: 'Export…',
@@ -505,6 +501,34 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
             session.newDocument(options);
             resolveAutosave();
             setNewDialogOpen(false);
+          }}
+        />
+      )}
+
+      {pngImport && (
+        <ImportPngDialog
+          image={pngImport.image}
+          onClose={() => {
+            setPngImport(null);
+          }}
+          onImportSingle={() => {
+            session.importAsDocument(pngImport.image, pngImport.name);
+            resolveAutosave();
+            setPngImport(null);
+            notify('Opened PNG as a new document', 'success');
+          }}
+          onImportSheet={(slice, frameCount) => {
+            try {
+              session.importSpriteSheet(pngImport.image, slice, pngImport.name);
+              resolveAutosave();
+              notify(`Split PNG into ${String(frameCount)} frames`, 'success');
+            } catch (error) {
+              notify(
+                error instanceof Error ? error.message : 'The sprite sheet could not be split.',
+                'error',
+              );
+            }
+            setPngImport(null);
           }}
         />
       )}

@@ -122,6 +122,11 @@ test.describe('lifecycle', () => {
       });
     });
     await menuAction(page, 'File', 'Open PNG…');
+    // the import dialog defaults to "Single image"
+    await page
+      .getByRole('dialog', { name: 'Open PNG' })
+      .getByRole('button', { name: 'Import' })
+      .click();
 
     await expect(page.getByTestId('status-dimensions')).toHaveText('20 × 10');
     expect((await inspect(page, [5])).isDirty).toBe(true);

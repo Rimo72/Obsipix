@@ -3,6 +3,42 @@
 All notable changes to Obsipix are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## 1.2.0 — 2026-09-07
+
+Sprite-sheet PNG import
+([`docs/PROJECT_CORE_OBSIPIX.md`](docs/PROJECT_CORE_OBSIPIX.md) — "Sprite Sheet
+PNG Import").
+
+### Added
+
+- **Open PNG** now shows an import dialog with a mode choice:
+  - **Single image** — the PNG becomes a one-frame document (unchanged
+    behaviour, now behind an explicit button).
+  - **Sprite sheet** — the PNG is split into animation frames on a
+    user-supplied frame size, with optional horizontal / vertical spacing and
+    an X / Y offset. Spacing and offsets are import-only and never enter the
+    frame artwork.
+- Live detection of the resulting grid (`columns × rows`, frame count) and a
+  preview that overlays the frame boundaries on the image.
+- A plain sheet (no offset, no spacing) must divide evenly into the frame
+  size; a mismatch is reported instead of silently dropping edge pixels.
+  Invalid configurations disable Import and explain why.
+- Frames are cut in reading order (left → right, top → bottom) as independent
+  buffers with every RGBA pixel preserved exactly — no scaling, smoothing or
+  colour conversion. Fully transparent frames are kept. All frames use the
+  default frame duration.
+- A failed import leaves the current document and history untouched.
+- `DocumentFactory.createFromFrames` and `EditorSession.importSpriteSheet`;
+  `src/core/document/spriteSheetImport.ts` (`describeSpriteSheet`,
+  `planSpriteSheet`, `sliceSpriteSheet`).
+
+### Quality
+
+- 26 new unit tests (`spriteSheetImport` incl. an export → import round-trip,
+  `DocumentFactory.createFromFrames`, `ImportPngDialog`,
+  `EditorSession.importSpriteSheet`) and `tests/e2e/sprite-sheet-import.spec.ts`;
+  416 unit tests and 36 e2e specs in total.
+
 ## 1.1.0 — 2026-09-07
 
 The v2 spec delta: the genuinely-new, in-scope items from the vendored v2

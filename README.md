@@ -31,8 +31,9 @@ release notes are in [`CHANGELOG.md`](CHANGELOG.md).
   linked + Make Unique), reorder, playback (play / pause / step / first / last,
   loop or once), FPS, onion skin, animation tags.
 - **Files** — New (size presets + background), Open, Save, Save As, Close;
-  `.obsipix` round-trips the whole project; open a PNG as a document or import it
-  as a layer; paste an image from the clipboard.
+  `.obsipix` round-trips the whole project; open a PNG as a single-frame document
+  or split a PNG sprite sheet into frames (frame size, spacing, offset, live
+  preview); import a PNG as a layer; paste an image from the clipboard.
 - **Export** — `File ▸ Export…` writes the current frame (PNG / JPEG / WebP / GIF,
   integer scale, optional transparent background), an animated GIF, or a sprite
   sheet (horizontal / vertical / grid). `File ▸ Export PNG` is the one-click path.

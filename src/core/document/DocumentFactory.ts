@@ -76,6 +76,53 @@ export class DocumentFactory {
   createDefault(): Document {
     return this.create();
   }
+
+  /**
+   * Build a document whose single layer already has one frame per supplied
+   * buffer, in order (used by sprite-sheet import). Every frame gets an
+   * independent normal cel wrapping the buffer it was handed — the caller
+   * transfers ownership — so imported frames stay independent. All buffers must
+   * share the same dimensions, which become the document dimensions.
+   */
+  createFromFrames(
+    frames: readonly PixelBuffer[],
+    options: { readonly name?: string } = {},
+  ): Document {
+    const [first, ...rest] = frames;
+    if (!first) {
+      throw new RangeError('createFromFrames needs at least one frame');
+    }
+    const { width, height } = first;
+    assertValidDimensions(width, height);
+    if (rest.some((buffer) => buffer.width !== width || buffer.height !== height)) {
+      throw new RangeError('createFromFrames requires every frame to share the same dimensions');
+    }
+    const dimensions = { width, height };
+
+    const layerId = this.#ids.layer();
+    const layers = new LayerCollection(new Layer(layerId, { name: DEFAULT_LAYER_NAME }));
+
+    const firstFrame = new Frame(this.#ids.frame());
+    firstFrame.setCel(layerId, Cel.normal(this.#ids.cel(), first));
+    const timeline = new Timeline(this.#ids, dimensions, firstFrame);
+    for (const buffer of rest) {
+      const frame = timeline.appendFrame([], 'empty');
+      frame.setCel(layerId, Cel.normal(this.#ids.cel(), buffer));
+    }
+
+    const document = Document.create({
+      id: this.#ids.document(),
+      dimensions,
+      metadata: { name: options.name ?? DEFAULT_DOCUMENT_NAME },
+      layers,
+      timeline,
+      selection: new SelectionState(dimensions),
+      palettes: [],
+      ids: this.#ids,
+    });
+    document.createPalette(DEFAULT_PALETTE_NAME, DEFAULT_PALETTE_COLORS);
+    return document;
+  }
 }
 
 /** Convenience: a default 32×32 document, optionally with an injected id source. */

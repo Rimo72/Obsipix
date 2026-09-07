@@ -382,6 +382,35 @@ describe('EditorSession lifecycle & import', () => {
     session.undo();
     expect(session.document.layers.count).toBe(before);
   });
+
+  it('importSpriteSheet replaces the project with a multi-frame animation', () => {
+    const session = new EditorSession();
+    session.importSpriteSheet(
+      image(64, 32),
+      { frameWidth: 32, frameHeight: 32, offsetX: 0, offsetY: 0, spacingX: 0, spacingY: 0 },
+      'run',
+    );
+    expect(session.document.dimensions).toEqual({ width: 32, height: 32 });
+    expect(session.document.timeline.frameCount).toBe(2);
+    expect(session.document.metadata.name).toBe('run');
+    expect(session.isDirty).toBe(true);
+    expect(session.fileName).toBeNull();
+    expect(session.canUndo).toBe(false);
+  });
+
+  it('a failed importSpriteSheet leaves the current document untouched', () => {
+    const session = new EditorSession();
+    const framesBefore = session.document.timeline.frameCount;
+    expect(() =>
+      session.importSpriteSheet(
+        image(64, 32),
+        { frameWidth: 30, frameHeight: 30, offsetX: 0, offsetY: 0, spacingX: 0, spacingY: 0 },
+        'bad',
+      ),
+    ).toThrow();
+    expect(session.document.timeline.frameCount).toBe(framesBefore);
+    expect(session.isDirty).toBe(false);
+  });
 });
 
 describe('EditorSession v2 additions', () => {

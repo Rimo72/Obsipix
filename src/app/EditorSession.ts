@@ -7,6 +7,7 @@ import {
   importLayerCommand,
   type ImageData8,
 } from '@core/document/importCommands';
+import { sliceSpriteSheet, type SpriteSheetSlice } from '@core/document/spriteSheetImport';
 import {
   deleteSelectionCommand,
   deselectCommand,
@@ -338,6 +339,22 @@ export class EditorSession {
   /** Import an image as a new top layer of the current document (undoable). */
   importAsLayer(image: ImageData8, name: string): void {
     this.runCommand(importLayerCommand(name, image));
+  }
+
+  /**
+   * Split a PNG sprite sheet into an animated document (PROJECT_CORE — Sprite
+   * Sheet PNG Import). Replaces the whole project and stays dirty, like
+   * {@link importAsDocument}. An invalid slice throws before anything changes,
+   * so a failed import leaves the current document and history untouched.
+   */
+  importSpriteSheet(image: ImageData8, slice: SpriteSheetSlice, name: string): void {
+    const frames = sliceSpriteSheet(image, slice);
+    const document = new DocumentFactory().createFromFrames(frames, { name });
+    this.#discardInteraction();
+    this.history.reset(document, true);
+    this.#fileName = null;
+    this.fitView();
+    this.#emit();
   }
 
   exportPngBytes(): Uint8Array {
