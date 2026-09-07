@@ -138,8 +138,12 @@ export function CanvasStage({ session }: CanvasStageProps) {
     if (!element) {
       return;
     }
-    element.setPointerCapture(event.pointerId);
     const input = toPointerInput(event.nativeEvent, element, session.viewport);
+    if (session.isSamplingColor) {
+      session.sampleColorAt(Math.floor(input.pixel.x), Math.floor(input.pixel.y));
+      return;
+    }
+    element.setPointerCapture(event.pointerId);
     if (input.buttons.middle || spaceHeldRef.current) {
       panRef.current = { active: true, x: event.clientX, y: event.clientY };
       return;
@@ -176,7 +180,11 @@ export function CanvasStage({ session }: CanvasStageProps) {
   };
 
   return (
-    <div ref={containerRef} className="canvas-stage" data-testid="canvas-stage">
+    <div
+      ref={containerRef}
+      className={session.isSamplingColor ? 'canvas-stage canvas-stage--sampling' : 'canvas-stage'}
+      data-testid="canvas-stage"
+    >
       <canvas
         ref={canvasRef}
         className="canvas-stage__canvas"

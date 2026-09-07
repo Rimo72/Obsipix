@@ -4,7 +4,7 @@ import { selectRectCommand } from '@core/document/editCommands';
 import { ERASER_TOOL_ID } from '@core/tools/EraserTool';
 import { PENCIL_TOOL_ID } from '@core/tools/PencilTool';
 import { NO_MODIFIERS, type PointerInput } from '@core/tools/PointerInput';
-import { BLACK, TRANSPARENT, rgbaEquals } from '@core/types/color';
+import { BLACK, TRANSPARENT, rgbaEquals, type RGBA } from '@core/types/color';
 
 import { EditorSession } from './EditorSession';
 
@@ -466,5 +466,47 @@ describe('EditorSession v2 additions', () => {
     expect(session.document.selection.isSelected(10, 10)).toBe(true);
     session.undo();
     expect(session.document.selection.isSelected(0, 0)).toBe(true);
+  });
+});
+
+describe('EditorSession one-shot colour sample', () => {
+  it('hands the next in-bounds pixel to the callback and disarms', () => {
+    const session = new EditorSession();
+    session.document.resolveBuffer(session.document.layers.activeLayerId)?.setPixel(5, 6, BLACK);
+
+    const sampled: unknown[] = [];
+    session.beginColorSample((color) => sampled.push(color));
+    expect(session.isSamplingColor).toBe(true);
+
+    session.sampleColorAt(5, 6);
+    expect(sampled).toEqual([BLACK]);
+    expect(session.isSamplingColor).toBe(false);
+  });
+
+  it('ignores a click outside the document and stays armed', () => {
+    const session = new EditorSession();
+    const sampled: unknown[] = [];
+    session.beginColorSample((color) => sampled.push(color));
+
+    session.sampleColorAt(-1, 0);
+    session.sampleColorAt(999, 999);
+    expect(sampled).toHaveLength(0);
+    expect(session.isSamplingColor).toBe(true);
+
+    session.cancelColorSample();
+    expect(session.isSamplingColor).toBe(false);
+  });
+
+  it('honours the eyedropper merged / active-layer mode', () => {
+    const session = new EditorSession();
+    session.document.resolveBuffer(session.document.layers.activeLayerId)?.setPixel(2, 2, BLACK);
+    session.addLayer(); // empty top layer
+
+    session.setEyedropperMerged(false);
+    const picks: RGBA[] = [];
+    session.beginColorSample((c) => picks.push(c));
+    session.sampleColorAt(2, 2);
+    expect(picks).toHaveLength(1);
+    expect(rgbaEquals(picks[0]!, TRANSPARENT)).toBe(true); // active layer is empty here
   });
 });

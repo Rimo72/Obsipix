@@ -1004,6 +1004,34 @@ specs (added `spriteSheetImport`, `DocumentFactory.createFromFrames`,
 
 ------------------------------------------------------------------------
 
+# Phase 18 --- Color Management Window
+
+## Goal
+
+Improve `PROJECT_CORE §14`: adding or editing a palette colour opens a
+modal Color Management window instead of a cramped inline field.
+
+## Build
+
+-   `ColorManagementDialog` --- SV square + hue/opacity bars + exact
+    R/G/B/A + HEX (8-digit) + HSV/HSL readout + optional name;
+    self-contained draft, applied only on confirm.
+-   "Pick from Canvas" --- `EditorSession.beginColorSample` /
+    `sampleColorAt` / `cancelColorSample` / `isSamplingColor`; the next
+    canvas click samples a pixel into the dialog, `Esc` cancels.
+-   Refactor: shared `ColorField` (SV / hue / alpha widget, keyboard
+    nudge) + `useRetainedHue` hook; `ColorPicker` now composes them.
+    Removed the inline palette editor and unused `HexInput`.
+-   A modal dialog suppresses editor shortcuts while open.
+
+## Exit gate
+
+Full `npm run check` + Playwright suite. 425 unit tests, 38 e2e specs
+(`ColorManagementDialog`, colour-sampler `EditorSession` tests, two new
+`palette.spec.ts` cases). Browser-verified against the reference mockup.
+
+------------------------------------------------------------------------
+
 # Coding Rules for Every Phase
 
 ## Rule 1 --- Core is authoritative
@@ -1130,6 +1158,7 @@ V1 Release
   15      V1 Release                    COMPLETE
   16      v2 Spec Delta                 COMPLETE
   17      Sprite Sheet PNG Import        COMPLETE
+  18      Color Management Window        COMPLETE
 
 # Definition of a Coding Phase
 

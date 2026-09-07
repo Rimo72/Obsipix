@@ -4,16 +4,18 @@ import type { PaletteColorId, PaletteId } from '@core/types/ids';
 
 import type { EditorSession } from '../EditorSession';
 import { rgbaToHex } from '../hexColor';
-import { HexInput } from './HexInput';
 import './PalettePanel.css';
 
 interface PalettePanelProps {
   readonly session: EditorSession;
+  /** Open the Color Management window to add a new colour to the active palette. */
+  readonly onAddColor: () => void;
+  /** Open the Color Management window to edit an existing palette colour. */
+  readonly onEditColor: (colorId: PaletteColorId) => void;
 }
 
-export function PalettePanel({ session }: PalettePanelProps) {
+export function PalettePanel({ session, onAddColor, onEditColor }: PalettePanelProps) {
   const [selectedColor, setSelectedColor] = useState<PaletteColorId | null>(null);
-  const [editingColor, setEditingColor] = useState<PaletteColorId | null>(null);
   const [renamingPalette, setRenamingPalette] = useState(false);
 
   const document = session.document;
@@ -133,7 +135,8 @@ export function PalettePanel({ session }: PalettePanelProps) {
                 session.setBackground(color.rgba);
               }}
               onDoubleClick={() => {
-                setEditingColor(color.id);
+                setSelectedColor(color.id);
+                onEditColor(color.id);
               }}
             />
           );
@@ -143,10 +146,10 @@ export function PalettePanel({ session }: PalettePanelProps) {
       <div className="palette-panel__toolbar">
         <button
           type="button"
-          aria-label="Add the foreground colour to the palette"
-          title="Add the foreground colour"
+          aria-label="Add a colour to the palette"
+          title="Add a colour"
           disabled={!palette}
-          onClick={() => session.addColorToActivePalette()}
+          onClick={onAddColor}
         >
           + Add
         </button>
@@ -188,36 +191,6 @@ export function PalettePanel({ session }: PalettePanelProps) {
           &#8594;
         </button>
       </div>
-
-      {editingColor !== null && palette && (
-        <div className="palette-panel__editor" data-testid="palette-color-editor">
-          <HexInput
-            value={
-              palette.colors.find((c) => c.id === editingColor)?.rgba ?? {
-                r: 0,
-                g: 0,
-                b: 0,
-                a: 255,
-              }
-            }
-            onChange={(rgba) => {
-              session.setPaletteColor(palette.id, editingColor, rgba);
-            }}
-          />
-          <input
-            type="text"
-            className="palette-panel__color-name"
-            placeholder="name"
-            defaultValue={palette.colors.find((c) => c.id === editingColor)?.name ?? ''}
-            onBlur={(event) => {
-              session.namePaletteColor(palette.id, editingColor, event.target.value);
-            }}
-          />
-          <button type="button" onClick={() => setEditingColor(null)}>
-            Done
-          </button>
-        </div>
-      )}
     </section>
   );
 }

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { ImageData8 } from '@core/document/importCommands';
+import type { RGBA } from '@core/types/color';
+import type { PaletteColorId } from '@core/types/ids';
 
 import type { EditorSession } from '../EditorSession';
 import {
@@ -20,6 +22,7 @@ import { useEditorSessionVersion } from '../useEditorSession';
 import { BrushControls } from './BrushControls';
 import { CanvasStage } from './CanvasStage';
 import { ColorControls } from './ColorControls';
+import { ColorManagementDialog } from './ColorManagementDialog';
 import { ExportDialog } from './ExportDialog';
 import { EyedropperControls } from './EyedropperControls';
 import { ImportPngDialog } from './ImportPngDialog';
@@ -67,9 +70,55 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [pngImport, setPngImport] = useState<{ image: ImageData8; name: string } | null>(null);
+  const [colorDialog, setColorDialog] = useState<
+    { kind: 'add' } | { kind: 'edit'; colorId: PaletteColorId; name: string } | null
+  >(null);
+  const [colorDraft, setColorDraft] = useState<RGBA>(session.foreground);
+  const [sampling, setSampling] = useState(false);
 
   const { recovery, recover, discardRecovery, deferRecovery, resolveAutosave } =
     useAutosaveRecovery(session, autosaveRecovery ?? {});
+
+  const closeColorDialog = (): void => {
+    setColorDialog(null);
+    setSampling(false);
+    session.cancelColorSample();
+  };
+
+  const openAddColor = (): void => {
+    setColorDraft(session.foreground);
+    setColorDialog({ kind: 'add' });
+  };
+
+  const openEditColor = (colorId: PaletteColorId): void => {
+    const color = session.document.activePalette?.colors.find((c) => c.id === colorId);
+    if (!color) {
+      return;
+    }
+    setColorDraft(color.rgba);
+    setColorDialog({ kind: 'edit', colorId, name: color.name ?? '' });
+  };
+
+  const confirmColor = (color: RGBA, name: string): void => {
+    const palette = session.document.activePalette;
+    if (palette && colorDialog?.kind === 'edit') {
+      session.setPaletteColor(palette.id, colorDialog.colorId, color);
+      if (name !== colorDialog.name) {
+        session.namePaletteColor(palette.id, colorDialog.colorId, name);
+      }
+    } else if (palette) {
+      session.addColorToActivePalette(color, name || undefined);
+    }
+    closeColorDialog();
+  };
+
+  const pickColorFromCanvas = (): void => {
+    setSampling(true);
+    session.beginColorSample((sampled) => {
+      setColorDraft(sampled);
+      setSampling(false);
+    });
+  };
 
   const confirmDiscard = (): boolean =>
     !session.isDirty || window.confirm('Discard unsaved changes?');
@@ -198,6 +247,11 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
     };
 
     const onKeyDown = (event: KeyboardEvent): void => {
+      // A modal dialog owns the keyboard while it is open (it handles its own
+      // Escape); "pick from canvas" suppresses shortcuts until a pixel is picked.
+      if (session.isSamplingColor || document.querySelector('.dialog__backdrop')) {
+        return;
+      }
       const resolution = resolveShortcut(event, {
         editingText: isTextTarget(event.target),
         hasFloat: session.hasFloat,
@@ -221,6 +275,24 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
       window.removeEventListener('keydown', onKeyDown);
     };
   }, [session]);
+
+  // Escape cancels an in-progress "pick from canvas" and restores the dialog.
+  useEffect(() => {
+    if (!sampling) {
+      return;
+    }
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        session.cancelColorSample();
+        setSampling(false);
+      }
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => {
+      window.removeEventListener('keydown', onKey, true);
+    };
+  }, [sampling, session]);
 
   // System clipboard: pasting an image imports it as a layer (PROJECT_CORE §3.11).
   useEffect(() => {
@@ -468,7 +540,7 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
         </main>
         <div className="app-shell__sidebar">
           <LayerPanel session={session} />
-          <PalettePanel session={session} />
+          <PalettePanel session={session} onAddColor={openAddColor} onEditColor={openEditColor} />
         </div>
       </div>
 
@@ -503,6 +575,25 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
             setNewDialogOpen(false);
           }}
         />
+      )}
+
+      {colorDialog && !sampling && (
+        <ColorManagementDialog
+          value={colorDraft}
+          onChange={setColorDraft}
+          onClose={closeColorDialog}
+          onConfirm={confirmColor}
+          confirmLabel={colorDialog.kind === 'edit' ? 'Save Color' : 'Add Color'}
+          showName={colorDialog.kind === 'edit'}
+          initialName={colorDialog.kind === 'edit' ? colorDialog.name : ''}
+          onPickFromCanvas={pickColorFromCanvas}
+        />
+      )}
+
+      {sampling && (
+        <div className="app-shell__sampling-hint" role="status">
+          Click a pixel to sample its colour · Esc to cancel
+        </div>
       )}
 
       {pngImport && (

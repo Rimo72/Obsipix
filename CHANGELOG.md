@@ -3,6 +3,39 @@
 All notable changes to Obsipix are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## 1.3.0 — 2026-09-07
+
+Color Management window for palette colours.
+
+### Added
+
+- **Color Management dialog** — `Palette ▸ + Add` and double-clicking a palette
+  swatch now open a modal colour editor: an SV square, hue and opacity bars,
+  exact R/G/B/A fields, a HEX field (`#RGB` / `#RGBA` / `#RRGGBB` /
+  `#RRGGBBAA`, shown 8-digit), and HSV/HSL readouts. Edits are held in the
+  dialog and applied only on **Add Color** / **Save Color**; Cancel keeps the
+  original. Editing also offers an optional colour name.
+- **Pick from Canvas** — a one-shot eyedropper inside the dialog: it hides the
+  window, the next canvas click samples that pixel's exact RGBA (honouring the
+  eyedropper's merged / active-layer mode) into the editor, and `Esc` cancels.
+- `EditorSession.beginColorSample` / `sampleColorAt` / `cancelColorSample` /
+  `isSamplingColor`; `rgbaToHex(color, { alpha: 'always' })`.
+
+### Changed
+
+- The colour selector's SV / hue / alpha widget is now a shared `ColorField`
+  component (with keyboard nudge support) used by both the options-bar popover
+  and the new dialog; achromatic hue retention moved to a `useRetainedHue`
+  hook (PROJECT_CORE §14.2).
+- A modal dialog now suppresses editor keyboard shortcuts while it is open.
+- The old inline hex/name palette editor and the unused `HexInput` component
+  were removed.
+
+### Quality
+
+- 9 new unit tests (`ColorManagementDialog`, `EditorSession` colour sampler)
+  and 2 new e2e specs in `palette.spec.ts`. 425 unit tests, 38 e2e specs.
+
 ## 1.2.0 — 2026-09-07
 
 Sprite-sheet PNG import

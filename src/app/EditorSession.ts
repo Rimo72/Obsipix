@@ -146,6 +146,7 @@ export class EditorSession {
   #float: Float | null = null;
   #clipboard: PixelBuffer | null = null;
   #recentColors: readonly RGBA[] = [];
+  #pendingColorSample: ((color: RGBA) => void) | null = null;
   #fileName: string | null = null;
   #viewSize: { width: number; height: number } | null = null;
 
@@ -388,10 +389,7 @@ export class EditorSession {
       isEditable: editable,
       isInsideDocument: (x, y) =>
         x >= 0 && y >= 0 && x < document.dimensions.width && y < document.dimensions.height,
-      sampleColor: (x, y) =>
-        this.#eyedropperMerged
-          ? compositeDocument(document).getPixel(x, y)
-          : (document.resolveBuffer(document.layers.activeLayerId)?.getPixel(x, y) ?? TRANSPARENT),
+      sampleColor: (x, y) => this.#sampleColor(x, y),
       setForeground: (color) => {
         this.setForeground(color);
       },
@@ -479,6 +477,57 @@ export class EditorSession {
 
   setEyedropperMerged(merged: boolean): void {
     this.#eyedropperMerged = merged;
+    this.#emit();
+  }
+
+  /** RGBA under a logical pixel, honouring the eyedropper's merged / active-layer mode. */
+  #sampleColor(x: number, y: number): RGBA {
+    const document = this.document;
+    if (this.#eyedropperMerged) {
+      return compositeDocument(document).getPixel(x, y);
+    }
+    return document.resolveBuffer(document.layers.activeLayerId)?.getPixel(x, y) ?? TRANSPARENT;
+  }
+
+  /**
+   * One-shot "pick from canvas": the next canvas click samples a pixel and hands
+   * the colour to `onSampled` instead of drawing (used by the colour dialog).
+   */
+  beginColorSample(onSampled: (color: RGBA) => void): void {
+    this.#pendingColorSample = onSampled;
+    this.#emit();
+  }
+
+  cancelColorSample(): void {
+    if (this.#pendingColorSample) {
+      this.#pendingColorSample = null;
+      this.#emit();
+    }
+  }
+
+  get isSamplingColor(): boolean {
+    return this.#pendingColorSample !== null;
+  }
+
+  /** Complete a pending {@link beginColorSample}. A click outside the document is ignored. */
+  sampleColorAt(x: number, y: number): void {
+    const callback = this.#pendingColorSample;
+    if (!callback) {
+      return;
+    }
+    const { width, height } = this.document.dimensions;
+    if (
+      !Number.isInteger(x) ||
+      !Number.isInteger(y) ||
+      x < 0 ||
+      y < 0 ||
+      x >= width ||
+      y >= height
+    ) {
+      return;
+    }
+    this.#pendingColorSample = null;
+    callback(this.#sampleColor(x, y));
     this.#emit();
   }
 
@@ -630,6 +679,7 @@ export class EditorSession {
       this.cancelStroke();
     }
     this.cancelFloat();
+    this.cancelColorSample();
     this.#preview = null;
   }
 
@@ -918,10 +968,10 @@ export class EditorSession {
     }
   }
 
-  addColorToActivePalette(color: RGBA = this.#foreground): void {
+  addColorToActivePalette(color: RGBA = this.#foreground, name?: string): void {
     const id = this.document.activePaletteId;
     if (id) {
-      this.runCommand(addPaletteColorCommand(id, color));
+      this.runCommand(addPaletteColorCommand(id, color, name));
     }
   }
 

@@ -16,3 +16,8 @@
 .canvas-stage--pan-ready .canvas-stage__canvas {
   cursor: grab;
 }
+
+/* "Pick from canvas" armed: sampling the next click */
+.canvas-stage--sampling .canvas-stage__canvas {
+  cursor: crosshair;
+}

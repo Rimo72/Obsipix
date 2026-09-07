@@ -87,31 +87,3 @@
   color: var(--obsipix-text-muted);
   cursor: not-allowed;
 }
-
-.palette-panel__editor {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-}
-
-.palette-panel__color-name {
-  width: 70px;
-  padding: 3px 4px;
-  font: inherit;
-  font-size: 12px;
-  color: var(--obsipix-text);
-  background: var(--obsipix-bg);
-  border: 1px solid var(--obsipix-border);
-  border-radius: 4px;
-}
-
-.palette-panel__editor button {
-  padding: 3px 8px;
-  font: inherit;
-  font-size: 12px;
-  color: var(--obsipix-text);
-  background: var(--obsipix-surface-raised);
-  border: 1px solid var(--obsipix-border);
-  border-radius: 4px;
-  cursor: pointer;
-}

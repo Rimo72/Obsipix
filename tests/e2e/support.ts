@@ -4,6 +4,19 @@ interface Cel {
   readonly type: 'normal' | 'linked' | 'empty' | 'hold';
 }
 
+interface Rgba {
+  r: number;
+  g: number;
+  b: number;
+  a: number;
+}
+
+interface PaletteColor {
+  id: string;
+  name?: string;
+  rgba: Rgba;
+}
+
 interface ObsipixSession {
   viewport: {
     zoom: number;
@@ -22,8 +35,9 @@ interface ObsipixSession {
     };
     dimensions: { width: number; height: number };
     selection: { active: boolean };
-    palettes: { id: string; name: string; colors: unknown[] }[];
+    palettes: { id: string; name: string; colors: PaletteColor[] }[];
     activePaletteId: string | null;
+    activePalette: { id: string; name: string; colors: PaletteColor[] } | null;
     resolveBuffer(
       id: string,
       frameId?: string,

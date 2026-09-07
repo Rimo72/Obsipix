@@ -25,8 +25,9 @@ release notes are in [`CHANGELOG.md`](CHANGELOG.md).
 - **Selection & transform** — rectangular and lasso select, marching ants, invert
   selection, move as a floating selection, nudge, flip, rotate, delete,
   cut / copy / paste.
-- **Palettes** — PICO-8 default, create / duplicate / rename / delete, per-colour
-  edit and naming, recent-colours strip.
+- **Palettes** — PICO-8 default, create / duplicate / rename / delete, recent-colours
+  strip; add or edit a colour in a full Color Management window (SV square, hue &
+  opacity, R/G/B/A, HEX, HSV/HSL readout, pick-from-canvas), with optional naming.
 - **Animation** — frames with per-frame durations, cel types (normal, empty, hold,
   linked + Make Unique), reorder, playback (play / pause / step / first / last,
   loop or once), FPS, onion skin, animation tags.

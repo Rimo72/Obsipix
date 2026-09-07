@@ -52,21 +52,3 @@
   border-radius: 6px;
   box-shadow: 0 8px 28px rgb(0 0 0 / 45%);
 }
-
-.color-controls__field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 11px;
-  color: var(--obsipix-text-muted);
-}
-
-.hex-input {
-  width: 110px;
-  padding: 4px 6px;
-  font: inherit;
-  color: var(--obsipix-text);
-  background: var(--obsipix-bg);
-  border: 1px solid var(--obsipix-border);
-  border-radius: 4px;
-}

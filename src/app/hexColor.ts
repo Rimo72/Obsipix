@@ -1,10 +1,13 @@
 import { rgba, type RGBA } from '@core/types/color';
 
-/** `#RRGGBB` (alpha omitted when opaque) or `#RRGGBBAA`. */
-export function rgbaToHex(color: RGBA): string {
+/**
+ * `#RRGGBB` (alpha omitted when opaque) or `#RRGGBBAA`. Pass `alpha: 'always'`
+ * to keep the alpha pair even when the colour is fully opaque.
+ */
+export function rgbaToHex(color: RGBA, options: { alpha?: 'auto' | 'always' } = {}): string {
   const pair = (value: number): string => value.toString(16).padStart(2, '0');
   const base = `#${pair(color.r)}${pair(color.g)}${pair(color.b)}`;
-  return color.a === 255 ? base : `${base}${pair(color.a)}`;
+  return color.a === 255 && options.alpha !== 'always' ? base : `${base}${pair(color.a)}`;
 }
 
 /** Parse `#RGB`, `#RGBA`, `#RRGGBB` or `#RRGGBBAA`; returns `null` if it is not valid. */

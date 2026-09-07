@@ -1,23 +1,11 @@
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type PointerEvent as ReactPointerEvent,
-} from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
-import {
-  grayToRgb,
-  hslToRgb,
-  hsvToRgb,
-  rgbToGray,
-  rgbToHsl,
-  rgbToHsv,
-  type RGB,
-} from '@core/colors/convert';
+import { grayToRgb, hslToRgb, hsvToRgb, rgbToGray, type RGB } from '@core/colors/convert';
 import { rgba, type RGBA } from '@core/types/color';
 
 import { hexToRgba, rgbaToHex } from '../hexColor';
+import { useRetainedHue } from '../useRetainedHue';
+import { ColorField } from './ColorField';
 import './ColorPicker.css';
 
 interface ColorPickerProps {
@@ -29,21 +17,7 @@ interface ColorPickerProps {
 
 type Mode = 'rgb' | 'hsv' | 'hsl' | 'gray';
 
-const isGrey = (c: RGBA): boolean => c.r === c.g && c.g === c.b;
 const toRgb = (c: RGBA): RGB => ({ r: c.r, g: c.g, b: c.b });
-
-/** Normalised pointer position (0–1, clamped) within `element`. */
-function localPosition(
-  element: HTMLElement,
-  clientX: number,
-  clientY: number,
-): { x: number; y: number } {
-  const rect = element.getBoundingClientRect();
-  return {
-    x: Math.min(1, Math.max(0, (clientX - rect.left) / rect.width)),
-    y: Math.min(1, Math.max(0, (clientY - rect.top) / rect.height)),
-  };
-}
 
 /**
  * The colour selector (PROJECT_CORE §14): an SV square, hue and alpha bars,
@@ -52,19 +26,12 @@ function localPosition(
  */
 export function ColorPicker({ value, onChange, label }: ColorPickerProps) {
   const [mode, setMode] = useState<Mode>('hsv');
-  // Hue is kept locally so it survives greyscale / black where it is undefined.
-  const [hue, setHue] = useState(() => rgbToHsv(toRgb(value)).h);
   const [hexText, setHexText] = useState(() => rgbaToHex(value));
+  const { hue, setHue, hsv, hsl } = useRetainedHue(value);
 
   useEffect(() => {
-    if (!isGrey(value)) {
-      setHue(rgbToHsv(toRgb(value)).h);
-    }
     setHexText(rgbaToHex(value));
   }, [value]);
-
-  const hsv = { ...rgbToHsv(toRgb(value)), h: hue };
-  const hsl = { ...rgbToHsl(toRgb(value)), h: hue };
 
   const emitRgb = useCallback(
     (rgb: RGB, alpha = value.a): void => {
@@ -76,107 +43,10 @@ export function ColorPicker({ value, onChange, label }: ColorPickerProps) {
   const setSV = (s: number, v: number): void => {
     emitRgb(hsvToRgb({ h: hue, s, v }));
   };
-  const setHue360 = (h: number): void => {
-    setHue(h);
-    emitRgb(hsvToRgb({ h, s: hsv.s, v: hsv.v }));
-  };
-  const setAlpha = (a: number): void => {
-    onChange(rgba(value.r, value.g, value.b, Math.round(a * 255)));
-  };
-
-  const svRef = useRef<HTMLDivElement>(null);
-  // The live handlers close over the latest state; refresh the ref every render.
-  const applyRef = useRef<(kind: 'sv' | 'hue' | 'alpha', x: number, y: number) => void>(
-    () => undefined,
-  );
-  applyRef.current = (kind, s, v) => {
-    if (kind === 'sv') {
-      setSV(s, 1 - v);
-    } else if (kind === 'hue') {
-      setHue360(s * 360);
-    } else {
-      setAlpha(s);
-    }
-  };
-
-  const startDrag =
-    (kind: 'sv' | 'hue' | 'alpha') =>
-    (event: ReactPointerEvent<HTMLElement>): void => {
-      const target = event.currentTarget;
-      const run = (clientX: number, clientY: number): void => {
-        const pos = localPosition(target, clientX, clientY);
-        applyRef.current(kind, pos.x, pos.y);
-      };
-      run(event.clientX, event.clientY);
-      const move = (e: PointerEvent): void => {
-        run(e.clientX, e.clientY);
-      };
-      const up = (): void => {
-        window.removeEventListener('pointermove', move);
-        window.removeEventListener('pointerup', up);
-      };
-      window.addEventListener('pointermove', move);
-      window.addEventListener('pointerup', up);
-    };
-
-  const hueColor = `hsl(${String(Math.round(hue))}, 100%, 50%)`;
-  const alpha = value.a / 255;
 
   return (
     <div className="color-picker" role="group" aria-label={label}>
-      <div
-        ref={svRef}
-        className="color-picker__sv"
-        style={{ backgroundColor: hueColor }}
-        onPointerDown={startDrag('sv')}
-        role="slider"
-        aria-label="Saturation and value"
-        aria-valuetext={`saturation ${String(Math.round(hsv.s * 100))}%, value ${String(
-          Math.round(hsv.v * 100),
-        )}%`}
-        tabIndex={0}
-      >
-        <div className="color-picker__sv-white" />
-        <div className="color-picker__sv-black" />
-        <div
-          className="color-picker__thumb"
-          style={{ left: `${String(hsv.s * 100)}%`, top: `${String((1 - hsv.v) * 100)}%` }}
-        />
-      </div>
-
-      <div
-        className="color-picker__bar color-picker__bar--hue"
-        onPointerDown={startDrag('hue')}
-        role="slider"
-        aria-label="Hue"
-        aria-valuemin={0}
-        aria-valuemax={360}
-        aria-valuenow={Math.round(hue)}
-        tabIndex={0}
-      >
-        <div className="color-picker__thumb" style={{ left: `${String((hue / 360) * 100)}%` }} />
-      </div>
-
-      <div
-        className="color-picker__bar color-picker__bar--alpha"
-        onPointerDown={startDrag('alpha')}
-        role="slider"
-        aria-label="Alpha"
-        aria-valuemin={0}
-        aria-valuemax={255}
-        aria-valuenow={value.a}
-        tabIndex={0}
-      >
-        <div
-          className="color-picker__alpha-fill"
-          style={{
-            background: `linear-gradient(to right, rgba(${String(value.r)},${String(value.g)},${String(
-              value.b,
-            )},0), rgb(${String(value.r)},${String(value.g)},${String(value.b)}))`,
-          }}
-        />
-        <div className="color-picker__thumb" style={{ left: `${String(alpha * 100)}%` }} />
-      </div>
+      <ColorField value={value} hue={hue} hsv={hsv} onColorChange={onChange} onHueChange={setHue} />
 
       <div className="color-picker__modes" role="tablist" aria-label="Colour mode">
         {(['rgb', 'hsv', 'hsl', 'gray'] as const).map((m) => (
@@ -224,7 +94,10 @@ export function ColorPicker({ value, onChange, label }: ColorPickerProps) {
               label="H"
               max={360}
               value={Math.round(hue)}
-              onChange={(h) => setHue360(h)}
+              onChange={(h) => {
+                setHue(h);
+                emitRgb(hsvToRgb({ h, s: hsv.s, v: hsv.v }));
+              }}
             />
             <ChannelField
               label="S"
