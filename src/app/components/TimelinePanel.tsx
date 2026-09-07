@@ -4,6 +4,7 @@ import type { CelType } from '@core/document/Cel';
 import type { AnimationTagId } from '@core/types/ids';
 
 import type { EditorSession } from '../EditorSession';
+import { FrameThumbnail } from './FrameThumbnail';
 import './TimelinePanel.css';
 
 interface TimelinePanelProps {
@@ -13,8 +14,15 @@ interface TimelinePanelProps {
 const CEL_GLYPH: Record<CelType, string> = {
   normal: '■',
   linked: '\u{1F517}',
-  empty: '·',
-  hold: '―',
+  empty: '∅',
+  hold: '⏸',
+};
+
+const CEL_LABEL: Record<CelType, string> = {
+  normal: 'normal cel',
+  linked: 'linked cel',
+  empty: 'empty cel',
+  hold: 'hold',
 };
 
 /**
@@ -238,14 +246,29 @@ export function TimelinePanel({ session }: TimelinePanelProps) {
                     : 'timeline-panel__frame'
                 }
                 data-testid="timeline-frame"
-                aria-label={`Frame ${String(index + 1)}`}
+                aria-label={
+                  cel && cel.type !== 'normal'
+                    ? `Frame ${String(index + 1)}, ${CEL_LABEL[cel.type]}`
+                    : `Frame ${String(index + 1)}`
+                }
                 aria-current={active}
                 onClick={() => {
                   session.setActiveFrame(frame.id);
                 }}
               >
                 <span className="timeline-panel__frame-index">{index + 1}</span>
-                <span className="timeline-panel__frame-cel">{cel ? CEL_GLYPH[cel.type] : ''}</span>
+                <span className="timeline-panel__frame-thumb">
+                  <FrameThumbnail session={session} frameId={frame.id} size={44} />
+                  {cel && cel.type !== 'normal' && (
+                    <span
+                      className="timeline-panel__frame-badge"
+                      data-cel={cel.type}
+                      title={CEL_LABEL[cel.type]}
+                    >
+                      {CEL_GLYPH[cel.type]}
+                    </span>
+                  )}
+                </span>
                 <input
                   className="timeline-panel__frame-duration"
                   type="number"

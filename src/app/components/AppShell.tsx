@@ -19,6 +19,7 @@ import { decodePng } from '../pngDecode';
 import { resolveShortcut, type ShortcutCommand } from '../shortcuts';
 import { useAutosaveRecovery, type AutosaveRecoveryOptions } from '../useAutosaveRecovery';
 import { useEditorSessionVersion } from '../useEditorSession';
+import { AnimationPreview } from './AnimationPreview';
 import { BrushControls } from './BrushControls';
 import { CanvasStage } from './CanvasStage';
 import { ColorControls } from './ColorControls';
@@ -541,6 +542,7 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
         <div className="app-shell__sidebar">
           <LayerPanel session={session} />
           <PalettePanel session={session} onAddColor={openAddColor} onEditColor={openEditColor} />
+          <AnimationPreview session={session} />
         </div>
       </div>
 

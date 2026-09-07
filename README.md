@@ -28,9 +28,11 @@ release notes are in [`CHANGELOG.md`](CHANGELOG.md).
 - **Palettes** — PICO-8 default, create / duplicate / rename / delete, recent-colours
   strip; add or edit a colour in a full Color Management window (SV square, hue &
   opacity, R/G/B/A, HEX, HSV/HSL readout, pick-from-canvas), with optional naming.
-- **Animation** — frames with per-frame durations, cel types (normal, empty, hold,
-  linked + Make Unique), reorder, playback (play / pause / step / first / last,
-  loop or once), FPS, onion skin, animation tags.
+- **Animation** — frames with per-frame durations and live thumbnails, cel types
+  (normal, empty, hold, linked + Make Unique), reorder, playback (play / pause /
+  step / first / last, loop or once), FPS, onion skin, animation tags, and a
+  dedicated Animation Preview panel (overlay-free render, integer scale,
+  checkerboard / solid background).
 - **Files** — New (size presets + background), Open, Save, Save As, Close;
   `.obsipix` round-trips the whole project; open a PNG as a single-frame document
   or split a PNG sprite sheet into frames (frame size, spacing, offset, live

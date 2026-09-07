@@ -119,9 +119,10 @@ test.describe('V1 workflow', () => {
     );
 
     // play briefly then pause
-    await page.getByRole('button', { name: 'Play' }).click();
+    const timeline = page.getByRole('region', { name: 'Timeline' });
+    await timeline.getByRole('button', { name: 'Play' }).click();
     await expect.poll(() => page.evaluate(() => window.__obsipix?.isPlaying)).toBe(true);
-    await page.getByRole('button', { name: 'Pause' }).click();
+    await timeline.getByRole('button', { name: 'Pause' }).click();
     await expect.poll(() => page.evaluate(() => window.__obsipix?.isPlaying)).toBe(false);
 
     // ---- Save ----------------------------------------------------------

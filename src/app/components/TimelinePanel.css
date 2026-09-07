@@ -86,8 +86,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  width: 60px;
+  gap: 3px;
+  width: 56px;
   padding: 4px;
   font: inherit;
   color: var(--obsipix-text);
@@ -95,6 +95,39 @@
   border: 1px solid var(--obsipix-border);
   border-radius: 4px;
   cursor: pointer;
+}
+
+.timeline-panel__frame-thumb {
+  position: relative;
+  display: block;
+  line-height: 0;
+}
+
+.frame-thumb {
+  display: block;
+  image-rendering: pixelated;
+  border: 1px solid var(--obsipix-border);
+  border-radius: 2px;
+}
+
+.timeline-panel__frame-badge {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 2px;
+  font-size: 9px;
+  line-height: 14px;
+  text-align: center;
+  color: var(--obsipix-text);
+  background: var(--obsipix-surface);
+  border: 1px solid var(--obsipix-border);
+  border-radius: 7px;
+}
+
+.timeline-panel__frame-badge[data-cel='linked'] {
+  border-color: var(--obsipix-accent);
 }
 
 .timeline-panel__frame--active {
@@ -105,12 +138,6 @@
 .timeline-panel__frame-index {
   font-size: 11px;
   font-weight: 600;
-}
-
-.timeline-panel__frame-cel {
-  font-size: 12px;
-  line-height: 1;
-  color: var(--obsipix-text-muted);
 }
 
 .timeline-panel__frame-duration {

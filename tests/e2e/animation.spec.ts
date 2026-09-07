@@ -70,13 +70,14 @@ test.describe('animation', () => {
     // --- play ---
     await page.evaluate(() => window.__obsipix?.firstFrame());
     const startId = await page.evaluate(() => window.__obsipix?.document.timeline.activeFrameId);
-    await page.getByRole('button', { name: 'Play' }).click();
+    const timeline = page.getByRole('region', { name: 'Timeline' });
+    await timeline.getByRole('button', { name: 'Play' }).click();
     await expect
       .poll(() => page.evaluate(() => window.__obsipix?.document.timeline.activeFrameId))
       .not.toBe(startId);
     expect(await page.evaluate(() => window.__obsipix?.isPlaying)).toBe(true);
 
-    await page.getByRole('button', { name: 'Pause' }).click();
+    await timeline.getByRole('button', { name: 'Pause' }).click();
     expect(await page.evaluate(() => window.__obsipix?.isPlaying)).toBe(false);
   });
 });

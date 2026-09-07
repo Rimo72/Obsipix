@@ -3,6 +3,39 @@
 All notable changes to Obsipix are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## 1.4.0 — 2026-09-07
+
+Timeline thumbnails and a dedicated Animation Preview
+([`docs/PROJECT_CORE_OBSIPIX.md`](docs/PROJECT_CORE_OBSIPIX.md) §110).
+
+### Added
+
+- **Timeline frame thumbnails** — every timeline frame now shows a live
+  thumbnail of its composited visible artwork, scaled nearest-neighbour over a
+  transparency checkerboard. Non-normal cels on the active layer are badged
+  (linked / hold / empty) and named in the frame's accessible label.
+- **Animation Preview panel** — a collapsible sidebar panel that renders the
+  current frame with no editor overlays (grid, selection, onion skin, cursors),
+  and plays the animation in place at the real per-frame durations. It has its
+  own transport (first / prev / play-pause / next / last / loop), integer scale
+  (Fit / 1× / 2× / 4× / 8×) and background (checkerboard / white / black). The
+  collapsed/expanded choice is remembered per browser.
+- Playback drives the same timeline / canvas / preview state; it never mutates
+  the document, creates history, or marks it dirty.
+- `src/app/framePaint.ts` (`paintFrame` / `paintPixelBuffer`), the
+  `FrameThumbnail` and `AnimationPreview` components.
+
+### Changed
+
+- A modal dialog and the "pick from canvas" mode both correctly suppress editor
+  shortcuts (carried over from 1.3.0).
+
+### Quality
+
+- 12 new unit tests (`framePaint`, `FrameThumbnail`, `TimelinePanel`,
+  `AnimationPreview`) and `tests/e2e/animation-preview.spec.ts`. 435 unit
+  tests, 40 e2e specs.
+
 ## 1.3.0 — 2026-09-07
 
 Color Management window for palette colours.

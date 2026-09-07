@@ -1032,6 +1032,36 @@ Full `npm run check` + Playwright suite. 425 unit tests, 38 e2e specs
 
 ------------------------------------------------------------------------
 
+# Phase 19 --- Timeline Thumbnails and Animation Preview
+
+## Goal
+
+Implement `PROJECT_CORE §110`: live artwork thumbnails on every timeline
+frame, and a dedicated overlay-free Animation Preview panel.
+
+## Build
+
+-   `src/app/framePaint.ts` --- `paintFrame` / `paintPixelBuffer`:
+    off-canvas nearest-neighbour rendering of a composited frame over a
+    checkerboard or solid background. Read-only; disposable derived data.
+-   `FrameThumbnail` --- a per-frame `<canvas>` in the timeline that
+    repaints on any session change; non-normal active-layer cels get a
+    linked / hold / empty badge and an accessible-label suffix.
+-   `AnimationPreview` --- collapsible sidebar panel (choice persisted):
+    overlay-free canvas, own transport, integer scale (Fit / 1-8×),
+    checkerboard / white / black background. Reads
+    `timeline.activeFrameId`, so timeline playback drives it directly;
+    no document mutation, history or dirty flag.
+
+## Exit gate
+
+Full `npm run check` + Playwright suite. 435 unit tests, 40 e2e specs
+(`framePaint`, `FrameThumbnail`, `TimelinePanel`, `AnimationPreview`,
+`animation-preview.spec.ts`; existing Play/Pause e2e scoped to the
+timeline region). Browser-verified with a 4-frame animation.
+
+------------------------------------------------------------------------
+
 # Coding Rules for Every Phase
 
 ## Rule 1 --- Core is authoritative
@@ -1159,6 +1189,7 @@ V1 Release
   16      v2 Spec Delta                 COMPLETE
   17      Sprite Sheet PNG Import        COMPLETE
   18      Color Management Window        COMPLETE
+  19      Thumbnails / Anim Preview      COMPLETE
 
 # Definition of a Coding Phase
 

@@ -70,7 +70,9 @@ test.describe('palette', () => {
     );
     expect(added).toMatchObject({ r: 0x12, g: 0x34, b: 0x56, a: 255 });
 
-    // Edit: double-click the new swatch, change a channel, save
+    // Edit: double-click the new swatch, change a channel, save.
+    // (a first click settles the recent-colours strip so the dblclick can't miss)
+    await swatches.nth(16).click();
     await swatches.nth(16).dblclick();
     const edit = page.getByRole('dialog', { name: 'Color Management' });
     await edit.getByLabel('Red').fill('200');
