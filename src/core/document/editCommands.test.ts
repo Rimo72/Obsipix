@@ -10,6 +10,7 @@ import {
   deleteSelectionCommand,
   deselectCommand,
   flipCommand,
+  invertSelectionCommand,
   pasteCommand,
   resizeCanvasCommand,
   resizeImageCommand,
@@ -43,6 +44,17 @@ describe('selection commands', () => {
     expect(history.document.selection.active).toBe(true);
     history.undo();
     expect(history.document.selection.bounds()?.width).toBe(32);
+  });
+
+  it('invert selection is undoable', () => {
+    const history = newHistory();
+    history.execute(selectRectCommand({ x: 0, y: 0, width: 8, height: 32 }, 'replace'));
+    history.execute(invertSelectionCommand());
+    expect(history.document.selection.isSelected(0, 0)).toBe(false);
+    expect(history.document.selection.isSelected(20, 20)).toBe(true);
+    history.undo();
+    expect(history.document.selection.isSelected(0, 0)).toBe(true);
+    expect(history.document.selection.isSelected(20, 20)).toBe(false);
   });
 });
 

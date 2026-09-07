@@ -5,7 +5,6 @@ import {
   closeProject,
   exportProjectPng,
   importPng,
-  newProject,
   openProject,
   saveProject,
   saveProjectAs,
@@ -17,9 +16,11 @@ import { useEditorSessionVersion } from '../useEditorSession';
 import { BrushControls } from './BrushControls';
 import { CanvasStage } from './CanvasStage';
 import { ColorControls } from './ColorControls';
+import { EyedropperControls } from './EyedropperControls';
 import { KeyboardHelp } from './KeyboardHelp';
 import { LayerPanel } from './LayerPanel';
 import { MenuBar, type MenuDef } from './MenuBar';
+import { NewDocumentDialog } from './NewDocumentDialog';
 import { PalettePanel } from './PalettePanel';
 import { RecoveryPrompt } from './RecoveryPrompt';
 import { ResizeDialog } from './ResizeDialog';
@@ -45,6 +46,11 @@ function isTextTarget(target: EventTarget | null): boolean {
   );
 }
 
+function timelineHasFocus(): boolean {
+  const active = document.activeElement;
+  return active instanceof HTMLElement && active.closest('.timeline-panel') !== null;
+}
+
 /** The editor shell: menu bar, options bar, tool rail, canvas, side panels, timeline, status bar. */
 export function AppShell({ session, autosaveRecovery }: AppShellProps) {
   useEditorSessionVersion(session);
@@ -52,6 +58,7 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
 
   const [helpOpen, setHelpOpen] = useState(false);
   const [resizing, setResizing] = useState<'image' | 'canvas' | null>(null);
+  const [newDialogOpen, setNewDialogOpen] = useState(false);
 
   const { recovery, recover, discardRecovery, deferRecovery, resolveAutosave } =
     useAutosaveRecovery(session, autosaveRecovery ?? {});
@@ -94,8 +101,7 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
 
   const handleNew = (): void => {
     if (confirmDiscard()) {
-      newProject(session);
-      resolveAutosave();
+      setNewDialogOpen(true);
     }
   };
 
@@ -155,6 +161,7 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
       },
       'select-all': () => session.selectAll(),
       deselect: () => session.deselect(),
+      'invert-selection': () => session.invertSelection(),
       copy: () => session.copy(),
       cut: () => session.cut(),
       paste: () => session.paste(),
@@ -173,6 +180,8 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
       'last-frame': () => session.lastFrame(),
       'zoom-in': () => session.zoomIn(),
       'zoom-out': () => session.zoomOut(),
+      'zoom-100': () => session.setZoomLevel(1),
+      'zoom-200': () => session.setZoomLevel(2),
       fit: () => session.fitView(),
       help: () => {
         handlers.current.setHelpOpen(true);
@@ -183,6 +192,7 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
       const resolution = resolveShortcut(event, {
         editingText: isTextTarget(event.target),
         hasFloat: session.hasFloat,
+        timelineFocused: timelineHasFocus(),
       });
       if (!resolution) {
         return;
@@ -311,9 +321,14 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
           { label: 'Select All', shortcut: 'Ctrl+A', onSelect: () => session.selectAll() },
           {
             label: 'Deselect',
-            shortcut: 'Ctrl+D',
+            shortcut: 'Ctrl+Shift+A',
             disabled: !session.document.selection.active,
             onSelect: () => session.deselect(),
+          },
+          {
+            label: 'Invert Selection',
+            shortcut: 'Ctrl+Shift+I',
+            onSelect: () => session.invertSelection(),
           },
         ],
       },
@@ -344,6 +359,8 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
         items: [
           { label: 'Zoom In', shortcut: '+', onSelect: () => session.zoomIn() },
           { label: 'Zoom Out', shortcut: '-', onSelect: () => session.zoomOut() },
+          { label: 'Zoom 100%', shortcut: '1', onSelect: () => session.setZoomLevel(1) },
+          { label: 'Zoom 200%', shortcut: '2', onSelect: () => session.setZoomLevel(2) },
           { label: 'Fit to Window', shortcut: '0', onSelect: () => session.fitView() },
           null,
           {
@@ -434,6 +451,7 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
       <div className="app-shell__options" role="toolbar" aria-label="Tool options">
         <BrushControls session={session} />
         <ColorControls session={session} />
+        <EyedropperControls session={session} />
         <SelectionControls session={session} />
       </div>
 
@@ -465,6 +483,19 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
           }}
           onDiscard={discardRecovery}
           onDefer={deferRecovery}
+        />
+      )}
+
+      {newDialogOpen && (
+        <NewDocumentDialog
+          onClose={() => {
+            setNewDialogOpen(false);
+          }}
+          onCreate={(options) => {
+            session.newDocument(options);
+            resolveAutosave();
+            setNewDialogOpen(false);
+          }}
         />
       )}
 

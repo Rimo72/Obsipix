@@ -10,6 +10,7 @@ import {
 import {
   deleteSelectionCommand,
   deselectCommand,
+  invertSelectionCommand,
   flipCommand,
   pasteCommand,
   resizeCanvasCommand,
@@ -135,6 +136,7 @@ export class EditorSession {
   #foreground: RGBA = BLACK;
   #background: RGBA = WHITE;
   #brush: Brush = DEFAULT_BRUSH;
+  #eyedropperMerged = true;
   #preview: readonly PreviewStamp[] | null = null;
   #showGrid = true;
   #showCheckerboard = true;
@@ -280,9 +282,33 @@ export class EditorSession {
     this.#emit();
   }
 
-  newDocument(): void {
+  /**
+   * Start a fresh project (PROJECT_CORE §56.1). With no options this is the
+   * canonical 32×32 transparent default; `options` come from the New Document
+   * dialog.
+   */
+  newDocument(options?: {
+    readonly width?: number;
+    readonly height?: number;
+    /** Fill the first layer with this colour; omit / transparent for a blank canvas. */
+    readonly background?: RGBA | null;
+  }): void {
     this.#discardInteraction();
-    this.history.reset(createDefaultDocument());
+    const document =
+      options && options.width !== undefined && options.height !== undefined
+        ? new DocumentFactory().create({ width: options.width, height: options.height })
+        : createDefaultDocument();
+    const background = options?.background;
+    if (background && background.a > 0) {
+      const buffer = document.ensureDrawableBuffer(document.layers.activeLayerId);
+      const { width, height } = document.dimensions;
+      for (let y = 0; y < height; y += 1) {
+        for (let x = 0; x < width; x += 1) {
+          buffer.setPixel(x, y, background);
+        }
+      }
+    }
+    this.history.reset(document);
     this.#fileName = null;
     this.fitView();
     this.#emit();
@@ -345,7 +371,10 @@ export class EditorSession {
       isEditable: editable,
       isInsideDocument: (x, y) =>
         x >= 0 && y >= 0 && x < document.dimensions.width && y < document.dimensions.height,
-      sampleColor: (x, y) => compositeDocument(document).getPixel(x, y),
+      sampleColor: (x, y) =>
+        this.#eyedropperMerged
+          ? compositeDocument(document).getPixel(x, y)
+          : (document.resolveBuffer(document.layers.activeLayerId)?.getPixel(x, y) ?? TRANSPARENT),
       setForeground: (color) => {
         this.setForeground(color);
       },
@@ -423,6 +452,19 @@ export class EditorSession {
     this.#emit();
   }
 
+  /**
+   * Eyedropper sampling mode (PROJECT_CORE §14, §82.8). `true` = "Sample" the
+   * flattened image; `false` = "Pick" only from the active layer.
+   */
+  get eyedropperMerged(): boolean {
+    return this.#eyedropperMerged;
+  }
+
+  setEyedropperMerged(merged: boolean): void {
+    this.#eyedropperMerged = merged;
+    this.#emit();
+  }
+
   // --- View ------------------------------------------------------------
 
   setViewSize(width: number, height: number): void {
@@ -452,6 +494,14 @@ export class EditorSession {
 
   zoomOut(): void {
     this.#zoomAroundCentre(1 / ZOOM_STEP);
+  }
+
+  /** Jump to an absolute zoom level, keeping the viewport centre fixed (1 / 2 keys). */
+  setZoomLevel(level: number): void {
+    const current = this.viewport.zoom;
+    if (current > 0 && level > 0) {
+      this.#zoomAroundCentre(level / current);
+    }
   }
 
   #zoomAroundCentre(factor: number): void {
@@ -727,6 +777,13 @@ export class EditorSession {
       this.#commitFloat();
     }
     this.runCommand(deselectCommand());
+  }
+
+  invertSelection(): void {
+    if (this.#float) {
+      this.#commitFloat();
+    }
+    this.runCommand(invertSelectionCommand());
   }
 
   deleteSelection(): void {

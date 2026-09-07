@@ -1,0 +1,95 @@
+.new-doc__group {
+  margin: 0 0 14px;
+  padding: 0;
+  border: 0;
+}
+
+.new-doc__group legend {
+  padding: 0 0 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--obsipix-text-muted);
+}
+
+.new-doc__presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.new-doc__preset {
+  padding: 5px 9px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--obsipix-text);
+  background: var(--obsipix-surface-raised);
+  border: 1px solid var(--obsipix-border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.new-doc__preset.is-active {
+  color: var(--obsipix-bg);
+  background: var(--obsipix-accent);
+  border-color: var(--obsipix-accent);
+}
+
+.new-doc__dims {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.new-doc__field {
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--obsipix-text-muted);
+}
+
+.new-doc__field input {
+  width: 84px;
+  padding: 4px 6px;
+  font: inherit;
+  color: var(--obsipix-text);
+  background: var(--obsipix-bg);
+  border: 1px solid var(--obsipix-border);
+  border-radius: 4px;
+}
+
+.new-doc__backgrounds {
+  display: flex;
+  gap: 14px;
+}
+
+.new-doc__radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+}
+
+.new-doc__button {
+  padding: 5px 12px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--obsipix-text);
+  background: var(--obsipix-surface-raised);
+  border: 1px solid var(--obsipix-border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.new-doc__button.is-primary {
+  color: var(--obsipix-bg);
+  background: var(--obsipix-accent);
+  border-color: var(--obsipix-accent);
+}
+
+.new-doc__button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

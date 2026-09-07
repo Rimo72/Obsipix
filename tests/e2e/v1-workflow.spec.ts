@@ -90,7 +90,7 @@ test.describe('V1 workflow', () => {
     expect(await pixelAt(page, 23, 26, { layerId: overlayId })).toEqual(afterMove);
 
     // ---- Animate --------------------------------------------------------
-    await page.keyboard.press('Control+d'); // clear the selection so drawing is unrestricted
+    await page.keyboard.press('Control+Shift+A'); // clear the selection so drawing is unrestricted
     await page.getByRole('button', { name: 'Pencil' }).click();
     await page.getByRole('button', { name: 'Layer 1', exact: true }).click(); // back to the base layer
     await page.getByRole('button', { name: 'Add frame', exact: true }).click();
@@ -119,9 +119,9 @@ test.describe('V1 workflow', () => {
     );
 
     // play briefly then pause
-    await page.keyboard.press(' ');
+    await page.getByRole('button', { name: 'Play' }).click();
     await expect.poll(() => page.evaluate(() => window.__obsipix?.isPlaying)).toBe(true);
-    await page.keyboard.press(' ');
+    await page.getByRole('button', { name: 'Pause' }).click();
     await expect.poll(() => page.evaluate(() => window.__obsipix?.isPlaying)).toBe(false);
 
     // ---- Save ----------------------------------------------------------

@@ -5,7 +5,14 @@ interface Cel {
 }
 
 interface ObsipixSession {
-  viewport: { documentToCanvas(p: { x: number; y: number }): { x: number; y: number } };
+  viewport: {
+    zoom: number;
+    panX: number;
+    panY: number;
+    documentToCanvas(p: { x: number; y: number }): { x: number; y: number };
+  };
+  activeToolId: string;
+  eyedropperMerged: boolean;
   document: {
     metadata: { name: string };
     layers: {

@@ -37,6 +37,12 @@ export function deselectCommand(): Command {
   });
 }
 
+export function invertSelectionCommand(): Command {
+  return mutation('Invert selection', (document) => {
+    document.selection.invert();
+  });
+}
+
 export function selectRectCommand(region: PixelRegion, mode: SelectionMode): Command {
   return mutation('Select', (document) => {
     document.selection.applyRect(region, mode);

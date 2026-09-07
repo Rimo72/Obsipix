@@ -17,6 +17,7 @@ export function CanvasStage({ session }: CanvasStageProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const panRef = useRef<{ active: boolean; x: number; y: number }>({ active: false, x: 0, y: 0 });
+  const spaceHeldRef = useRef(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -88,10 +89,42 @@ export function CanvasStage({ session }: CanvasStageProps) {
     };
     canvas.addEventListener('wheel', onWheel, { passive: false });
 
+    // Space = hold-to-pan on the canvas (PROJECT_CORE §17, §95.7). The timeline
+    // owns Space while it has focus; text fields always do.
+    const isTypingOrTimeline = (target: EventTarget | null): boolean => {
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        (target instanceof HTMLElement && target.isContentEditable)
+      ) {
+        return true;
+      }
+      const active = document.activeElement;
+      return active instanceof HTMLElement && active.closest('.timeline-panel') !== null;
+    };
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === ' ' && !event.repeat && !isTypingOrTimeline(event.target)) {
+        event.preventDefault();
+        spaceHeldRef.current = true;
+        container.classList.add('canvas-stage--pan-ready');
+      }
+    };
+    const onKeyUp = (event: KeyboardEvent): void => {
+      if (event.key === ' ') {
+        spaceHeldRef.current = false;
+        container.classList.remove('canvas-stage--pan-ready');
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+
     return () => {
       unsubscribe();
       observer.disconnect();
       canvas.removeEventListener('wheel', onWheel);
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
       if (frame) {
         cancelAnimationFrame(frame);
       }
@@ -107,7 +140,7 @@ export function CanvasStage({ session }: CanvasStageProps) {
     }
     element.setPointerCapture(event.pointerId);
     const input = toPointerInput(event.nativeEvent, element, session.viewport);
-    if (input.buttons.middle) {
+    if (input.buttons.middle || spaceHeldRef.current) {
       panRef.current = { active: true, x: event.clientX, y: event.clientY };
       return;
     }

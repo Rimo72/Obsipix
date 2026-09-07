@@ -6,6 +6,7 @@ import {
   DEFAULT_DOCUMENT_NAME,
   DEFAULT_DOCUMENT_WIDTH,
   DEFAULT_LAYER_NAME,
+  MAX_DOCUMENT_DIMENSION,
 } from './defaults';
 import { Document } from './Document';
 import { Frame } from './Frame';
@@ -26,6 +27,11 @@ function assertValidDimensions(width: number, height: number): void {
   if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0) {
     throw new RangeError(
       `Document dimensions must be positive integers, received ${width}x${height}`,
+    );
+  }
+  if (width > MAX_DOCUMENT_DIMENSION || height > MAX_DOCUMENT_DIMENSION) {
+    throw new RangeError(
+      `Document dimensions may not exceed ${String(MAX_DOCUMENT_DIMENSION)}px, received ${width}x${height}`,
     );
   }
 }

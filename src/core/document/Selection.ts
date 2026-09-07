@@ -83,6 +83,20 @@ export class SelectionState {
     this.#mask.fill(UNSELECTED);
   }
 
+  /**
+   * Invert the mask (PROJECT_CORE §21, §96.4). When nothing is selected this
+   * selects everything; otherwise the selected and unselected pixels swap.
+   */
+  invert(): void {
+    for (let i = 0; i < this.#mask.length; i += 1) {
+      this.#mask[i] = this.#mask[i] === UNSELECTED ? SELECTED : UNSELECTED;
+    }
+    this.#active = true;
+    if (this.isEmpty) {
+      this.#active = false;
+    }
+  }
+
   /** Combine a rectangle into the selection. */
   applyRect(region: PixelRegion, mode: SelectionMode = 'replace'): void {
     this.applyShape((x, y) => {

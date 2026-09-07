@@ -1,22 +1,21 @@
 import { TOOL_SHORTCUTS } from './toolCatalog';
 
 /**
- * The V1 keyboard map and its conflict resolution (PROJECT_CORE §3.14, §12.6).
+ * The V1 keyboard map and its conflict resolution (PROJECT_CORE §17, §95).
  *
- * Deterministic precedence, highest first:
+ * Deterministic precedence, highest first (PROJECT_CORE §95.8):
  *
- *   1. Modal interaction        — the shortcut-help overlay (handled in the UI)
- *   2. Transform / selection    — a live floating selection: Enter / Escape / arrows
- *   3. Active tool              — single-letter tool switches
- *   4. Timeline interaction     — Space, "," ".", Home / End
- *   5. Canvas navigation        — "+" "-" "0"
- *   6. Global                   — Ctrl/Cmd combos, X, Delete, "?"
+ *   1. Focused text input       — the map yields entirely
+ *   2. Modal dialog             — handled by the dialog itself
+ *   3. Transform / selection    — a live floating selection: Enter / Escape / arrows
+ *   4. Active tool              — single-letter tool switches
+ *   5. Timeline interaction     — Space / arrows / Home / End when the timeline is focused
+ *   6. Canvas navigation        — "+" "-" "0" "1" "2"
+ *   7. Global                   — Ctrl/Cmd combos, X, Delete, "?"
  *
- * Space is resolved explicitly to **play/pause** (tier 4). Canvas panning is on
- * middle-drag, never Space, so the two never actually collide.
- *
- * While a text field is focused the map yields entirely — the field owns every
- * key.
+ * Space is context-sensitive (PROJECT_CORE §17, §38, §95.7): while the timeline
+ * is focused it toggles playback; otherwise it is hold-to-pan on the canvas
+ * (owned by CanvasStage, not this map).
  */
 
 export type ShortcutCommand =
@@ -28,6 +27,7 @@ export type ShortcutCommand =
   | 'new'
   | 'select-all'
   | 'deselect'
+  | 'invert-selection'
   | 'copy'
   | 'cut'
   | 'paste'
@@ -46,14 +46,18 @@ export type ShortcutCommand =
   | 'last-frame'
   | 'zoom-in'
   | 'zoom-out'
+  | 'zoom-100'
+  | 'zoom-200'
   | 'fit'
   | 'help';
 
 export interface ShortcutContext {
-  /** A text input / textarea has focus — the map yields completely. */
+  /** A text input / textarea / select has focus — the map yields completely. */
   readonly editingText: boolean;
-  /** A floating selection is live (tier 2 keys become active). */
+  /** A floating selection is live (transform keys become active). */
   readonly hasFloat: boolean;
+  /** Focus is within the timeline panel — Space and arrows drive playback/frames. */
+  readonly timelineFocused: boolean;
 }
 
 export type ShortcutResolution =
@@ -87,7 +91,7 @@ export function resolveShortcut(
   const key = event.key.toLowerCase();
   const mod = event.ctrlKey || event.metaKey;
 
-  // --- Tier 6a: global modifier combos -------------------------------------
+  // --- Tier 7a: global modifier combos -----------------------------------
   if (mod) {
     switch (key) {
       case 'z':
@@ -101,9 +105,9 @@ export function resolveShortcut(
       case 'n':
         return command('new');
       case 'a':
-        return command('select-all');
-      case 'd':
-        return command('deselect');
+        return command(event.shiftKey ? 'deselect' : 'select-all');
+      case 'i':
+        return event.shiftKey ? command('invert-selection') : null;
       case 'c':
         return command('copy', false);
       case 'x':
@@ -115,18 +119,38 @@ export function resolveShortcut(
     }
   }
 
-  // --- Tier 2: live floating selection ------------------------------------
+  // --- Tier 3: live floating selection ----------------------------------
   if (context.hasFloat && key === 'enter') {
     return command('commit-float');
   }
   if (key === 'escape') {
     return command('cancel-float', false);
   }
+
+  // --- Tier 5: timeline (when it holds focus) --------------------------
+  if (context.timelineFocused) {
+    switch (key) {
+      case ' ':
+        return command('toggle-play');
+      case 'arrowleft':
+        return command('prev-frame');
+      case 'arrowright':
+        return command('next-frame');
+      case 'home':
+        return command('first-frame');
+      case 'end':
+        return command('last-frame');
+      default:
+        break;
+    }
+  }
+
+  // arrows nudge / lift the floating selection when the canvas has focus
   if (key in ARROW_NUDGE) {
     return command(ARROW_NUDGE[key] ?? 'nudge-left');
   }
 
-  // --- Tier 3: active tool ---------------------------------------------------
+  // --- Tier 4: active tool -------------------------------------------------
   if (!event.shiftKey && !event.altKey && key in TOOL_SHORTCUTS) {
     const toolId = TOOL_SHORTCUTS[key];
     if (toolId) {
@@ -134,10 +158,8 @@ export function resolveShortcut(
     }
   }
 
-  // --- Tier 4: timeline ----------------------------------------------------
+  // --- Tier 5b: frame stepping (Obsipix convenience, any focus) --------
   switch (key) {
-    case ' ':
-      return command('toggle-play');
     case ',':
       return command('prev-frame');
     case '.':
@@ -150,7 +172,7 @@ export function resolveShortcut(
       break;
   }
 
-  // --- Tier 5: canvas navigation -----------------------------------------
+  // --- Tier 6: canvas navigation -------------------------------------
   switch (key) {
     case '+':
     case '=':
@@ -159,11 +181,15 @@ export function resolveShortcut(
       return command('zoom-out');
     case '0':
       return command('fit');
+    case '1':
+      return command('zoom-100');
+    case '2':
+      return command('zoom-200');
     default:
       break;
   }
 
-  // --- Tier 6b: global plain keys --------------------------------------
+  // --- Tier 7b: global plain keys -----------------------------------
   switch (key) {
     case 'x':
       return command('swap-colors', false);
@@ -197,14 +223,15 @@ export const SHORTCUT_REFERENCE: readonly {
       { keys: 'Ctrl+Z', label: 'Undo' },
       { keys: 'Ctrl+Shift+Z / Ctrl+Y', label: 'Redo' },
       { keys: 'Ctrl+A', label: 'Select all' },
-      { keys: 'Ctrl+D', label: 'Deselect' },
+      { keys: 'Ctrl+Shift+A', label: 'Deselect' },
+      { keys: 'Ctrl+Shift+I', label: 'Invert selection' },
       { keys: 'Ctrl+C / Ctrl+X / Ctrl+V', label: 'Copy / Cut / Paste' },
       { keys: 'Delete', label: 'Delete selection' },
       { keys: 'X', label: 'Swap colours' },
     ],
   },
   {
-    group: 'Selection',
+    group: 'Selection & transform',
     items: [
       { keys: 'Arrows', label: 'Nudge / lift floating selection' },
       { keys: 'Enter', label: 'Commit floating selection' },
@@ -212,27 +239,29 @@ export const SHORTCUT_REFERENCE: readonly {
     ],
   },
   {
-    group: 'Timeline',
+    group: 'Timeline (when focused)',
     items: [
       { keys: 'Space', label: 'Play / pause' },
-      { keys: ', / .', label: 'Previous / next frame' },
+      { keys: '← / →  or  , / .', label: 'Previous / next frame' },
       { keys: 'Home / End', label: 'First / last frame' },
     ],
   },
   {
     group: 'View',
     items: [
+      { keys: 'Space + drag', label: 'Pan the canvas' },
       { keys: '+ / -', label: 'Zoom in / out' },
       { keys: '0', label: 'Fit to window' },
+      { keys: '1 / 2', label: 'Zoom 100% / 200%' },
       { keys: '?', label: 'This help' },
     ],
   },
   {
     group: 'Tools',
     items: [
-      { keys: 'B / E / I / G', label: 'Pencil / Eraser / Pick / Fill' },
-      { keys: 'L / U / O', label: 'Line / Rectangle / Ellipse' },
-      { keys: 'M / Q / V', label: 'Select / Lasso / Move' },
+      { keys: 'B / E / I / G', label: 'Pencil / Eraser / Eyedropper / Fill' },
+      { keys: 'L / R / O', label: 'Line / Rectangle / Ellipse' },
+      { keys: 'S / Q / M', label: 'Select / Lasso / Move' },
     ],
   },
 ];

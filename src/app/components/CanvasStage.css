@@ -11,3 +11,8 @@
   touch-action: none;
   image-rendering: pixelated;
 }
+
+/* Space held: hint that a drag will pan */
+.canvas-stage--pan-ready .canvas-stage__canvas {
+  cursor: grab;
+}

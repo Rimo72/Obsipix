@@ -85,4 +85,22 @@ describe('SelectionState', () => {
     expect(copy.isSelected(0, 0)).toBe(true);
     expect(state.active).toBe(false);
   });
+
+  it('invert swaps selected and unselected pixels', () => {
+    const state = selection(4, 4);
+    state.applyRect({ x: 0, y: 0, width: 2, height: 4 }, 'replace'); // left half
+    state.invert();
+    expect(state.active).toBe(true);
+    expect(state.isSelected(0, 0)).toBe(false); // was selected
+    expect(state.isSelected(3, 3)).toBe(true); // was not
+  });
+
+  it('invert with nothing selected selects everything', () => {
+    const state = selection(3, 3);
+    expect(state.active).toBe(false);
+    state.invert();
+    expect(state.active).toBe(true);
+    expect(state.isSelected(1, 1)).toBe(true);
+    expect(state.isSelected(2, 2)).toBe(true);
+  });
 });

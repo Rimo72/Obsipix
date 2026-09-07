@@ -383,3 +383,59 @@ describe('EditorSession lifecycle & import', () => {
     expect(session.document.layers.count).toBe(before);
   });
 });
+
+describe('EditorSession v2 additions', () => {
+  it('newDocument honours a size preset and a solid background', () => {
+    const session = new EditorSession();
+    session.newDocument({ width: 48, height: 16, background: { r: 255, g: 255, b: 255, a: 255 } });
+    expect(session.document.dimensions).toEqual({ width: 48, height: 16 });
+    expect(pixel(session, 47, 15)).toEqual({ r: 255, g: 255, b: 255, a: 255 });
+    expect(session.canUndo).toBe(false);
+    expect(session.fileName).toBeNull();
+  });
+
+  it('newDocument with no options is the transparent 32×32 default', () => {
+    const session = new EditorSession();
+    session.newDocument();
+    expect(session.document.dimensions).toEqual({ width: 32, height: 32 });
+    expect(rgbaEquals(pixel(session, 0, 0), TRANSPARENT)).toBe(true);
+  });
+
+  it('setZoomLevel jumps to an absolute zoom', () => {
+    const session = new EditorSession();
+    session.setViewSize(400, 400);
+    session.setZoomLevel(2);
+    expect(session.viewport.zoom).toBeCloseTo(2);
+    session.setZoomLevel(1);
+    expect(session.viewport.zoom).toBeCloseTo(1);
+  });
+
+  it('eyedropper mode switches between merged and active-layer sampling', () => {
+    const session = new EditorSession();
+    // paint white on the base layer, then add an empty layer on top
+    session.document.resolveBuffer(session.document.layers.activeLayerId)?.setPixel(3, 3, BLACK);
+    session.addLayer();
+
+    session.setEyedropperMerged(true);
+    session.setTool('eyedropper');
+    session.pointerDown(press(3, 3));
+    session.pointerUp(press(3, 3, 'none'));
+    expect(rgbaEquals(session.foreground, BLACK)).toBe(true); // sees through to the base layer
+
+    session.setForeground({ r: 200, g: 200, b: 200, a: 255 });
+    session.setEyedropperMerged(false);
+    session.pointerDown(press(3, 3));
+    session.pointerUp(press(3, 3, 'none'));
+    expect(rgbaEquals(session.foreground, TRANSPARENT)).toBe(true); // top layer is empty there
+  });
+
+  it('invertSelection is undoable', () => {
+    const session = new EditorSession();
+    session.runCommand(selectRectCommand({ x: 0, y: 0, width: 4, height: 32 }, 'replace'));
+    session.invertSelection();
+    expect(session.document.selection.isSelected(0, 0)).toBe(false);
+    expect(session.document.selection.isSelected(10, 10)).toBe(true);
+    session.undo();
+    expect(session.document.selection.isSelected(0, 0)).toBe(true);
+  });
+});

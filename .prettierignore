@@ -7,4 +7,5 @@ package-lock.json
 
 # Spec documents are mirrored verbatim from the project workspace — keep them as-authored.
 docs/PROJECT_CORE_OBSIPIX.md
+docs/PROJECT_CORE_OBSIPIX_v0.4.md
 docs/OBSIPIX_CODING_PHASES.md

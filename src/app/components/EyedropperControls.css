@@ -1,0 +1,28 @@
+.eyedropper-controls {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.eyedropper-controls__label {
+  margin-right: 3px;
+  font-size: 11px;
+  color: var(--obsipix-text-muted);
+}
+
+.eyedropper-controls__opt {
+  padding: 3px 8px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--obsipix-text-muted);
+  background: var(--obsipix-surface);
+  border: 1px solid var(--obsipix-border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.eyedropper-controls__opt.is-active {
+  color: var(--obsipix-bg);
+  background: var(--obsipix-accent);
+  border-color: var(--obsipix-accent);
+}
