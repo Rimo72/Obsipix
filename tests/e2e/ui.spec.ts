@@ -56,6 +56,19 @@ test.describe('UI shell', () => {
     await expect(dialog).toBeHidden();
   });
 
+  test('Help ▸ About Obsipix opens the about dialog', async ({ page }) => {
+    await open(page);
+
+    await menuAction(page, 'Help', 'About Obsipix');
+    const dialog = page.getByRole('dialog', { name: 'About Obsipix' });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText('Create. Animate. Pixel Perfect.')).toBeVisible();
+    await expect(dialog.getByText(/^Version \d/)).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+  });
+
   test('the status bar reports the cursor position over the canvas', async ({ page }) => {
     await open(page);
     await page.mouse.move(0, 0);

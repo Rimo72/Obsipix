@@ -368,6 +368,45 @@ export class CanvasRenderer {
     );
   }
 
+  #checkerCache: { key: string; pattern: CanvasPattern } | null = null;
+
+  /**
+   * A cached repeating pattern of a 2×2-square checker tile. It tiles from the
+   * canvas's user-space origin, so the squares stay a fixed screen size and do
+   * not move with zoom or pan.
+   */
+  #checkerPatternFor(style: CheckerboardStyle): CanvasPattern | null {
+    const size = Math.max(1, Math.round(style.size));
+    const key = `${style.light}|${style.dark}|${String(size)}`;
+    if (this.#checkerCache?.key === key) {
+      return this.#checkerCache.pattern;
+    }
+    const tile = this.#canvas.ownerDocument.createElement('canvas');
+    tile.width = size * 2;
+    tile.height = size * 2;
+    const tileCtx = tile.getContext('2d');
+    if (!tileCtx) {
+      return null;
+    }
+    tileCtx.fillStyle = style.light;
+    tileCtx.fillRect(0, 0, size * 2, size * 2);
+    tileCtx.fillStyle = style.dark;
+    tileCtx.fillRect(0, 0, size, size);
+    tileCtx.fillRect(size, size, size, size);
+    const pattern = this.#ctx.createPattern(tile, 'repeat');
+    if (!pattern) {
+      return null;
+    }
+    this.#checkerCache = { key, pattern };
+    return pattern;
+  }
+
+  /**
+   * The transparency checkerboard (PROJECT_CORE §20). It is a fixed screen-space
+   * grid — the squares are always the same pixel size and do not scale or shift
+   * with zoom or pan — revealed only through the document's on-screen bounds.
+   * Never part of exported artwork.
+   */
   #paintCheckerboard(
     ctx: CanvasRenderingContext2D,
     originX: number,
@@ -381,24 +420,9 @@ export class CanvasRenderer {
     ctx.rect(originX, originY, scaledWidth, scaledHeight);
     ctx.clip();
 
-    ctx.fillStyle = style.light;
+    const pattern = this.#checkerPatternFor(style);
+    ctx.fillStyle = pattern ?? style.light;
     ctx.fillRect(originX, originY, scaledWidth, scaledHeight);
-
-    ctx.fillStyle = style.dark;
-    const columns = Math.ceil(scaledWidth / style.size);
-    const rows = Math.ceil(scaledHeight / style.size);
-    for (let row = 0; row < rows; row += 1) {
-      for (let column = 0; column < columns; column += 1) {
-        if ((row + column) % 2 === 1) {
-          ctx.fillRect(
-            originX + column * style.size,
-            originY + row * style.size,
-            style.size,
-            style.size,
-          );
-        }
-      }
-    }
     ctx.restore();
   }
 

@@ -1105,6 +1105,39 @@ reopen, View-menu checkmarks, keyboard + pointer resize, layout persist.
 
 ------------------------------------------------------------------------
 
+# Phase 21 --- Fixed Checkerboard and About Dialog
+
+## Goal
+
+Two workspace-polish items on top of Phase 20.
+
+## Build
+
+-   `CanvasRenderer` --- the transparency checkerboard is now a cached,
+    fixed screen-space `CanvasPattern` (2×2-square tile, tiled from the
+    canvas origin) clipped to the document's on-screen bounds. Squares
+    are a constant pixel size and do not scale or shift with zoom / pan.
+    `CanvasStage` stopped scaling `checkerboard.size` by zoom. Still an
+    editor overlay — never in exports.
+-   `AboutDialog` (`Help ▸ About Obsipix`) --- product identity, tagline,
+    description and the running version, which is injected at build time
+    via a `__APP_VERSION__` Vite `define` from `package.json`.
+
+## Rules
+
+-   Checkerboard stays a presentation-only overlay (Rule 4); the About
+    dialog is pure UI state (Rule 3).
+
+## Exit gate
+
+Full `npm run check` + Playwright suite. 457 unit tests, 45 e2e specs
+(`AboutDialog` test, `CanvasRenderer` fixed-size-checker test,
+`ui.spec` About-dialog test). Browser-verified: checker squares stay a
+constant size across 1600 % / 1143 % / 416 % zoom; About dialog matches
+the mockup.
+
+------------------------------------------------------------------------
+
 # Coding Rules for Every Phase
 
 ## Rule 1 --- Core is authoritative
@@ -1234,6 +1267,7 @@ V1 Release
   18      Color Management Window        COMPLETE
   19      Thumbnails / Anim Preview      COMPLETE
   20      Dockable Panels / Workspace    COMPLETE
+  21      Fixed Checker / About Dialog   COMPLETE
 
 # Definition of a Coding Phase
 

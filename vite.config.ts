@@ -1,9 +1,11 @@
+import { createRequire } from 'node:module';
 import { fileURLToPath, URL } from 'node:url';
 import react from '@vitejs/plugin-react';
 import type { Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
 
 const GA_MEASUREMENT_ID = 'G-CSY0ZFPFZD';
+const pkg = createRequire(import.meta.url)('./package.json') as { version: string };
 
 /**
  * Inject the Google Analytics (gtag.js) tag into the built `index.html`.
@@ -48,6 +50,9 @@ export default defineConfig(({ mode }) => ({
     process.env.DEPLOY_BASE ??
     (process.env.VERCEL ? '/' : mode === 'production' ? '/Obsipix/' : '/'),
   plugins: [react(), googleAnalytics(GA_MEASUREMENT_ID)],
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
+  },
   resolve: {
     alias: {
       '@core': fileURLToPath(new URL('./src/core', import.meta.url)),

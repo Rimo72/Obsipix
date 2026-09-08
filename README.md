@@ -15,7 +15,8 @@ release notes are in [`CHANGELOG.md`](CHANGELOG.md).
 ## What Obsipix does
 
 - **Canvas** — transparent RGBA canvas, exact nearest-neighbour zoom, pan, grid and
-  checkerboard overlays, image / canvas resize with anchors.
+  a fixed-size transparency checkerboard (constant on-screen squares, never in
+  exports), image / canvas resize with anchors.
 - **Drawing** — Pencil, Eraser, Eyedropper, Fill, Line, Rectangle, Ellipse, Move;
   square or round brush in fixed sizes; foreground / background colours with quick
   swap; a full colour selector (RGB / HSV / HSL / Gray, SV square, hue & alpha bars,
@@ -44,7 +45,8 @@ release notes are in [`CHANGELOG.md`](CHANGELOG.md).
   prompt that never overwrites your project file; corrupt-file rejection; a
   top-level error boundary.
 - **Keyboard-first** — a documented shortcut map (press `?` for the reference), a
-  full menu bar, and context-sensitive controls.
+  full menu bar, and context-sensitive controls. `Help ▸ About Obsipix` shows the
+  version and project links.
 - **Workspace** — a full-height right sidebar of dockable panels (Color Management,
   Layers, Palettes, Animation Preview) plus the Animation timeline dock; each panel
   collapses, closes and resizes, the sidebar width is draggable, and the layout is

@@ -3,6 +3,21 @@
 All notable changes to Obsipix are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## 1.5.2 — 2026-09-08
+
+### Changed
+
+- The **transparency checkerboard** is now a fixed screen-space grid: the
+  squares are always the same pixel size and no longer scale or shift with zoom
+  or pan. It is drawn from a cached 8&nbsp;px pattern, clipped to the document's
+  on-screen bounds, and never appears in exported artwork.
+
+### Added
+
+- **Help ▸ About Obsipix** — an About dialog with the product identity,
+  tagline, description and the running version (injected at build time), linking
+  to the GitHub repository.
+
 ## 1.5.1 — 2026-09-08
 
 ### Fixed

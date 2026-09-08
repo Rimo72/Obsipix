@@ -28,6 +28,12 @@ class RecordingContext {
   rect = vi.fn(() => this.ops.push('rect'));
   clip = vi.fn(() => this.ops.push('clip'));
   fillRect = vi.fn(() => this.ops.push('fillRect'));
+  createPattern = vi.fn((image: { width: number; height: number }, _repeat: string) => {
+    this.lastPatternTile = image;
+    return { setTransform: vi.fn() };
+  });
+
+  lastPatternTile: { width: number; height: number } | null = null;
   moveTo = vi.fn();
   lineTo = vi.fn();
   stroke = vi.fn(() => this.ops.push('stroke'));
@@ -104,6 +110,18 @@ describe('CanvasRenderer', () => {
     expect(checkerboard).toBeGreaterThanOrEqual(0);
     expect(checkerboard).toBeLessThan(artwork);
     expect(artwork).toBeLessThan(grid);
+  });
+
+  it('checkerboard squares are a fixed size regardless of zoom', () => {
+    const renderer = new CanvasRenderer(asCanvas(canvas));
+    const doc = createDefaultDocument(createSequentialIdFactory());
+
+    renderer.render(doc, new Viewport({ zoom: 4 }), { showCheckerboard: true });
+    renderer.render(doc, new Viewport({ zoom: 48 }), { showCheckerboard: true });
+
+    // the pattern tile is built once (2 × the 8px square) and reused at both zooms
+    expect(canvas.context.createPattern).toHaveBeenCalledTimes(1);
+    expect(canvas.context.lastPatternTile?.width).toBe(16);
   });
 
   it('draws the artwork scaled by the viewport with no smoothing', () => {

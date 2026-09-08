@@ -20,6 +20,7 @@ import { PANEL_TITLE, SIDEBAR_PANELS, usePanelLayout, type PanelId } from '../pa
 import { resolveShortcut, type ShortcutCommand } from '../shortcuts';
 import { useAutosaveRecovery, type AutosaveRecoveryOptions } from '../useAutosaveRecovery';
 import { useEditorSessionVersion } from '../useEditorSession';
+import { AboutDialog } from './AboutDialog';
 import { BrushControls } from './BrushControls';
 import { CanvasStage } from './CanvasStage';
 import { ColorControls } from './ColorControls';
@@ -68,6 +69,7 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
   const { notify } = useToasts();
 
   const [helpOpen, setHelpOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const [resizing, setResizing] = useState<'image' | 'canvas' | null>(null);
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
@@ -480,6 +482,13 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
               setHelpOpen(true);
             },
           },
+          null,
+          {
+            label: 'About Obsipix',
+            onSelect: () => {
+              setAboutOpen(true);
+            },
+          },
         ],
       },
     ],
@@ -698,6 +707,14 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
         <KeyboardHelp
           onClose={() => {
             setHelpOpen(false);
+          }}
+        />
+      )}
+
+      {aboutOpen && (
+        <AboutDialog
+          onClose={() => {
+            setAboutOpen(false);
           }}
         />
       )}

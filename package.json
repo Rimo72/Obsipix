@@ -1,6 +1,6 @@
 {
   "name": "obsipix",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "private": true,
   "type": "module",
   "description": "Obsipix — a web-first pixel-art editor built around exact logical-pixel editing.",
