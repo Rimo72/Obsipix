@@ -50,12 +50,7 @@ export function AboutDialog({ onClose }: AboutDialogProps) {
           workflow that makes creating game-ready pixel art enjoyable and efficient.
         </p>
 
-        <p className="about__meta">
-          Version {__APP_VERSION__} ·{' '}
-          <a href="https://github.com/Rimo72/Obsipix" target="_blank" rel="noreferrer">
-            github.com/Rimo72/Obsipix
-          </a>
-        </p>
+        <p className="about__meta">Version {__APP_VERSION__}</p>
       </div>
     </Dialog>
   );

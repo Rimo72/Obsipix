@@ -1120,8 +1120,8 @@ Two workspace-polish items on top of Phase 20.
     `CanvasStage` stopped scaling `checkerboard.size` by zoom. Still an
     editor overlay — never in exports.
 -   `AboutDialog` (`Help ▸ About Obsipix`) --- product identity, tagline,
-    description and the running version, which is injected at build time
-    via a `__APP_VERSION__` Vite `define` from `package.json`.
+    description and the running version (no external links), injected at
+    build time via a `__APP_VERSION__` Vite `define` from `package.json`.
 
 ## Rules
 

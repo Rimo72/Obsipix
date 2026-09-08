@@ -3,6 +3,13 @@
 All notable changes to Obsipix are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## 1.5.3 — 2026-09-08
+
+### Changed
+
+- The **About Obsipix** dialog no longer shows the GitHub repository link — it
+  now ends with just the version line.
+
 ## 1.5.2 — 2026-09-08
 
 ### Changed
@@ -15,8 +22,7 @@ All notable changes to Obsipix are documented here. This project follows
 ### Added
 
 - **Help ▸ About Obsipix** — an About dialog with the product identity,
-  tagline, description and the running version (injected at build time), linking
-  to the GitHub repository.
+  tagline, description and the running version (injected at build time).
 
 ## 1.5.1 — 2026-09-08
 
