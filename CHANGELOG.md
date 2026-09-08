@@ -3,6 +3,20 @@
 All notable changes to Obsipix are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## 1.5.1 — 2026-09-08
+
+### Fixed
+
+- **Animation tags** — editing a tag's name, start/end frame or direction no
+  longer collapses the inline editor after the first change. The editor now
+  closes only when focus leaves it entirely (or on Enter / Escape). (The name
+  field's blur handler was closing the whole editor whenever focus moved to
+  another field.)
+- The **Animation timeline dock** no longer squashes its own rows — frame
+  duration inputs and thumbnails stay fully visible, and the dock scrolls if
+  it is resized very short. Its default height was increased to fit the
+  transport, frame strip, cel controls and tag bar.
+
 ## 1.5.0 — 2026-09-07
 
 Dockable panels and a managed workspace

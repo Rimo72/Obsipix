@@ -44,7 +44,7 @@ export const DEFAULT_LAYOUT: PanelLayout = {
     layers: { visible: true, collapsed: false, height: 210 },
     palette: { visible: true, collapsed: false, height: 170 },
     preview: { visible: true, collapsed: false, height: 200 },
-    timeline: { visible: true, collapsed: false, height: 200 },
+    timeline: { visible: true, collapsed: false, height: 264 },
   },
   sidebarWidth: 300,
 };

@@ -378,7 +378,20 @@ function TagChip({ session, tagId }: TagChipProps) {
 
   if (editing) {
     return (
-      <span className="timeline-panel__tag timeline-panel__tag--editing">
+      <span
+        className="timeline-panel__tag timeline-panel__tag--editing"
+        onBlur={(event) => {
+          // Close only when focus leaves the whole editor, not on tab between fields.
+          if (!event.currentTarget.contains(event.relatedTarget)) {
+            setEditing(false);
+          }
+        }}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape' || event.key === 'Enter') {
+            setEditing(false);
+          }
+        }}
+      >
         <input
           className="timeline-panel__tag-input"
           defaultValue={tag.name}
@@ -389,7 +402,6 @@ function TagChip({ session, tagId }: TagChipProps) {
             if (name && name !== tag.name) {
               session.updateTag(tag.id, { name });
             }
-            setEditing(false);
           }}
         />
         <input

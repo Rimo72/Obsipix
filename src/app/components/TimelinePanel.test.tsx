@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { EditorSession } from '../EditorSession';
@@ -40,5 +40,27 @@ describe('TimelinePanel frame thumbnails', () => {
     render(<TimelinePanel session={session} />);
     const linked = screen.getByRole('button', { name: 'Frame 2, linked cel' });
     expect(within(linked).getByTitle('linked cel')).toBeInTheDocument();
+  });
+});
+
+describe('TimelinePanel tag editor', () => {
+  it('stays open while focus moves between its fields, and closes when focus leaves', () => {
+    const session = new EditorSession();
+    session.addFrame();
+    session.addTag('walk', 0, 1);
+
+    render(<TimelinePanel session={session} />);
+    fireEvent.click(screen.getByRole('button', { name: /walk/ }));
+
+    const name = screen.getByLabelText('Rename tag walk');
+    const start = screen.getByLabelText('Tag walk start frame');
+
+    // tabbing name → start must NOT collapse the editor
+    fireEvent.blur(name, { relatedTarget: start });
+    expect(screen.getByLabelText('Tag walk start frame')).toBeInTheDocument();
+
+    // focus leaving the editor entirely does close it
+    fireEvent.blur(start, { relatedTarget: document.body });
+    expect(screen.queryByLabelText('Tag walk start frame')).not.toBeInTheDocument();
   });
 });

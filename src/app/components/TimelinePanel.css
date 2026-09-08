@@ -1,11 +1,15 @@
 .timeline-panel {
   display: flex;
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   flex-direction: column;
   gap: 6px;
-  min-height: 0;
   padding: 6px 10px;
   background: var(--obsipix-surface);
+}
+
+/* Rows keep their natural height; the panel body scrolls if the dock is short. */
+.timeline-panel > * {
+  flex: 0 0 auto;
 }
 
 .timeline-panel__transport {
@@ -79,6 +83,7 @@
   padding: 4px 0;
   list-style: none;
   overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .timeline-panel__frame {
