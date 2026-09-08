@@ -109,6 +109,10 @@ static host works.
 to GitHub Pages ([`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)),
 which hosts the build under `/Obsipix/`.
 
+Production builds embed the Google Analytics (gtag.js) tag via a build-only Vite
+plugin ([`vite.config.ts`](vite.config.ts)) — it is never present on the dev
+server or during the test suite.
+
 **Vercel** (or Netlify / Cloudflare Pages / any root-domain host): import the
 repo — [`vercel.json`](vercel.json) sets the framework, `npm run build` and
 `dist/`. The Vite `base` is `/` everywhere except a GitHub Pages build: it stays

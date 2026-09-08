@@ -1,6 +1,43 @@
 import { fileURLToPath, URL } from 'node:url';
 import react from '@vitejs/plugin-react';
+import type { Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
+
+const GA_MEASUREMENT_ID = 'G-CSY0ZFPFZD';
+
+/**
+ * Inject the Google Analytics (gtag.js) tag into the built `index.html`.
+ * `apply: 'build'` keeps it out of the dev server and the Playwright suite, so
+ * only real production deploys report page views.
+ */
+function googleAnalytics(measurementId: string): Plugin {
+  return {
+    name: 'obsipix:google-analytics',
+    apply: 'build',
+    transformIndexHtml() {
+      return [
+        {
+          tag: 'script',
+          injectTo: 'head',
+          attrs: {
+            async: true,
+            src: `https://www.googletagmanager.com/gtag/js?id=${measurementId}`,
+          },
+        },
+        {
+          tag: 'script',
+          injectTo: 'head',
+          children: [
+            'window.dataLayer = window.dataLayer || [];',
+            'function gtag(){dataLayer.push(arguments);}',
+            "gtag('js', new Date());",
+            `gtag('config', '${measurementId}');`,
+          ].join('\n'),
+        },
+      ];
+    },
+  };
+}
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -10,7 +47,7 @@ export default defineConfig(({ mode }) => ({
   base:
     process.env.DEPLOY_BASE ??
     (process.env.VERCEL ? '/' : mode === 'production' ? '/Obsipix/' : '/'),
-  plugins: [react()],
+  plugins: [react(), googleAnalytics(GA_MEASUREMENT_ID)],
   resolve: {
     alias: {
       '@core': fileURLToPath(new URL('./src/core', import.meta.url)),
