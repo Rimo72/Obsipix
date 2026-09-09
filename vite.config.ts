@@ -29,6 +29,11 @@ function googleAnalytics(measurementId: string): Plugin {
         {
           tag: 'script',
           injectTo: 'head',
+          // This inline bootstrap is allow-listed by a `sha256-` source in the
+          // `script-src` of `vercel.json`'s Content-Security-Policy. If any of
+          // these lines (or the measurement id) change, that hash must be
+          // updated too — `src/build/vercelHeaders.test.ts` recomputes it from
+          // this file and fails until they match.
           children: [
             'window.dataLayer = window.dataLayer || [];',
             'function gtag(){dataLayer.push(arguments);}',

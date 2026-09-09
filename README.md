@@ -121,6 +121,14 @@ repo — [`vercel.json`](vercel.json) sets the framework, `npm run build` and
 `/Obsipix/` there, and `DEPLOY_BASE` overrides it for anything else. Local dev and
 the E2E server always use the root.
 
+On Vercel, [`vercel.json`](vercel.json) also sends a strict **Content-Security-Policy**
+(scripts limited to same-origin plus Google Analytics, the inline GA snippet
+allow-listed by hash) and the usual hardening headers (`X-Content-Type-Options`,
+`X-Frame-Options`, `Referrer-Policy`, HSTS, a deny-all `Permissions-Policy`,
+`Cross-Origin-*-Policy`). `src/build/vercelHeaders.test.ts` keeps the CSP hash in
+sync with the analytics tag. Other static hosts ignore `vercel.json` — replicate
+the headers in that host's own config if you deploy elsewhere.
+
 ## Architecture boundaries
 
 These boundaries are the coding contract for every phase (PROJECT_CORE §4):

@@ -3,6 +3,21 @@
 All notable changes to Obsipix are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## 1.5.4 — 2026-09-08
+
+### Security
+
+- **`vercel.json` now sends a strict set of security headers** on every response.
+  A Content-Security-Policy limits scripts to same-origin plus Google Analytics —
+  the inline GA bootstrap is allow-listed by `sha256-` hash, never
+  `'unsafe-inline'` — blocks framing, disallows `<base>` and plugins, and pins
+  `connect-src` to the analytics endpoints. Alongside it: `X-Content-Type-Options`,
+  `X-Frame-Options`, `Referrer-Policy`, `Strict-Transport-Security`, a deny-all
+  `Permissions-Policy`, and same-origin `Cross-Origin-Opener-Policy` /
+  `Cross-Origin-Resource-Policy`. (Vercel only; GitHub Pages ignores `vercel.json`.)
+- New `src/build/vercelHeaders.test.ts` recomputes the GA script hash from
+  `vite.config.ts` and fails if `vercel.json`'s CSP drifts out of sync.
+
 ## 1.5.3 — 2026-09-08
 
 ### Changed

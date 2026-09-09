@@ -1138,6 +1138,46 @@ the mockup.
 
 ------------------------------------------------------------------------
 
+# Phase 22 --- Deployment Security Headers
+
+## Goal
+
+Give the deployed site defense-in-depth HTTP headers.
+
+## Build
+
+-   `vercel.json` --- a `/(.*)` header rule adds a strict
+    **Content-Security-Policy** (`default-src 'self'`; `script-src` =
+    self + a `sha256-` hash of the inline GA bootstrap + the
+    googletagmanager host, no `'unsafe-inline'` / `'unsafe-eval'`;
+    `connect-src` pinned to the GA endpoints; `object-src` / `base-uri`
+    / `frame-ancestors` / `form-action` = `'none'`;
+    `upgrade-insecure-requests`), plus `X-Content-Type-Options`,
+    `X-Frame-Options: DENY`, `Referrer-Policy`,
+    `Strict-Transport-Security`, a deny-all `Permissions-Policy`, and
+    `Cross-Origin-Opener-Policy` / `Cross-Origin-Resource-Policy:
+    same-origin`. The existing `/assets/(.*)` immutable-cache rule is
+    kept.
+-   `vite.config.ts` --- a note by the GA inline snippet pointing at the
+    CSP hash it must stay in sync with.
+-   `src/build/vercelHeaders.test.ts` --- re-derives the GA inline script
+    from `vite.config.ts`, hashes it, and asserts the hash and the rest
+    of the policy are present in `vercel.json`.
+
+## Rules
+
+-   Static-host config only — no app-code change. GitHub Pages ignores
+    `vercel.json`; the primary deploy is unaffected.
+
+## Exit gate
+
+Full `npm run check` + Playwright suite. 463 unit tests, 45 e2e specs.
+Browser-verified against a `<meta>` CSP on the production build: the app
+boots, styles apply, the GA inline script runs (hash accepted), no CSP
+violations.
+
+------------------------------------------------------------------------
+
 # Coding Rules for Every Phase
 
 ## Rule 1 --- Core is authoritative
@@ -1268,6 +1308,7 @@ V1 Release
   19      Thumbnails / Anim Preview      COMPLETE
   20      Dockable Panels / Workspace    COMPLETE
   21      Fixed Checker / About Dialog   COMPLETE
+  22      Deployment Security Headers    COMPLETE
 
 # Definition of a Coding Phase
 
