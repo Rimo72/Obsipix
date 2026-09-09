@@ -18,6 +18,13 @@ All notable changes to Obsipix are documented here. This project follows
 - New `src/build/vercelHeaders.test.ts` recomputes the GA script hash from
   `vite.config.ts` and fails if `vercel.json`'s CSP drifts out of sync.
 
+### Changed
+
+- Docs now point at the live deployment, <https://obsipix.vercel.app/> (Vercel
+  auto-deploys every push to `main`). The GitHub Pages workflow — which was never
+  enabled on the repo — is now manual-dispatch only, so it no longer fails on
+  every push.
+
 ## 1.5.3 — 2026-09-08
 
 ### Changed

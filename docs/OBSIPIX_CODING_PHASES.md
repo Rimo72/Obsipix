@@ -1166,15 +1166,15 @@ Give the deployed site defense-in-depth HTTP headers.
 
 ## Rules
 
--   Static-host config only — no app-code change. GitHub Pages ignores
-    `vercel.json`; the primary deploy is unaffected.
+-   Static-host config only — no app-code change. Only Vercel (the live
+    deploy, <https://obsipix.vercel.app/>) reads `vercel.json`.
 
 ## Exit gate
 
 Full `npm run check` + Playwright suite. 463 unit tests, 45 e2e specs.
-Browser-verified against a `<meta>` CSP on the production build: the app
-boots, styles apply, the GA inline script runs (hash accepted), no CSP
-violations.
+Verified against the live deployment: every header is present on
+`https://obsipix.vercel.app/`, the app boots, and the GA inline script
+runs (hash accepted) with no CSP violations.
 
 ------------------------------------------------------------------------
 

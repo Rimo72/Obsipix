@@ -6,7 +6,7 @@ surprises. It runs entirely in the browser and keeps your work in a small,
 data-only `.obsipix` project file.
 
 **Released — V1.1** (the v2 spec delta on top of V1). Live build:
-<https://rimo72.github.io/Obsipix/>
+<https://obsipix.vercel.app/>
 
 The authoritative specification is [`docs/PROJECT_CORE_OBSIPIX.md`](docs/PROJECT_CORE_OBSIPIX.md);
 the build history is [`docs/OBSIPIX_CODING_PHASES.md`](docs/OBSIPIX_CODING_PHASES.md);
@@ -106,28 +106,25 @@ npm run dev
 Obsipix is a fully static client-side app — no server, no database — so any
 static host works.
 
-**GitHub Pages** (primary): every push to `main` runs the full CI pipeline
-([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) and, on success, deploys
-to GitHub Pages ([`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)),
-which hosts the build under `/Obsipix/`.
+**Vercel** (live): <https://obsipix.vercel.app/>. Every push to `main` is
+auto-deployed. [`vercel.json`](vercel.json) sets the framework, `npm run build`
+and `dist/`, and sends a strict **Content-Security-Policy** (scripts limited to
+same-origin plus Google Analytics, the inline GA snippet allow-listed by hash)
+plus the usual hardening headers (`X-Content-Type-Options`, `X-Frame-Options`,
+`Referrer-Policy`, HSTS, a deny-all `Permissions-Policy`, `Cross-Origin-*-Policy`).
+[`src/build/vercelHeaders.test.ts`](src/build/vercelHeaders.test.ts) keeps the CSP
+hash in sync with the analytics tag.
 
 Production builds embed the Google Analytics (gtag.js) tag via a build-only Vite
 plugin ([`vite.config.ts`](vite.config.ts)) — it is never present on the dev
 server or during the test suite.
 
-**Vercel** (or Netlify / Cloudflare Pages / any root-domain host): import the
-repo — [`vercel.json`](vercel.json) sets the framework, `npm run build` and
-`dist/`. The Vite `base` is `/` everywhere except a GitHub Pages build: it stays
-`/Obsipix/` there, and `DEPLOY_BASE` overrides it for anything else. Local dev and
-the E2E server always use the root.
-
-On Vercel, [`vercel.json`](vercel.json) also sends a strict **Content-Security-Policy**
-(scripts limited to same-origin plus Google Analytics, the inline GA snippet
-allow-listed by hash) and the usual hardening headers (`X-Content-Type-Options`,
-`X-Frame-Options`, `Referrer-Policy`, HSTS, a deny-all `Permissions-Policy`,
-`Cross-Origin-*-Policy`). `src/build/vercelHeaders.test.ts` keeps the CSP hash in
-sync with the analytics tag. Other static hosts ignore `vercel.json` — replicate
-the headers in that host's own config if you deploy elsewhere.
+**Other hosts** (Netlify / Cloudflare Pages / GitHub Pages / any static host):
+import the repo and build with `npm run build`. The Vite `base` is `/` on Vercel
+and in local dev / E2E; a GitHub Pages build keeps `/Obsipix/`, and `DEPLOY_BASE`
+overrides it for anything else. Only Vercel reads `vercel.json` — on another host
+you must replicate the security headers in that host's own config (GitHub Pages
+supports none, so it would need a CDN such as Cloudflare in front for a CSP).
 
 ## Architecture boundaries
 

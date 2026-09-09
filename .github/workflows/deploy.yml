@@ -1,8 +1,10 @@
 name: Deploy to GitHub Pages
 
+# Obsipix is deployed by Vercel (https://obsipix.vercel.app/), which auto-builds
+# every push to main. This workflow is kept for an optional GitHub Pages mirror
+# but runs only on manual dispatch — and needs repo Settings ▸ Pages ▸ Source set
+# to "GitHub Actions" first, or it fails.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 # Allow one concurrent deployment; never cancel an in-progress release deploy.
