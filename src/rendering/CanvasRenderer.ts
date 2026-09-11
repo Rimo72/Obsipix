@@ -70,7 +70,7 @@ export interface RenderOptions {
 export const DEFAULT_CHECKERBOARD: CheckerboardStyle = {
   light: '#ffffff',
   dark: '#c7c7c7',
-  size: 8,
+  size: 16,
 };
 
 export const DEFAULT_GRID: GridStyle = {

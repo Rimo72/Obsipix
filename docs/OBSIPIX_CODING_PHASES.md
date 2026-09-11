@@ -1178,6 +1178,29 @@ runs (hash accepted) with no CSP violations.
 
 ------------------------------------------------------------------------
 
+# Phase 23 --- Larger Checkerboard Squares
+
+## Goal
+
+The fixed-size checkerboard from Phase 21 read as too fine-grained; make the
+squares bigger.
+
+## Build
+
+-   `DEFAULT_CHECKERBOARD.size` (`src/rendering/CanvasRenderer.ts`) 8 → 16px
+    (2×). Same cached fixed-size `CanvasPattern` mechanism from Phase 21 —
+    only the constant changed.
+
+## Exit gate
+
+Full `npm run check` + Playwright suite. 463 unit tests (updated the Phase 21
+fixed-size-checker test's expected tile width 16 → 32), 45 e2e specs.
+Browser-verified: squares visibly larger on the drawing canvas. (The
+Animation Preview / timeline thumbnails use an unrelated, size-proportional
+checkerboard in `src/app/framePaint.ts` — unaffected, out of scope here.)
+
+------------------------------------------------------------------------
+
 # Coding Rules for Every Phase
 
 ## Rule 1 --- Core is authoritative
@@ -1309,6 +1332,7 @@ V1 Release
   20      Dockable Panels / Workspace    COMPLETE
   21      Fixed Checker / About Dialog   COMPLETE
   22      Deployment Security Headers    COMPLETE
+  23      Larger Checkerboard Squares    COMPLETE
 
 # Definition of a Coding Phase
 

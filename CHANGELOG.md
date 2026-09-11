@@ -3,6 +3,13 @@
 All notable changes to Obsipix are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## 1.5.5 — 2026-09-11
+
+### Changed
+
+- The **transparency checkerboard** squares on the drawing canvas are twice as
+  large (16px, up from 8px) so transparency reads more clearly at a glance.
+
 ## 1.5.4 — 2026-09-08
 
 ### Security
