@@ -1201,6 +1201,52 @@ checkerboard in `src/app/framePaint.ts` — unaffected, out of scope here.)
 
 ------------------------------------------------------------------------
 
+# Phase 24 --- Legible Sprite-Sheet Preview
+
+## Goal
+
+The Open PNG ▸ Sprite sheet preview was a 220px-wide corner box with a dense
+per-cell grid — unreadable for any real sheet. Make it possible to actually
+see and verify what is about to be sliced.
+
+## Build
+
+-   `Dialog` gained an `xl` size preset (`src/app/components/Dialog.tsx`/`.css`,
+    920px); `ImportPngDialog` now uses it.
+-   The preview viewport is a `ResizeObserver`-driven, scrollable box (`.import-png__preview`,
+    `overflow: auto`) instead of a fixed 220×260 box. "Fit" now scales up as
+    well as down so a small sheet still fills the space.
+-   A zoom ladder — Fit / 1× / 2× / 4× / 8× / 16× — mirrors the
+    `AnimationPreview` scale-button convention; zoomed content scrolls/pans
+    natively instead of being clipped.
+-   The per-cell grid overlay (still one `<rect>` per detected frame — the
+    unit test asserts this) now renders with `mix-blend-mode: difference`
+    so the boundary stays visible regardless of the artwork's own colours,
+    instead of a faint fixed-colour stroke.
+-   Hovering the preview highlights the frame cell under the pointer (a
+    second overlay `<svg>`) and shows "Hovering frame N — column C, row R"
+    next to the detected-frame summary.
+-   `src/app/spriteSheetHover.ts` — the pure pointer→frame mapping, pulled out
+    of the component so it can be unit tested directly: jsdom has no
+    `PointerEvent`, so a DOM-level pointermove test silently receives
+    `clientX: undefined` and never exercises the real math.
+
+## Rules
+
+-   Pure geometry (Rule 1-adjacent: keep logic testable) lives in
+    `spriteSheetHover.ts`, not inline in the component.
+
+## Exit gate
+
+Full `npm run check` + Playwright suite. 470 unit tests (`spriteSheetHover.test.ts`
++ updated `ImportPngDialog.test.tsx`), 46 e2e specs (new
+`sprite-sheet-import.spec.ts` hover/zoom test using real Chromium pointer
+events). Browser-verified: a synthetic 256×128, 8×4 sprite sheet renders with
+a crisp readable grid at "Fit", hover highlights the correct cell with an
+accurate readout, and 4× zoom fills the preview with working scrollbars.
+
+------------------------------------------------------------------------
+
 # Coding Rules for Every Phase
 
 ## Rule 1 --- Core is authoritative
@@ -1333,6 +1379,7 @@ V1 Release
   21      Fixed Checker / About Dialog   COMPLETE
   22      Deployment Security Headers    COMPLETE
   23      Larger Checkerboard Squares    COMPLETE
+  24      Legible Sprite-Sheet Preview   COMPLETE
 
 # Definition of a Coding Phase
 

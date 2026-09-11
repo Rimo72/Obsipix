@@ -111,6 +111,41 @@ test.describe('sprite sheet PNG import', () => {
     expect((await inspect(page, [5])).isDirty).toBe(true);
   });
 
+  test('the preview identifies the frame under the pointer and zooms in', async ({ page }) => {
+    await open(page);
+
+    page.once('filechooser', (chooser) => {
+      void chooser.setFiles({
+        name: 'walk.png',
+        mimeType: 'image/png',
+        buffer: makePng(64, 32, (x) => (x < 32 ? RED : BLUE)),
+      });
+    });
+    await menuAction(page, 'File', 'Open PNG…');
+
+    const dialog = page.getByRole('dialog', { name: 'Open PNG' });
+    await dialog.getByRole('radio', { name: 'Sprite sheet' }).click();
+    await dialog.getByLabel('Frame width').fill('32');
+    await dialog.getByLabel('Frame height').fill('32');
+
+    const hover = dialog.getByTestId('import-hover');
+    await expect(hover).toHaveText('Hover the preview to identify a frame.');
+
+    // Pin the preview to an exact 1 image-pixel : 1 CSS-pixel scale.
+    await dialog.getByRole('button', { name: '1×' }).click();
+    const surface = dialog.getByTestId('import-png-surface');
+    await expect(surface).toHaveCSS('width', '64px');
+
+    await surface.hover({ position: { x: 10, y: 10 } });
+    await expect(hover).toHaveText('Hovering frame 1 — column 1, row 1');
+
+    await surface.hover({ position: { x: 40, y: 10 } });
+    await expect(hover).toHaveText('Hovering frame 2 — column 2, row 1');
+
+    await dialog.getByRole('button', { name: 'Cancel' }).hover();
+    await expect(hover).toHaveText('Hover the preview to identify a frame.');
+  });
+
   test('refuses a frame size that would drop pixels', async ({ page }) => {
     await open(page);
 

@@ -82,4 +82,42 @@ describe('ImportPngDialog', () => {
 
     expect(container.querySelectorAll('.import-png__preview-grid rect')).toHaveLength(2);
   });
+
+  it('shows a hover placeholder that clears on pointer leave', () => {
+    // jsdom has no PointerEvent, so clientX/Y never reach the handler here — the
+    // coordinate → frame mapping itself is covered by spriteSheetHover.test.ts,
+    // and the on-screen readout by tests/e2e/sprite-sheet-import.spec.ts.
+    renderDialog(png(64, 32));
+    fireEvent.click(screen.getByRole('radio', { name: 'Sprite sheet' }));
+    fireEvent.change(screen.getByLabelText('Frame width'), { target: { value: '32' } });
+    fireEvent.change(screen.getByLabelText('Frame height'), { target: { value: '32' } });
+
+    expect(screen.getByTestId('import-hover')).toHaveTextContent(
+      'Hover the preview to identify a frame.',
+    );
+
+    const surface = screen.getByTestId('import-png-surface');
+    fireEvent.pointerLeave(surface);
+    expect(screen.getByTestId('import-hover')).toHaveTextContent(
+      'Hover the preview to identify a frame.',
+    );
+  });
+
+  it('scales the preview image with the zoom controls', () => {
+    const { container } = render(
+      <ImportPngDialog
+        image={png(64, 32)}
+        onClose={vi.fn()}
+        onImportSingle={vi.fn()}
+        onImportSheet={vi.fn()}
+      />,
+    );
+    const canvas = () => container.querySelector<HTMLCanvasElement>('.import-png__preview-image');
+
+    fireEvent.click(screen.getByRole('button', { name: '1×' }));
+    expect(canvas()).toHaveStyle({ width: '64px', height: '32px' });
+
+    fireEvent.click(screen.getByRole('button', { name: '4×' }));
+    expect(canvas()).toHaveStyle({ width: '256px', height: '128px' });
+  });
 });

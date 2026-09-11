@@ -3,6 +3,26 @@
 All notable changes to Obsipix are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## 1.5.6 — 2026-09-11
+
+### Changed
+
+- **Open PNG ▸ Sprite sheet is far easier to see and verify.** The dialog is
+  wider and its preview is much bigger, zoomable (Fit / 1× / 2× / 4× / 8× /
+  16×, with panning at higher zoom) and pannable, so a busy sheet no longer
+  crams into a tiny 220px corner. The frame-boundary grid renders with a
+  blend mode that stays visible against any artwork colour, and hovering the
+  preview highlights the exact frame under the cursor with a readout
+  ("Hovering frame 3 — column 3, row 1") so the frame size, spacing and
+  offset fields can be checked against the real image before importing.
+
+### Added
+
+- `src/app/spriteSheetHover.ts` — the pointer → frame-cell mapping, unit
+  tested directly (jsdom has no `PointerEvent`, so the on-screen readout
+  itself is covered by a new Playwright e2e test).
+- `Dialog` gained an `xl` size preset.
+
 ## 1.5.5 — 2026-09-11
 
 ### Changed

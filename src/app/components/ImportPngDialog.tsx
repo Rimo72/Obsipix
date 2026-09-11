@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
 
 import type { ImageData8 } from '@core/document/importCommands';
 import {
@@ -7,6 +13,7 @@ import {
   type SpriteSheetSlice,
 } from '@core/document/spriteSheetImport';
 
+import { frameAt, type HoverFrame } from '../spriteSheetHover';
 import { Dialog } from './Dialog';
 import './ImportPngDialog.css';
 
@@ -20,6 +27,7 @@ interface ImportPngDialogProps {
 }
 
 type Mode = 'single' | 'sheet';
+type PreviewScale = 'fit' | 1 | 2 | 4 | 8 | 16;
 
 const FIELDS = [
   ['frameWidth', 'Frame width'],
@@ -30,10 +38,18 @@ const FIELDS = [
   ['offsetY', 'Offset Y'],
 ] as const satisfies readonly (readonly [keyof SpriteSheetSlice, string])[];
 
+const PREVIEW_SCALES: readonly PreviewScale[] = ['fit', 1, 2, 4, 8, 16];
+/** Sane bounds so a tiny or huge sheet can't compute a degenerate "fit" scale. */
+const MIN_FIT_SCALE = 0.05;
+const MAX_FIT_SCALE = 32;
+
 /**
  * File → Open PNG (PROJECT_CORE — Sprite Sheet PNG Import). The mode radio makes
  * sprite-sheet splitting an explicit choice so a normal PNG never turns into an
- * animation by accident.
+ * animation by accident. The preview is zoomable/pannable (PROJECT_CORE §14 —
+ * large sheets are unreadable at "fit" alone) with a per-frame hover readout so
+ * the frame size / spacing / offset fields can be verified against the actual
+ * artwork before import.
  */
 export function ImportPngDialog({
   image,
@@ -50,6 +66,9 @@ export function ImportPngDialog({
     offsetX: '0',
     offsetY: '0',
   });
+  const [previewScale, setPreviewScale] = useState<PreviewScale>('fit');
+  const [viewportSize, setViewportSize] = useState({ width: 480, height: 360 });
+  const [hover, setHover] = useState<HoverFrame | null>(null);
 
   const slice = useMemo<SpriteSheetSlice>(
     () => ({
@@ -87,6 +106,40 @@ export function ImportPngDialog({
     );
   }, [image]);
 
+  const viewportRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') {
+      return;
+    }
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) {
+        return;
+      }
+      setViewportSize({
+        width: Math.max(1, Math.round(entry.contentRect.width)),
+        height: Math.max(1, Math.round(entry.contentRect.height)),
+      });
+    });
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  // "Fit" scales the sheet to fill the preview box — up as well as down, so a
+  // small sheet is still legible instead of sitting tiny in a corner.
+  const fitScale = useMemo(() => {
+    const raw = Math.min(viewportSize.width / image.width, viewportSize.height / image.height);
+    return Math.min(MAX_FIT_SCALE, Math.max(MIN_FIT_SCALE, raw || 1));
+  }, [viewportSize, image.width, image.height]);
+
+  const scaleFactor = previewScale === 'fit' ? fitScale : previewScale;
+  const displayWidth = Math.max(1, Math.round(image.width * scaleFactor));
+  const displayHeight = Math.max(1, Math.round(image.height * scaleFactor));
+  const fitsViewport = displayWidth <= viewportSize.width && displayHeight <= viewportSize.height;
+
   const cells = useMemo(() => {
     if (mode !== 'sheet' || !plan.ok) {
       return [];
@@ -119,10 +172,20 @@ export function ImportPngDialog({
     }
   };
 
+  const updateHover = (event: ReactPointerEvent<HTMLDivElement>): void => {
+    if (mode !== 'sheet' || !plan.ok) {
+      return;
+    }
+    const rect = event.currentTarget.getBoundingClientRect();
+    const imgX = (event.clientX - rect.left) / scaleFactor;
+    const imgY = (event.clientY - rect.top) / scaleFactor;
+    setHover(frameAt(imgX, imgY, slice, plan.layout));
+  };
+
   return (
     <Dialog
       title="Open PNG"
-      size="md"
+      size="xl"
       onClose={onClose}
       footer={
         <>
@@ -207,34 +270,93 @@ export function ImportPngDialog({
                   {plan.error}
                 </p>
               )}
+
+              <p className="import-png__hover" data-testid="import-hover">
+                {hover
+                  ? `Hovering frame ${String(hover.index + 1)} — column ${String(hover.col + 1)}, row ${String(hover.row + 1)}`
+                  : 'Hover the preview to identify a frame.'}
+              </p>
             </>
           )}
         </div>
 
-        <div
-          className="import-png__preview"
-          style={{ aspectRatio: `${String(image.width)} / ${String(image.height)}` }}
-        >
-          <canvas ref={canvasRef} className="import-png__preview-image" />
-          {cells.length > 0 && (
-            <svg
-              className="import-png__preview-grid"
-              viewBox={`0 0 ${String(image.width)} ${String(image.height)}`}
-              preserveAspectRatio="none"
-              aria-hidden="true"
+        <div className="import-png__preview-pane">
+          <div className="import-png__preview" ref={viewportRef} data-testid="import-png-viewport">
+            <div
+              className={
+                fitsViewport
+                  ? 'import-png__preview-surface is-centered'
+                  : 'import-png__preview-surface'
+              }
+              style={{ width: displayWidth, height: displayHeight }}
+              data-testid="import-png-surface"
+              onPointerMove={updateHover}
+              onPointerLeave={() => {
+                setHover(null);
+              }}
             >
-              {cells.map((cell) => (
-                <rect
-                  key={cell.key}
-                  x={cell.x}
-                  y={cell.y}
-                  width={slice.frameWidth}
-                  height={slice.frameHeight}
-                  vectorEffect="non-scaling-stroke"
-                />
-              ))}
-            </svg>
-          )}
+              <canvas
+                ref={canvasRef}
+                className="import-png__preview-image"
+                style={{ width: displayWidth, height: displayHeight }}
+              />
+              {cells.length > 0 && (
+                <svg
+                  className="import-png__preview-grid"
+                  width={displayWidth}
+                  height={displayHeight}
+                  viewBox={`0 0 ${String(image.width)} ${String(image.height)}`}
+                  preserveAspectRatio="none"
+                  aria-hidden="true"
+                >
+                  {cells.map((cell) => (
+                    <rect
+                      key={cell.key}
+                      x={cell.x}
+                      y={cell.y}
+                      width={slice.frameWidth}
+                      height={slice.frameHeight}
+                      vectorEffect="non-scaling-stroke"
+                    />
+                  ))}
+                </svg>
+              )}
+              {hover && (
+                <svg
+                  className="import-png__preview-hover"
+                  width={displayWidth}
+                  height={displayHeight}
+                  viewBox={`0 0 ${String(image.width)} ${String(image.height)}`}
+                  preserveAspectRatio="none"
+                  aria-hidden="true"
+                >
+                  <rect
+                    x={slice.offsetX + hover.col * (slice.frameWidth + slice.spacingX)}
+                    y={slice.offsetY + hover.row * (slice.frameHeight + slice.spacingY)}
+                    width={slice.frameWidth}
+                    height={slice.frameHeight}
+                    vectorEffect="non-scaling-stroke"
+                  />
+                </svg>
+              )}
+            </div>
+          </div>
+
+          <div className="import-png__seg" role="group" aria-label="Preview zoom">
+            {PREVIEW_SCALES.map((option) => (
+              <button
+                key={String(option)}
+                type="button"
+                aria-pressed={previewScale === option}
+                className={previewScale === option ? 'is-on' : undefined}
+                onClick={() => {
+                  setPreviewScale(option);
+                }}
+              >
+                {option === 'fit' ? 'Fit' : `${String(option)}×`}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </Dialog>

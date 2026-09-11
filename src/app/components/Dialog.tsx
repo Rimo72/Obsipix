@@ -9,7 +9,7 @@ interface DialogProps {
   /** Optional action row rendered at the bottom. */
   readonly footer?: ReactNode;
   /** Width preset. */
-  readonly size?: 'sm' | 'md' | 'lg';
+  readonly size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
 const FOCUSABLE_PARTS = [

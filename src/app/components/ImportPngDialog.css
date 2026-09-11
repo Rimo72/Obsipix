@@ -1,10 +1,11 @@
 .import-png__layout {
   display: flex;
   gap: 16px;
+  align-items: flex-start;
 }
 
 .import-png__controls {
-  flex: 1 1 0;
+  flex: 0 0 240px;
   min-width: 0;
 }
 
@@ -70,37 +71,94 @@
   color: #e0604f;
 }
 
+.import-png__hover {
+  margin: 8px 0 0;
+  padding-top: 8px;
+  font-size: 12px;
+  color: var(--obsipix-accent);
+  border-top: 1px solid var(--obsipix-border);
+}
+
+.import-png__preview-pane {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
 .import-png__preview {
   position: relative;
-  width: 220px;
-  max-height: 260px;
-  align-self: flex-start;
+  height: clamp(320px, 56vh, 540px);
   background: repeating-conic-gradient(var(--obsipix-border) 0% 25%, transparent 0% 50%) 50% / 16px
     16px;
   border: 1px solid var(--obsipix-border);
   border-radius: 4px;
-  overflow: hidden;
+  overflow: auto;
+}
+
+.import-png__preview-surface {
+  position: relative;
+}
+
+.import-png__preview-surface.is-centered {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 .import-png__preview-image {
   display: block;
-  width: 100%;
-  height: 100%;
   image-rendering: pixelated;
 }
 
-.import-png__preview-grid {
+.import-png__preview-grid,
+.import-png__preview-hover {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
+  pointer-events: none;
+}
+
+/* Difference blend keeps the grid readable against any artwork colour. */
+.import-png__preview-grid {
+  mix-blend-mode: difference;
 }
 
 .import-png__preview-grid rect {
   fill: none;
+  stroke: #fff;
+  stroke-width: 1.25;
+}
+
+.import-png__preview-hover rect {
+  fill: rgb(74 163 255 / 28%);
   stroke: var(--obsipix-accent);
-  stroke-width: 1;
-  opacity: 0.9;
+  stroke-width: 1.5;
+}
+
+.import-png__seg {
+  display: flex;
+  align-self: center;
+  gap: 2px;
+}
+
+.import-png__seg button {
+  min-width: 30px;
+  padding: 3px 7px;
+  font: inherit;
+  font-size: 11px;
+  color: var(--obsipix-text);
+  background: var(--obsipix-surface-raised);
+  border: 1px solid var(--obsipix-border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.import-png__seg .is-on {
+  color: var(--obsipix-bg);
+  background: var(--obsipix-accent);
+  border-color: var(--obsipix-accent);
 }
 
 .import-png__button {
@@ -125,12 +183,13 @@
   cursor: not-allowed;
 }
 
-@media (max-width: 520px) {
+@media (max-width: 720px) {
   .import-png__layout {
     flex-direction: column;
   }
 
-  .import-png__preview {
+  .import-png__controls {
+    flex-basis: auto;
     width: 100%;
   }
 }
