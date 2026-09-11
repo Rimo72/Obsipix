@@ -1,5 +1,6 @@
 .tool-rail {
   display: flex;
+  flex: 0 0 64px;
   flex-direction: column;
   gap: 4px;
   width: 64px;

@@ -111,6 +111,40 @@ test.describe('sprite sheet PNG import', () => {
     expect((await inspect(page, [5])).isDirty).toBe(true);
   });
 
+  test('the config fields stay inside the sidebar and never overlap the preview', async ({
+    page,
+  }) => {
+    await open(page);
+
+    page.once('filechooser', (chooser) => {
+      void chooser.setFiles({
+        name: 'sheet.png',
+        mimeType: 'image/png',
+        buffer: makePng(64, 32, () => RED),
+      });
+    });
+    await menuAction(page, 'File', 'Open PNG…');
+
+    const dialog = page.getByRole('dialog', { name: 'Open PNG' });
+    await dialog.getByRole('radio', { name: 'Sprite sheet' }).click();
+
+    const frameHeight = dialog.getByLabel('Frame height');
+    const offsetY = dialog.getByLabel('Offset Y');
+    const preview = dialog.getByTestId('import-png-viewport');
+    const [fieldBox, offsetBox, previewBox] = await Promise.all([
+      frameHeight.boundingBox(),
+      offsetY.boundingBox(),
+      preview.boundingBox(),
+    ]);
+    expect(fieldBox).not.toBeNull();
+    expect(offsetBox).not.toBeNull();
+    expect(previewBox).not.toBeNull();
+    // the second (right) column of number fields must end before the preview
+    // pane starts, never spill into it
+    expect(fieldBox!.x + fieldBox!.width).toBeLessThanOrEqual(previewBox!.x);
+    expect(offsetBox!.x + offsetBox!.width).toBeLessThanOrEqual(previewBox!.x);
+  });
+
   test('the preview identifies the frame under the pointer and zooms in', async ({ page }) => {
     await open(page);
 

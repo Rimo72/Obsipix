@@ -87,4 +87,18 @@ test.describe('UI shell', () => {
 
     await expect(page.getByTestId('status-cursor')).toHaveText('5, 8');
   });
+
+  test('the tool rail keeps its full width and never gets its own scrollbar', async ({ page }) => {
+    await open(page);
+    const rail = page.getByRole('navigation', { name: 'Tools' });
+
+    // A narrow window used to squeeze the rail down to a sliver with only the
+    // first letter of each tool label visible and a vertical scrollbar of its
+    // own; it must stay pinned to its full width instead.
+    await page.setViewportSize({ width: 420, height: 700 });
+    await expect(rail).toHaveCSS('width', '64px');
+    await expect(rail.getByRole('button', { name: 'Pencil' })).toBeVisible();
+    const overflowsInternally = await rail.evaluate((el) => el.scrollHeight > el.clientHeight);
+    expect(overflowsInternally).toBe(false);
+  });
 });

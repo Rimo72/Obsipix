@@ -3,6 +3,21 @@
 All notable changes to Obsipix are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## 1.5.7 — 2026-09-11
+
+### Fixed
+
+- **Open PNG ▸ Sprite sheet — the config fields could overlap the preview.**
+  The right-hand column of number inputs (Frame height, Vertical spacing,
+  Offset Y) had no width limit of their own, so on a wide sheet with long
+  labels they could spill out of the 240px sidebar and overlap the preview
+  next to it. The grid and its inputs now stay inside the sidebar at every
+  size.
+- **The left tool rail (Pencil, Eraser, …) could shrink** on a narrow window
+  or with a lot of sidebar/preview content, down to single-letter buttons
+  with its own vertical scrollbar. It's now pinned to a fixed 64px width —
+  other panes absorb the squeeze instead.
+
 ## 1.5.6 — 2026-09-11
 
 ### Changed

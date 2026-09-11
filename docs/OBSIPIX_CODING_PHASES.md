@@ -1247,6 +1247,48 @@ accurate readout, and 4× zoom fills the preview with working scrollbars.
 
 ------------------------------------------------------------------------
 
+# Phase 25 --- Sprite-Sheet Layout Fixes and a Pinned Tool Rail
+
+## Goal
+
+Two layout bugs surfaced after Phase 24, from real sprite-sheet artwork on a
+wider window: the config sidebar's number inputs could overlap the preview,
+and the left tool rail could shrink to single letters with its own scrollbar.
+
+## Build
+
+-   `ImportPngDialog.css` — `.import-png__grid` columns changed from `1fr 1fr`
+    to `minmax(0, 1fr) minmax(0, 1fr)` (a bare `1fr` track won't shrink past
+    its content's min-content width); `.import-png__field input`/`select` gained
+    `width: 100%; box-sizing: border-box; min-width: 0` so they fill their grid
+    cell instead of using the browser's intrinsic input width. Root cause: the
+    sidebar is `flex: 0 0 240px` (won't shrink to fit), so oversized inputs
+    spilled out of it and visually overlapped the preview pane beside it.
+-   `ToolRail.css` — `.tool-rail` gained `flex: 0 0 64px` alongside its existing
+    `width: 64px`. Root cause: a flex item's default `flex-shrink` is `1` even
+    when only `width` is set, so in a tight `.app-shell__body` the rail shrank
+    along with everything else; `RightSidebar` already had `flex: 0 0 auto` and
+    was unaffected — the rail was the one unprotected sibling.
+
+## Rules
+
+-   A fixed-size flex sibling that must never shrink needs `flex-shrink: 0`
+    (or a `flex: 0 0 <size>` shorthand) explicitly — `width` alone is not
+    enough once it sits next to shrinkable siblings.
+
+## Exit gate
+
+Full `npm run check` + Playwright suite. 470 unit tests (unchanged — these are
+CSS-only fixes with no new pure logic), 48 e2e specs: new
+`sprite-sheet-import.spec.ts` "the config fields stay inside the sidebar"
+(asserts the Frame height / Offset Y inputs' bounding boxes end before the
+preview pane starts) and `ui.spec.ts` "the tool rail keeps its full width and
+never gets its own scrollbar" (asserts `width: 64px` and no internal overflow
+at a 420px viewport). Browser-verified at 1100px, 560px and 380px viewports —
+sidebar/preview never overlap, tool rail keeps full labels and no scrollbar.
+
+------------------------------------------------------------------------
+
 # Coding Rules for Every Phase
 
 ## Rule 1 --- Core is authoritative
@@ -1380,6 +1422,7 @@ V1 Release
   22      Deployment Security Headers    COMPLETE
   23      Larger Checkerboard Squares    COMPLETE
   24      Legible Sprite-Sheet Preview   COMPLETE
+  25      Sprite-Sheet Layout Fixes      COMPLETE
 
 # Definition of a Coding Phase
 

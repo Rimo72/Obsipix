@@ -33,7 +33,10 @@
 
 .import-png__grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* minmax(0, 1fr), not 1fr — a bare 1fr track won't shrink past its content's
+     min-content width, which is how the number inputs used to spill out of
+     this fixed-width sidebar and overlap the preview next to it. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 8px 12px;
   margin-bottom: 12px;
 }
@@ -42,6 +45,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
   font-size: 12px;
   color: var(--obsipix-text-muted);
 }
@@ -52,6 +56,9 @@
 
 .import-png__field input,
 .import-png__field select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
   padding: 4px 6px;
   font: inherit;
   font-size: 12px;
