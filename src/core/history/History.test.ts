@@ -21,7 +21,7 @@ function pixel(history: History, x: number, y: number) {
 
 function paint(x: number, y: number) {
   return mutation(`Paint ${String(x)},${String(y)}`, (document) => {
-    document.resolveBuffer(document.layers.activeLayerId)?.setPixel(x, y, BLACK);
+    document.ensureDrawableBuffer().setPixel(x, y, BLACK);
   });
 }
 
@@ -267,7 +267,7 @@ describe('History dirty / save-point tracking', () => {
 
 describe('History.begin (interactive stroke)', () => {
   function drawOn(handle: StrokeHandle, x: number, y: number): void {
-    handle.document.resolveBuffer(handle.document.layers.activeLayerId)?.setPixel(x, y, BLACK);
+    handle.document.ensureDrawableBuffer().setPixel(x, y, BLACK);
   }
 
   it('commits an interactive stroke as one entry', () => {

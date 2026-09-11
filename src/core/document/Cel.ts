@@ -95,18 +95,17 @@ export class Cel {
   }
 
   /**
-   * Deep copy. `bufferMap` preserves buffer sharing across a whole-document
-   * clone: cels that shared a buffer before cloning still share one after.
+   * A structural copy for a History snapshot: a new `Cel` sharing this one's
+   * buffer object (frozen, so it can never be mutated in place again — see
+   * {@link PixelBuffer.freeze}). This makes taking a snapshot O(cel count),
+   * not O(pixel count); cels that already shared a buffer (linked cels) still
+   * share it, automatically, since no new buffer object is created here at
+   * all. `Timeline.ensureNormalCel` transparently clones the buffer for real
+   * the moment something first tries to draw on it after the freeze
+   * (PROJECT_CORE §16 — undo still reverts by full document state).
    */
-  clone(bufferMap: Map<PixelBuffer, PixelBuffer>): Cel {
-    if (this.#buffer === null) {
-      return new Cel(this.id, this.#type, null);
-    }
-    let copy = bufferMap.get(this.#buffer);
-    if (!copy) {
-      copy = this.#buffer.clone();
-      bufferMap.set(this.#buffer, copy);
-    }
-    return new Cel(this.id, this.#type, copy);
+  clone(): Cel {
+    this.#buffer?.freeze();
+    return new Cel(this.id, this.#type, this.#buffer);
   }
 }

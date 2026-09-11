@@ -27,16 +27,16 @@ function measure(label: string, fn: () => void): number {
   return elapsed;
 }
 
-/** A deliberately heavy but plausible V1 project: 128×128, 8 layers, 24 frames. */
-function heavyDocument() {
+/** A 128×128 project with `frameCount` frames on `layerCount` layers, every cel painted. */
+function documentWith(frameCount: number, layerCount = 8) {
   const document = new DocumentFactory(createSequentialIdFactory()).create({
     width: 128,
     height: 128,
   });
-  for (let i = 0; i < 7; i += 1) {
-    document.addLayer(`Layer ${String(i + 2)}`);
+  for (let i = 1; i < layerCount; i += 1) {
+    document.addLayer(`Layer ${String(i + 1)}`);
   }
-  for (let f = 0; f < 23; f += 1) {
+  for (let f = 1; f < frameCount; f += 1) {
     document.addFrame();
   }
   // paint something on the active cel of every frame so buffers are non-trivial
@@ -50,6 +50,11 @@ function heavyDocument() {
     }
   }
   return document;
+}
+
+/** A deliberately heavy but plausible V1 project: 128×128, 8 layers, 24 frames. */
+function heavyDocument() {
+  return documentWith(24);
 }
 
 describe('performance budgets', () => {
@@ -68,12 +73,47 @@ describe('performance budgets', () => {
 
   it('clones the document (one undo snapshot) quickly', () => {
     const document = heavyDocument();
-    const elapsed = measure('Document.clone', () => {
+    const elapsed = measure('Document.clone ×5, 24F', () => {
       for (let i = 0; i < 5; i += 1) {
         document.clone();
       }
     });
-    expect(elapsed).toBeLessThan(1500);
+    // copy-on-write sharing (PROJECT_CORE §16) keeps this an O(cel count), not
+    // O(pixel count), operation — well under the old deep-copy cost already.
+    expect(elapsed).toBeLessThan(200);
+  });
+
+  it('a snapshot stays cheap as the frame count grows — this is what a brush stroke pays', () => {
+    // Regression guard for the actual user complaint: drawing got laggy with
+    // many frames because every stroke snapshotted (deep-copied) the pixel
+    // data of every frame, not just the one being drawn on.
+    const light = documentWith(24);
+    const heavy = documentWith(240);
+
+    const cloneLight = measure('Document.clone ×5, 24F', () => {
+      for (let i = 0; i < 5; i += 1) {
+        light.clone();
+      }
+    });
+    const cloneHeavy = measure('Document.clone ×5, 240F (10× the frames)', () => {
+      for (let i = 0; i < 5; i += 1) {
+        heavy.clone();
+      }
+    });
+    // 10× the frames must not cost anywhere near 10× as much — under the old
+    // eager deep-copy it did (linearly, with total pixel bytes). A generous
+    // 4× ceiling still catches a regression back to "scales with frame count".
+    expect(cloneHeavy).toBeLessThan(Math.max(50, cloneLight * 4));
+
+    // The actual user-facing cost: the snapshot History.begin() takes at the
+    // start of every brush stroke, on the heavy (240-frame) document.
+    const history = new History(heavy);
+    const strokeStart = measure('History.begin + cancel, 240 frames', () => {
+      for (let i = 0; i < 5; i += 1) {
+        history.begin('Pencil').cancel();
+      }
+    });
+    expect(strokeStart).toBeLessThan(100);
   });
 
   it('composites the active frame quickly', () => {

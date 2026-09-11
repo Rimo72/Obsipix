@@ -1,4 +1,3 @@
-import type { PixelBuffer } from '@core/pixels/PixelBuffer';
 import type { FrameId, LayerId } from '@core/types/ids';
 
 import { Cel } from './Cel';
@@ -74,10 +73,10 @@ export class Frame {
     return [...this.#cels.values()];
   }
 
-  clone(bufferMap: Map<PixelBuffer, PixelBuffer>): Frame {
+  clone(): Frame {
     const copy = new Frame(this.id, this.#durationMs);
     for (const [layerId, cel] of this.#cels) {
-      copy.#cels.set(layerId, cel.clone(bufferMap));
+      copy.#cels.set(layerId, cel.clone());
     }
     return copy;
   }

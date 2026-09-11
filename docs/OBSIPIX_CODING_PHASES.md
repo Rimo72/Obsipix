@@ -1289,6 +1289,65 @@ sidebar/preview never overlap, tool rail keeps full labels and no scrollbar.
 
 ------------------------------------------------------------------------
 
+# Phase 26 --- Copy-on-Write Undo Snapshots
+
+## Goal
+
+Fix a real, reported performance bug: drawing got laggy on projects with many
+frames. Root cause (confirmed by reading the code and benchmarking it):
+`History.begin`/`execute`/`transaction` snapshot the document for undo by
+deep-copying the pixel data of **every** frame on **every** stroke, even
+though a stroke only ever touches one frame's one buffer — so the snapshot
+cost scaled linearly with total frame count. Not the user's machine, not a
+server (Obsipix has none) — an architectural inefficiency in `Document.clone`.
+
+## Build
+
+-   `PixelBuffer` (`src/core/pixels/PixelBuffer.ts`) — `freeze()` / `frozen`;
+    `setPixel`, `clear` and `copyRegion`'s destination side now throw if the
+    buffer is frozen, via a private `#assertMutable`. A loud, immediate
+    failure at the exact call site beats a silently-corrupted undo entry
+    (Rule 9).
+-   `Cel.clone()` (`src/core/document/Cel.ts`) — dropped the `bufferMap`
+    parameter. Now a structural copy only: freezes and shares the same
+    buffer object instead of deep-copying it (`bufferMap` existed purely to
+    preserve linked-cel sharing across a deep copy; sharing the reference
+    makes that automatic). `Frame.clone()` / `Timeline.clone()` /
+    `Document.clone()` updated to match (all now take no arguments).
+-   `Timeline.ensureNormalCel` (the single choke point every drawing/edit
+    command already goes through to get a writable buffer — confirmed by
+    grep, nothing mutates pixels any other way) gained a private
+    `#ownedBuffer`: copy-on-write — if the buffer is frozen, clone it once
+    and re-point every cel in the timeline that shared it (so linked cels
+    stay linked), otherwise return it unchanged.
+-   `EditorSession.#beginFloat` — fixed a real bug this exposed: it fetched
+    its writable buffer via `ensureDrawableBuffer` **before** calling
+    `history.begin('Transform')`, so the buffer it held was frozen out from
+    under it the instant `begin` snapshotted. Reordered to fetch the buffer
+    after starting the transaction.
+
+## Rules
+
+-   `ensureDrawableBuffer` / `ensureNormalCel` remains the only path to a
+    writable pixel buffer — anything that bypasses it (as a few tests did)
+    now fails loudly against a frozen buffer, by design.
+
+## Exit gate
+
+Full `npm run check` + Playwright suite. 475 unit tests (`PixelBuffer`,
+`Cel`, `Timeline`, `Document`, `History` tests updated/added for the new
+freeze/COW contract; `budgets.test.ts` gained a regression test proving a
+10×-larger frame count no longer costs anywhere near 10× as much to
+snapshot), 48 e2e specs. Measured: `Document.clone` on a 24-frame/8-layer/
+128×128 document dropped from ~8.4ms to ~0.3ms per clone (about 28×); a
+`History.begin`+`cancel` cycle on a 240-frame document took ~0.36ms.
+Browser-verified live: 151 frames, 20 separate strokes averaged 0.15ms each
+(max 0.8ms) versus an estimated ~85ms/stroke before the fix; undo/redo,
+linked-cel propagation, and full `.obsipix` serialization all confirmed
+correct afterward.
+
+------------------------------------------------------------------------
+
 # Coding Rules for Every Phase
 
 ## Rule 1 --- Core is authoritative
@@ -1423,6 +1482,7 @@ V1 Release
   23      Larger Checkerboard Squares    COMPLETE
   24      Legible Sprite-Sheet Preview   COMPLETE
   25      Sprite-Sheet Layout Fixes      COMPLETE
+  26      Copy-on-Write Undo Snapshots   COMPLETE
 
 # Definition of a Coding Phase
 

@@ -41,11 +41,17 @@ function assertRegionWithin(source: PixelBuffer, region: PixelRegion): void {
  * arbitrary mutation.
  *
  * Pixel index for `(x, y)` is `(y * width + x) * 4`.
+ *
+ * A buffer can be {@link freeze}-frozen so it becomes read-only — used to let
+ * a History snapshot and the live document share a buffer object instead of
+ * copying it, until the very first write after the freeze forces a real copy
+ * (see `Timeline.ensureNormalCel`, PROJECT_CORE §16).
  */
 export class PixelBuffer {
   readonly width: number;
   readonly height: number;
   readonly #data: Uint8ClampedArray;
+  #frozen = false;
 
   private constructor(width: number, height: number, data: Uint8ClampedArray) {
     this.width = width;
@@ -108,6 +114,30 @@ export class PixelBuffer {
     return (y * this.width + x) * CHANNELS_PER_PIXEL;
   }
 
+  /**
+   * Mark this buffer read-only. Idempotent. Used to let a History snapshot
+   * share a buffer object with the live document instead of copying it —
+   * `Timeline.ensureNormalCel` clones a frozen buffer, once, the moment
+   * something actually tries to draw on it.
+   */
+  freeze(): void {
+    this.#frozen = true;
+  }
+
+  /** True once {@link freeze} has been called; further writes throw. */
+  get frozen(): boolean {
+    return this.#frozen;
+  }
+
+  #assertMutable(): void {
+    if (this.#frozen) {
+      throw new Error(
+        'Cannot mutate a frozen PixelBuffer — it is shared with a History snapshot. ' +
+          'Obtain a writable buffer via Document.ensureDrawableBuffer / Timeline.ensureNormalCel first.',
+      );
+    }
+  }
+
   /** Read the pixel at `(x, y)`. Throws {@link RangeError} when out of bounds. */
   getPixel(x: number, y: number): RGBA {
     const index = this.#indexOf(x, y);
@@ -120,13 +150,17 @@ export class PixelBuffer {
     };
   }
 
-  /** Write the pixel at `(x, y)`. Throws {@link RangeError} when out of bounds or the color is invalid. */
+  /**
+   * Write the pixel at `(x, y)`. Throws {@link RangeError} when out of bounds
+   * or the color is invalid, or a plain `Error` if the buffer is frozen.
+   */
   setPixel(x: number, y: number, color: RGBA): void {
     const index = this.#indexOf(x, y);
     assertChannelValue(color.r, 'r');
     assertChannelValue(color.g, 'g');
     assertChannelValue(color.b, 'b');
     assertChannelValue(color.a, 'a');
+    this.#assertMutable();
     const data = this.#data;
     data[index] = color.r;
     data[index + 1] = color.g;
@@ -136,6 +170,7 @@ export class PixelBuffer {
 
   /** Reset every pixel to fully transparent. */
   clear(): void {
+    this.#assertMutable();
     this.#data.fill(0);
   }
 
@@ -162,6 +197,8 @@ export class PixelBuffer {
     if (region.width === 0 || region.height === 0) {
       return;
     }
+    // `source` is read-only here — only `this` (the destination) must be mutable.
+    this.#assertMutable();
 
     // A view is unsafe when copying within the same buffer; snapshot first.
     const sourceData = source === this ? new Uint8ClampedArray(this.#data) : source.#data;

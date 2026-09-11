@@ -717,9 +717,11 @@ export class EditorSession {
       return false;
     }
     const layerId = document.layers.activeLayerId;
+    // `history.begin` snapshots (and copy-on-write-freezes) the document, so
+    // the writable buffer must be fetched after it — not before.
+    const handle = this.history.begin('Transform');
     const buffer = document.ensureDrawableBuffer(layerId);
     const content = PixelBuffer.create(bounds.width, bounds.height);
-    const handle = this.history.begin('Transform');
     for (let ly = 0; ly < bounds.height; ly += 1) {
       for (let lx = 0; lx < bounds.width; lx += 1) {
         const x = bounds.x + lx;

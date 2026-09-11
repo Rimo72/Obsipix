@@ -3,6 +3,28 @@
 All notable changes to Obsipix are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## 1.5.8 — 2026-09-11
+
+### Fixed
+
+- **Drawing lag on documents with many frames.** Every brush stroke took an
+  undo snapshot of the _entire_ project — every frame's pixel data, even
+  though a stroke only ever touches one — so the snapshot cost, and the
+  stutter at the start of every stroke, scaled directly with frame count. A
+  151-frame project measured ~0.15ms per stroke-start after the fix versus an
+  estimated ~85ms before it (roughly 200–500× on documents with hundreds of
+  frames).
+- Undo snapshots now share pixel buffers with the live document (frozen,
+  copy-on-write) instead of deep-copying every frame; a buffer is only
+  actually cloned, once, the moment something draws on it again. Linked cels,
+  undo/redo, and `.obsipix` save/load are unaffected — verified against the
+  full test suite plus manual undo/redo/linked-cel/serialization checks in
+  the browser.
+- Fixed one related bug this surfaced: `EditorSession`'s "lift selection into
+  a floating layer" (used by nudge/flip/rotate) fetched its writable pixel
+  buffer _before_ starting the undo transaction instead of after, which the
+  new copy-on-write buffers no longer tolerated.
+
 ## 1.5.7 — 2026-09-11
 
 ### Fixed

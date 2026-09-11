@@ -135,27 +135,55 @@ describe('Timeline playback + onion-skin settings', () => {
     const timeline = newTimeline();
     timeline.setPlaybackFps(24);
     timeline.setOnionSkin({ enabled: true, previous: 3 });
-    const copy = timeline.clone(new Map<PixelBuffer, PixelBuffer>());
+    const copy = timeline.clone();
     expect(copy.playbackFps).toBe(24);
     expect(copy.onionSkin).toEqual({ enabled: true, previous: 3, next: 1, opacity: 0.4 });
   });
 });
 
 describe('Timeline.clone', () => {
-  it('keeps linked cels linked within the copy', () => {
+  it('is cheap: unrelated frames keep sharing the exact same buffer object', () => {
+    const timeline = newTimeline();
+    timeline.appendEmptyFrame([LAYER]);
+    timeline.ensureNormalCel(1, LAYER);
+
+    const copy = timeline.clone();
+    // no pixel data was copied — the copy's frames still reference the very
+    // same buffer objects as the original, just frozen
+    expect(copy.resolveBuffer(0, LAYER)).toBe(timeline.resolveBuffer(0, LAYER));
+    expect(copy.resolveBuffer(1, LAYER)).toBe(timeline.resolveBuffer(1, LAYER));
+    expect(copy.resolveBuffer(0, LAYER)?.frozen).toBe(true);
+  });
+
+  it('keeps linked cels linked within the copy, and diverges independently on write', () => {
     const timeline = newTimeline();
     const source = timeline.frameAt(0);
     const target = timeline.appendEmptyFrame([LAYER]);
     timeline.linkCel(source.id, target.id, LAYER);
 
-    const copy = timeline.clone(new Map<PixelBuffer, PixelBuffer>());
-    copy.resolveBuffer(0, LAYER)?.setPixel(1, 1, BLACK);
+    const copy = timeline.clone();
+    copy.ensureNormalCel(0, LAYER).setPixel(1, 1, BLACK);
     expect(rgbaEquals(copy.resolveBuffer(1, LAYER)?.getPixel(1, 1) ?? TRANSPARENT, BLACK)).toBe(
       true,
     );
 
-    // and independent from the original
+    // untouched frames elsewhere in the copy still share the original object
+    // ... and the original document is entirely unaffected by the copy's edit
     expect(rgbaEquals(timeline.resolveBuffer(1, LAYER)?.getPixel(1, 1) ?? BLACK, TRANSPARENT)).toBe(
+      true,
+    );
+  });
+
+  it('a write to the original after cloning never leaks into the copy', () => {
+    const timeline = newTimeline();
+    const copy = timeline.clone();
+
+    timeline.ensureNormalCel(0, LAYER).setPixel(2, 2, BLACK);
+
+    expect(rgbaEquals(timeline.resolveBuffer(0, LAYER)?.getPixel(2, 2) ?? TRANSPARENT, BLACK)).toBe(
+      true,
+    );
+    expect(rgbaEquals(copy.resolveBuffer(0, LAYER)?.getPixel(2, 2) ?? BLACK, TRANSPARENT)).toBe(
       true,
     );
   });

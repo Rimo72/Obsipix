@@ -71,16 +71,29 @@ describe('Cel.makeUnique', () => {
 });
 
 describe('Cel.clone', () => {
-  it('preserves buffer sharing through a shared buffer map', () => {
+  it('shares the buffer object (structural copy), preserving any existing link', () => {
     const shared = PixelBuffer.create(4, 4);
     const source = Cel.normal(celId(1), shared);
     const linked = Cel.linked(celId(2), shared);
 
-    const map = new Map<PixelBuffer, PixelBuffer>();
-    const sourceCopy = source.clone(map);
-    const linkedCopy = linked.clone(map);
+    const sourceCopy = source.clone();
+    const linkedCopy = linked.clone();
 
     expect(sourceCopy.sharesBufferWith(linkedCopy)).toBe(true);
-    expect(sourceCopy.sharesBufferWith(source)).toBe(false);
+    // still the SAME object as the originals — cheap, not a deep copy
+    expect(sourceCopy.sharesBufferWith(source)).toBe(true);
+  });
+
+  it('freezes the buffer so a later direct write is refused', () => {
+    const buffer = PixelBuffer.create(4, 4);
+    const cel = Cel.normal(celId(1), buffer);
+    expect(buffer.frozen).toBe(false);
+
+    cel.clone();
+
+    expect(buffer.frozen).toBe(true);
+    expect(() => {
+      buffer.setPixel(0, 0, BLACK);
+    }).toThrow(/frozen/i);
   });
 });

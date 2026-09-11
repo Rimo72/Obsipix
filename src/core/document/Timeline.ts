@@ -328,20 +328,49 @@ export class Timeline {
 
   /**
    * The drawable buffer for `layerId` at `frameIndex`. A normal or linked cel
-   * yields its buffer directly; an empty, hold or missing cel becomes a new
-   * normal cel first — seeded from the artwork the frame was already showing.
+   * yields its buffer directly — cloning it first if it is still frozen (a
+   * copy-on-write, see the private `#ownedBuffer` below) — an empty, hold or
+   * missing cel becomes a new normal cel first, seeded from the artwork the
+   * frame was already showing.
+   *
+   * This is the single choke point every drawing/edit operation goes through
+   * to mutate pixels (PROJECT_CORE §16); it is what makes `Document.clone`
+   * cheap.
    */
   ensureNormalCel(frameIndex: number, layerId: LayerId): PixelBuffer {
     const frame = this.frameAt(frameIndex);
     const existing = frame.getCel(layerId);
     if (existing && (existing.type === 'normal' || existing.type === 'linked')) {
-      return existing.requireBuffer();
+      return this.#ownedBuffer(existing.requireBuffer(), layerId);
     }
     const shown = this.resolveBuffer(frameIndex, layerId);
     const buffer =
       shown?.clone() ?? PixelBuffer.create(this.#dimensions.width, this.#dimensions.height);
     frame.setCel(layerId, Cel.normal(this.#ids.cel(), buffer));
     return buffer;
+  }
+
+  /**
+   * Copy-on-write: `Document.clone` (a History snapshot) shares buffer
+   * objects with the live document instead of copying them, and freezes
+   * them (PROJECT_CORE §16). The first time this timeline is asked for a
+   * writable buffer that is still frozen, clone it exactly once and
+   * re-point every live cel in this timeline that shared it — this is what
+   * keeps a linked cel's siblings linked after the clone diverges. Returns
+   * `buffer` unchanged when it is already safe to mutate.
+   */
+  #ownedBuffer(buffer: PixelBuffer, layerId: LayerId): PixelBuffer {
+    if (!buffer.frozen) {
+      return buffer;
+    }
+    const owned = buffer.clone();
+    for (const frame of this.#frames) {
+      const cel = frame.getCel(layerId);
+      if (cel?.buffer === buffer) {
+        cel.replaceBuffer(owned);
+      }
+    }
+    return owned;
   }
 
   /**
@@ -361,14 +390,14 @@ export class Timeline {
     return cel.requireBuffer();
   }
 
-  clone(bufferMap: Map<PixelBuffer, PixelBuffer>): Timeline {
+  clone(): Timeline {
     const first = this.#frames[0];
     if (!first) {
       throw new Error('Timeline unexpectedly empty');
     }
-    const copy = new Timeline(this.#ids, this.#dimensions, first.clone(bufferMap));
+    const copy = new Timeline(this.#ids, this.#dimensions, first.clone());
     for (const frame of this.#frames.slice(1)) {
-      copy.#frames.push(frame.clone(bufferMap));
+      copy.#frames.push(frame.clone());
     }
     copy.#activeFrameId = this.#activeFrameId;
     copy.restoreTags(this.#tags);

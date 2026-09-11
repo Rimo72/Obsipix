@@ -316,15 +316,20 @@ export class Document {
 
   // --- Snapshot -------------------------------------------------------
 
-  /** A deep, independent copy — used by History for snapshots. Linked cels stay linked. */
+  /**
+   * A structurally independent copy for a History snapshot — an edit to one
+   * never becomes visible through the other. Cheap: pixel buffers are shared
+   * (frozen) with the copy rather than deep-copied, and only actually cloned,
+   * one buffer at a time, the moment something is drawn on them again (see
+   * `Timeline.ensureNormalCel`, PROJECT_CORE §16). Linked cels stay linked.
+   */
   clone(): Document {
-    const bufferMap = new Map<PixelBuffer, PixelBuffer>();
     return new Document({
       id: this.id,
       dimensions: { width: this.dimensions.width, height: this.dimensions.height },
       metadata: { ...this.metadata },
       layers: this.layers.clone(),
-      timeline: this.timeline.clone(bufferMap),
+      timeline: this.timeline.clone(),
       selection: this.selection.clone(),
       palettes: this.palettes.map((palette) => clonePalette(palette)),
       activePaletteId: this.#activePaletteId,

@@ -165,13 +165,13 @@ describe('Document revision tracking', () => {
 });
 
 describe('Document.clone', () => {
-  it('is a deep, independent copy', () => {
+  it('is a structurally independent copy', () => {
     const document = newDocument();
     const layerId = document.layers.activeLayerId;
-    document.resolveBuffer(layerId)?.setPixel(0, 0, BLACK);
+    document.ensureDrawableBuffer(layerId).setPixel(0, 0, BLACK);
 
     const copy = document.clone();
-    copy.resolveBuffer(layerId)?.setPixel(5, 5, BLACK);
+    copy.ensureDrawableBuffer(layerId).setPixel(5, 5, BLACK);
     copy.layers.activeLayer.rename('changed');
 
     expect(rgbaEquals(document.resolveBuffer(layerId)?.getPixel(5, 5) ?? BLACK, TRANSPARENT)).toBe(
@@ -179,6 +179,18 @@ describe('Document.clone', () => {
     );
     expect(document.layers.activeLayer.name).toBe('Layer 1');
     expect(copy.revision).toBe(document.revision);
+  });
+
+  it('is cheap: unrelated buffers keep sharing the exact same object', () => {
+    const document = newDocument();
+    const layerId = document.layers.activeLayerId;
+    const frameId = document.timeline.activeFrameId;
+
+    const copy = document.clone();
+
+    // no pixel data was copied — proves the snapshot didn't deep-copy anything
+    expect(copy.resolveBuffer(layerId, frameId)).toBe(document.resolveBuffer(layerId, frameId));
+    expect(copy.resolveBuffer(layerId, frameId)?.frozen).toBe(true);
   });
 
   it('preserves linked-cel sharing inside the copy', () => {
@@ -189,7 +201,7 @@ describe('Document.clone', () => {
     document.linkCel(sourceFrame, targetFrame, layerId);
 
     const copy = document.clone();
-    copy.resolveBuffer(layerId, sourceFrame)?.setPixel(3, 3, BLACK);
+    copy.ensureDrawableBuffer(layerId, sourceFrame).setPixel(3, 3, BLACK);
 
     expect(
       rgbaEquals(copy.resolveBuffer(layerId, targetFrame)?.getPixel(3, 3) ?? TRANSPARENT, BLACK),
