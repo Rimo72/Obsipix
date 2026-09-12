@@ -61,14 +61,17 @@ export function selectShapeCommand(pixels: readonly PixelPoint[], mode: Selectio
 export interface MagicWandOptions {
   readonly layerId?: LayerId;
   readonly frameId?: FrameId;
+  /** Per-channel colour-match tolerance, 0-255 (default 0 = exact match). */
+  readonly tolerance?: number;
 }
 
 /**
- * Magic Wand: select the 4-connected region of pixels matching `seed`'s exact
- * colour on the active layer (hard-edged, no tolerance — same matching rule
- * as Fill, PROJECT_CORE §3.2). An empty/hold cel with nothing behind it reads
- * as uniformly transparent, so the seed matches the whole canvas — read-only,
- * never converts the cel to a normal one the way painting would.
+ * Magic Wand: select the 4-connected region of pixels matching `seed`'s
+ * colour, within `tolerance`, on the active layer (same matching rule as
+ * Fill, PROJECT_CORE §3.2 — hard-edged at the default tolerance of 0). An
+ * empty/hold cel with nothing behind it reads as uniformly transparent, so
+ * the seed matches the whole canvas — read-only, never converts the cel to a
+ * normal one the way painting would.
  */
 export function magicWandSelectCommand(
   seed: PixelPoint,
@@ -80,7 +83,8 @@ export function magicWandSelectCommand(
     const buffer =
       document.resolveBuffer(layerId, options.frameId) ??
       PixelBuffer.create(document.dimensions.width, document.dimensions.height);
-    const region = floodMatchRegion(buffer, seed);
+    const tolerance = Math.max(0, Math.min(255, Math.round(options.tolerance ?? 0)));
+    const region = floodMatchRegion(buffer, seed, tolerance);
     const width = document.dimensions.width;
     const set = new Set(region.map((p) => p.y * width + p.x));
     document.selection.applyShape((x, y) => set.has(y * width + x), mode);

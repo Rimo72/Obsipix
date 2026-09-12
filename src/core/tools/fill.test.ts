@@ -77,4 +77,44 @@ describe('floodMatchRegion', () => {
     const buffer = PixelBuffer.create(4, 3);
     expect(floodMatchRegion(buffer, { x: 2, y: 1 })).toHaveLength(12);
   });
+
+  describe('tolerance', () => {
+    it('excludes a near, non-exact colour at tolerance 0 (the default)', () => {
+      const buffer = PixelBuffer.create(2, 1);
+      buffer.setPixel(0, 0, { r: 0, g: 0, b: 0, a: 255 });
+      buffer.setPixel(1, 0, { r: 4, g: 0, b: 0, a: 255 }); // a faint, near-black shade
+      expect(floodMatchRegion(buffer, { x: 0, y: 0 })).toEqual([{ x: 0, y: 0 }]);
+    });
+
+    it('includes near-matches once the tolerance covers the difference', () => {
+      const buffer = PixelBuffer.create(2, 1);
+      buffer.setPixel(0, 0, { r: 0, g: 0, b: 0, a: 255 });
+      buffer.setPixel(1, 0, { r: 4, g: 0, b: 0, a: 255 });
+      const region = floodMatchRegion(buffer, { x: 0, y: 0 }, 4);
+      expect(region).toHaveLength(2);
+      expect(region).toContainEqual({ x: 1, y: 0 });
+    });
+
+    it('still excludes a colour that differs by more than the tolerance', () => {
+      const buffer = PixelBuffer.create(2, 1);
+      buffer.setPixel(0, 0, { r: 0, g: 0, b: 0, a: 255 });
+      buffer.setPixel(1, 0, { r: 10, g: 0, b: 0, a: 255 });
+      expect(floodMatchRegion(buffer, { x: 0, y: 0 }, 4)).toEqual([{ x: 0, y: 0 }]);
+    });
+
+    it('checks every channel, not just one', () => {
+      const buffer = PixelBuffer.create(2, 1);
+      buffer.setPixel(0, 0, { r: 0, g: 0, b: 0, a: 255 });
+      buffer.setPixel(1, 0, { r: 0, g: 0, b: 0, a: 100 }); // alpha differs by more than tolerance
+      expect(floodMatchRegion(buffer, { x: 0, y: 0 }, 4)).toEqual([{ x: 0, y: 0 }]);
+    });
+
+    it('does not change floodFill, which always matches exactly', () => {
+      const buffer = PixelBuffer.create(2, 1);
+      buffer.setPixel(0, 0, { r: 0, g: 0, b: 0, a: 255 });
+      buffer.setPixel(1, 0, { r: 4, g: 0, b: 0, a: 255 });
+      const changed = floodFill(buffer, { x: 0, y: 0 }, WHITE);
+      expect(changed).toBe(1); // the near-black neighbour is untouched
+    });
+  });
 });

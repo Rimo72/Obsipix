@@ -109,6 +109,42 @@ describe('magicWandSelectCommand', () => {
 
     expect(rgbaEquals(pixel(history.document, 3, 3), WHITE)).toBe(true);
   });
+
+  it('excludes near-matching colours at the default tolerance of 0', () => {
+    const history = newHistory();
+    const document = history.document;
+    const buffer = document.ensureDrawableBuffer(document.layers.activeLayerId);
+    buffer.setPixel(0, 0, { r: 0, g: 0, b: 0, a: 255 });
+    buffer.setPixel(1, 0, { r: 6, g: 0, b: 0, a: 255 }); // a faint, near-black shade
+
+    history.execute(magicWandSelectCommand({ x: 0, y: 0 }, 'replace'));
+
+    expect(history.document.selection.isSelected(0, 0)).toBe(true);
+    expect(history.document.selection.isSelected(1, 0)).toBe(false);
+  });
+
+  it('includes near-matching colours once tolerance covers the difference', () => {
+    const history = newHistory();
+    const document = history.document;
+    const buffer = document.ensureDrawableBuffer(document.layers.activeLayerId);
+    buffer.setPixel(0, 0, { r: 0, g: 0, b: 0, a: 255 });
+    buffer.setPixel(1, 0, { r: 6, g: 0, b: 0, a: 255 }); // a faint, near-black shade
+    buffer.setPixel(2, 0, { r: 40, g: 0, b: 0, a: 255 }); // clearly a different colour
+
+    history.execute(magicWandSelectCommand({ x: 0, y: 0 }, 'replace', { tolerance: 10 }));
+
+    expect(history.document.selection.isSelected(0, 0)).toBe(true);
+    expect(history.document.selection.isSelected(1, 0)).toBe(true);
+    expect(history.document.selection.isSelected(2, 0)).toBe(false);
+  });
+
+  it('clamps an out-of-range tolerance instead of throwing', () => {
+    const history = newHistory();
+    expect(() => {
+      history.execute(magicWandSelectCommand({ x: 4, y: 4 }, 'replace', { tolerance: 9999 }));
+    }).not.toThrow();
+    expect(history.document.selection.bounds()).toEqual({ x: 0, y: 0, width: 32, height: 32 });
+  });
 });
 
 describe('deleteSelectionCommand', () => {

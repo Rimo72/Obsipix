@@ -3,6 +3,15 @@
 All notable changes to Obsipix are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## 1.6.1 — 2026-09-12
+
+### Added
+
+- **Magic Wand tolerance.** A "Tolerance" field in the options bar (0-255,
+  default 0 = exact match, same as before) lets the wand pick up near-matches
+  — useful for a loaded image with faint anti-aliasing or compression noise
+  around what should read as one flat colour.
+
 ## 1.6.0 — 2026-09-12
 
 ### Added

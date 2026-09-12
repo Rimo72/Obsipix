@@ -22,6 +22,19 @@ async function dragScreen(page: Page, from: [number, number], to: [number, numbe
   await page.mouse.up();
 }
 
+/** Set the foreground colour to an exact 8-digit hex via the colour popover. */
+async function setForegroundHex(page: Page, hex: string): Promise<void> {
+  const trigger = page.getByRole('button', { name: /Foreground colour/ });
+  await trigger.click();
+  const picker = page
+    .getByTestId('color-popover')
+    .getByRole('group', { name: 'Foreground colour' });
+  const field = picker.getByLabel(/hex value/);
+  await field.fill(hex);
+  await field.blur();
+  await page.keyboard.press('Escape'); // close the popover so it doesn't cover the canvas
+}
+
 test.describe('selection and transform', () => {
   test('select a region, move it as a float, then commit', async ({ page }) => {
     await open(page);
@@ -115,6 +128,44 @@ test.describe('selection and transform', () => {
     await page.keyboard.press('Delete');
     expect(await alphaAt(page, 25, 5)).toBe(0);
     expect(await alphaAt(page, 16, 5)).toBeGreaterThan(0);
+  });
+
+  test('magic wand tolerance picks up near-matching colours', async ({ page }) => {
+    await open(page);
+    await page.getByRole('button', { name: 'Pencil' }).click();
+
+    await setForegroundHex(page, '#000000ff');
+    await dragPixels(page, [10, 10], [10, 10]);
+    await setForegroundHex(page, '#060000ff'); // a faint, near-black shade
+    await dragPixels(page, [11, 10], [11, 10]);
+    await setForegroundHex(page, '#280000ff'); // clearly a different colour
+    await dragPixels(page, [12, 10], [12, 10]);
+
+    await page.getByRole('button', { name: 'Wand' }).click();
+    const tolerance = page.getByRole('spinbutton', { name: 'Tolerance', exact: true });
+    await expect(tolerance).toHaveValue('0');
+
+    const seed = await screenForPixel(page, 10, 10);
+    await page.mouse.click(seed.x, seed.y);
+    expect(await page.evaluate(() => window.__obsipix?.document.selection.isSelected(10, 10))).toBe(
+      true,
+    );
+    expect(await page.evaluate(() => window.__obsipix?.document.selection.isSelected(11, 10))).toBe(
+      false,
+    );
+
+    await tolerance.fill('10');
+    await page.mouse.click(seed.x, seed.y);
+    expect(await page.evaluate(() => window.__obsipix?.document.selection.isSelected(10, 10))).toBe(
+      true,
+    );
+    expect(await page.evaluate(() => window.__obsipix?.document.selection.isSelected(11, 10))).toBe(
+      true,
+    );
+    // still excluded — its difference (0x28 = 40) is well past a tolerance of 10
+    expect(await page.evaluate(() => window.__obsipix?.document.selection.isSelected(12, 10))).toBe(
+      false,
+    );
   });
 
   test('flip horizontal mirrors the layer and undoes', async ({ page }) => {

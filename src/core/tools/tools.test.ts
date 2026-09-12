@@ -48,6 +48,7 @@ function contextFor(
     foreground: options.foreground ?? BLACK,
     background: options.background ?? WHITE,
     brush: options.brush ?? DEFAULT_BRUSH,
+    magicWandTolerance: 0,
     isEditable: () => true,
     isInsideDocument: (x, y) => buffer.contains(x, y),
     sampleColor: (x, y) => options.sample ?? buffer.getPixel(x, y),

@@ -10,14 +10,34 @@ export interface FillOptions {
 }
 
 /**
- * Visit every pixel in `seed`'s 4-connected same-colour region exactly once,
- * in an unspecified order. Shared by {@link floodFill} (paints each visited
- * pixel) and {@link floodMatchRegion} (collects them for a selection) so the
- * traversal itself — and its test coverage — lives in one place.
+ * True when every RGBA channel of `a` and `b` differs by at most `tolerance`.
+ * `tolerance <= 0` falls back to exact equality (the hard-edged, no-tolerance
+ * behaviour PROJECT_CORE §3.2 specifies for Fill).
+ */
+function colorsMatch(a: RGBA, b: RGBA, tolerance: number): boolean {
+  if (tolerance <= 0) {
+    return rgbaEquals(a, b);
+  }
+  return (
+    Math.abs(a.r - b.r) <= tolerance &&
+    Math.abs(a.g - b.g) <= tolerance &&
+    Math.abs(a.b - b.b) <= tolerance &&
+    Math.abs(a.a - b.a) <= tolerance
+  );
+}
+
+/**
+ * Visit every pixel in `seed`'s 4-connected region matching its colour within
+ * `tolerance` (per-channel, 0-255; 0 means exact) exactly once, in an
+ * unspecified order. Shared by {@link floodFill} (paints each visited pixel,
+ * always with `tolerance` 0) and {@link floodMatchRegion} (collects them for
+ * a selection, tolerance configurable) so the traversal itself — and its test
+ * coverage — lives in one place.
  */
 function walkFloodRegion(
   buffer: PixelBuffer,
   seed: PixelPoint,
+  tolerance: number,
   visit: (x: number, y: number) => void,
 ): void {
   if (!buffer.contains(seed.x, seed.y)) {
@@ -35,7 +55,7 @@ function walkFloodRegion(
     visited[index] = 1;
     const x = index % width;
     const y = (index - x) / width;
-    if (!rgbaEquals(buffer.getPixel(x, y), target)) {
+    if (!colorsMatch(buffer.getPixel(x, y), target, tolerance)) {
       continue;
     }
     visit(x, y);
@@ -96,18 +116,24 @@ export function floodFill(
     return changed;
   }
 
-  walkFloodRegion(buffer, seed, paint);
+  walkFloodRegion(buffer, seed, 0, paint);
   return changed;
 }
 
 /**
- * The 4-connected region of pixels sharing `seed`'s exact colour — read-only,
- * never mutates `buffer`. Used by the Magic Wand select tool (PROJECT_CORE
- * §3.2-family: same hard-edged, no-tolerance matching as {@link floodFill}).
+ * The 4-connected region of pixels matching `seed`'s colour within
+ * `tolerance` (per RGBA channel, 0-255; default 0 = exact match) — read-only,
+ * never mutates `buffer`. Used by the Magic Wand select tool: a small
+ * tolerance picks up near-matches (e.g. faint anti-aliasing or compression
+ * noise in an imported PNG) that an exact match would miss.
  */
-export function floodMatchRegion(buffer: PixelBuffer, seed: PixelPoint): PixelPoint[] {
+export function floodMatchRegion(
+  buffer: PixelBuffer,
+  seed: PixelPoint,
+  tolerance = 0,
+): PixelPoint[] {
   const matched: PixelPoint[] = [];
-  walkFloodRegion(buffer, seed, (x, y) => {
+  walkFloodRegion(buffer, seed, tolerance, (x, y) => {
     matched.push({ x, y });
   });
   return matched;

@@ -24,9 +24,10 @@ release notes are in [`CHANGELOG.md`](CHANGELOG.md).
 - **Layers** — add / duplicate / delete / reorder, visibility, lock, opacity, merge
   down, merge visible, flatten.
 - **Selection & transform** — rectangular and lasso select, Magic Wand
-  (click a colour to select its contiguous region), marching ants, invert
-  selection, move as a floating selection, nudge, flip, rotate, delete,
-  cut / copy / paste.
+  (click a colour to select its contiguous region, with an adjustable
+  tolerance for near-matching colours), marching ants, invert selection,
+  move as a floating selection, nudge, flip, rotate, delete, cut / copy /
+  paste.
 - **Palettes** — PICO-8 default, create / duplicate / rename / delete, recent-colours
   strip; add or edit a colour in a full Color Management window (SV square, hue &
   opacity, R/G/B/A, HEX, HSV/HSL readout, pick-from-canvas), with optional naming.

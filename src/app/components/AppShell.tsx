@@ -29,6 +29,7 @@ import { ExportDialog } from './ExportDialog';
 import { EyedropperControls } from './EyedropperControls';
 import { ImportPngDialog } from './ImportPngDialog';
 import { KeyboardHelp } from './KeyboardHelp';
+import { MagicWandControls } from './MagicWandControls';
 import { MenuBar, type MenuDef } from './MenuBar';
 import { NewDocumentDialog } from './NewDocumentDialog';
 import { Panel } from './Panel';
@@ -550,6 +551,7 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
         <BrushControls session={session} />
         <ColorControls session={session} />
         <EyedropperControls session={session} />
+        <MagicWandControls session={session} />
         <SelectionControls session={session} />
       </div>
 

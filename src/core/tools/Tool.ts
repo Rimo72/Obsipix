@@ -27,6 +27,8 @@ export interface ToolContext {
   readonly foreground: RGBA;
   readonly background: RGBA;
   readonly brush: Brush;
+  /** Magic Wand colour-match tolerance, 0-255 (0 = exact match only). */
+  readonly magicWandTolerance: number;
   /** Whether a pixel may currently be edited (respects an active selection and layer lock). */
   isEditable(x: number, y: number): boolean;
   /** Whether `(x, y)` is inside the document bounds. */

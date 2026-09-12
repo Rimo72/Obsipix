@@ -139,6 +139,7 @@ export class EditorSession {
   #background: RGBA = WHITE;
   #brush: Brush = DEFAULT_BRUSH;
   #eyedropperMerged = true;
+  #magicWandTolerance = 0;
   #preview: readonly PreviewStamp[] | null = null;
   #showGrid = true;
   #showCheckerboard = true;
@@ -388,6 +389,7 @@ export class EditorSession {
       foreground: this.#foreground,
       background: this.#background,
       brush: this.#brush,
+      magicWandTolerance: this.#magicWandTolerance,
       isEditable: editable,
       isInsideDocument: (x, y) =>
         x >= 0 && y >= 0 && x < document.dimensions.width && y < document.dimensions.height,
@@ -479,6 +481,23 @@ export class EditorSession {
 
   setEyedropperMerged(merged: boolean): void {
     this.#eyedropperMerged = merged;
+    this.#emit();
+  }
+
+  /**
+   * Magic Wand colour-match tolerance, 0-255 (0 = exact match only). Not
+   * undoable — a tool option, not document data (PROJECT_CORE §111.13-style:
+   * matches how brush size / eyedropper mode are handled).
+   */
+  get magicWandTolerance(): number {
+    return this.#magicWandTolerance;
+  }
+
+  setMagicWandTolerance(tolerance: number): void {
+    if (!Number.isFinite(tolerance)) {
+      return;
+    }
+    this.#magicWandTolerance = Math.max(0, Math.min(255, Math.round(tolerance)));
     this.#emit();
   }
 

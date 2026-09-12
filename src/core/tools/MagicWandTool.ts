@@ -10,10 +10,11 @@ export const MAGIC_WAND_TOOL_ID = 'magic-wand';
 
 /**
  * Magic Wand: click a pixel to select the contiguous region of matching
- * colour on the active layer (PROJECT_CORE §3.2/§3.6-family — same hard-edged
- * colour match as Fill, same Shift/Alt add/subtract/intersect modifiers as
- * the other select tools). One click = one history entry; like Fill, the
- * pixel used is wherever the pointer is released, not where it was pressed.
+ * colour on the active layer (PROJECT_CORE §3.2/§3.6-family — same colour
+ * match as Fill, hard-edged at the options bar's default tolerance of 0,
+ * same Shift/Alt add/subtract/intersect modifiers as the other select
+ * tools). One click = one history entry; like Fill, the pixel used is
+ * wherever the pointer is released, not where it was pressed.
  */
 export class MagicWandTool implements Tool {
   readonly id = MAGIC_WAND_TOOL_ID;
@@ -33,13 +34,15 @@ export class MagicWandTool implements Tool {
     // selection happens on release
   }
 
-  onPointerUp(input: PointerInput, _context: ToolContext): Command | null {
+  onPointerUp(input: PointerInput, context: ToolContext): Command | null {
     const seed = this.#seed;
     this.#seed = null;
     if (!seed) {
       return null;
     }
-    return magicWandSelectCommand(input.pixel, selectionModeFrom(input.modifiers));
+    return magicWandSelectCommand(input.pixel, selectionModeFrom(input.modifiers), {
+      tolerance: context.magicWandTolerance,
+    });
   }
 
   onCancel(): void {

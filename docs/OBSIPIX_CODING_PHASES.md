@@ -1463,6 +1463,52 @@ Delete removed only that square, undo restored it.
 
 ------------------------------------------------------------------------
 
+# Phase 29 --- Magic Wand Tolerance
+
+## Goal
+
+User: exact-colour matching missed "very faint shades of black" in a loaded
+file (anti-aliasing / compression noise) that should read as one region. Add
+a tolerance setting to the Magic Wand.
+
+## Build
+
+-   `src/core/tools/fill.ts` — `walkFloodRegion` now takes a `tolerance`
+    parameter; a new private `colorsMatch(a, b, tolerance)` falls back to
+    exact `rgbaEquals` at `tolerance <= 0` (so `floodFill`, which always
+    calls it with `0`, is behaviourally unchanged) and otherwise requires
+    every RGBA channel's absolute difference to be within `tolerance`.
+    `floodMatchRegion` gained an optional `tolerance` parameter (0-255,
+    default 0) threaded straight through.
+-   `src/core/document/editCommands.ts` — `MagicWandOptions` gained
+    `tolerance?: number`; `magicWandSelectCommand` clamps it to `[0, 255]`
+    before passing it to `floodMatchRegion`.
+-   `src/core/tools/Tool.ts` — `ToolContext` gained `magicWandTolerance:
+    number` (mirrors `brush`); `EditorSession` stores it (`#magicWandTolerance`,
+    default 0), exposes `magicWandTolerance` / `setMagicWandTolerance`
+    (clamped, not undoable — a tool option, not document data, same as
+    `eyedropperMerged`), and threads it into `#context()`.
+    `MagicWandTool.onPointerUp` reads it from `context` and passes it to
+    `magicWandSelectCommand`.
+-   `src/app/components/MagicWandControls.tsx` (new, mirrors
+    `EyedropperControls`) — a "Tolerance" number input (0-255) in the options
+    bar, shown only while the wand is the active tool. Wired into
+    `AppShell.tsx`'s `.app-shell__options` alongside the other tool-specific
+    controls.
+
+## Exit gate
+
+Full `npm run check` + Playwright suite. 501 unit tests (tolerance cases in
+`fill.test.ts` and `editCommands.test.ts`, including one proving `floodFill`
+is untouched by the refactor), 50 e2e specs (new `selection.spec.ts` test:
+paints three shades — exact black, a faint near-black, and a clearly
+different colour — via the real colour-popover HEX field, confirms tolerance
+0 selects only the exact match, and tolerance 10 picks up the faint one while
+still excluding the clearly-different one). Browser-verified the Tolerance
+field appears only for the wand and the selection responds live to it.
+
+------------------------------------------------------------------------
+
 # Coding Rules for Every Phase
 
 ## Rule 1 --- Core is authoritative
@@ -1600,6 +1646,7 @@ V1 Release
   26      Copy-on-Write Undo Snapshots   COMPLETE
   27      Virtualized Timeline Strip     COMPLETE
   28      Magic Wand Select Tool         COMPLETE
+  29      Magic Wand Tolerance           COMPLETE
 
 # Definition of a Coding Phase
 
