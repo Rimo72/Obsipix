@@ -11,6 +11,7 @@ import {
   deselectCommand,
   flipCommand,
   invertSelectionCommand,
+  magicWandSelectCommand,
   pasteCommand,
   resizeCanvasCommand,
   resizeImageCommand,
@@ -55,6 +56,58 @@ describe('selection commands', () => {
     history.undo();
     expect(history.document.selection.isSelected(0, 0)).toBe(true);
     expect(history.document.selection.isSelected(20, 20)).toBe(false);
+  });
+});
+
+describe('magicWandSelectCommand', () => {
+  it('selects the contiguous region of matching colour on the active layer', () => {
+    const history = newHistory();
+    const document = history.document;
+    const layerId = document.layers.activeLayerId;
+    const buffer = document.ensureDrawableBuffer(layerId);
+    for (let y = 0; y < 32; y += 1) {
+      buffer.setPixel(10, y, BLACK); // a wall splitting the 32x32 canvas
+    }
+
+    history.execute(magicWandSelectCommand({ x: 0, y: 0 }, 'replace'));
+
+    expect(history.document.selection.active).toBe(true);
+    expect(history.document.selection.isSelected(5, 5)).toBe(true); // left of the wall
+    expect(history.document.selection.isSelected(10, 5)).toBe(false); // the wall itself
+    expect(history.document.selection.isSelected(20, 5)).toBe(false); // right of the wall
+
+    history.undo();
+    expect(history.document.selection.active).toBe(false);
+  });
+
+  it('selects the whole canvas when it is uniformly transparent', () => {
+    const history = newHistory();
+    history.execute(magicWandSelectCommand({ x: 4, y: 4 }, 'replace'));
+    expect(history.document.selection.bounds()).toEqual({ x: 0, y: 0, width: 32, height: 32 });
+  });
+
+  it('respects add / subtract / intersect selection modes', () => {
+    const history = newHistory();
+    const document = history.document;
+    const buffer = document.ensureDrawableBuffer(document.layers.activeLayerId);
+    buffer.setPixel(0, 0, BLACK); // an isolated black pixel
+
+    history.execute(selectRectCommand({ x: 20, y: 20, width: 4, height: 4 }, 'replace'));
+    history.execute(magicWandSelectCommand({ x: 0, y: 0 }, 'add'));
+
+    expect(history.document.selection.isSelected(0, 0)).toBe(true); // the wand's own pixel
+    expect(history.document.selection.isSelected(21, 21)).toBe(true); // still selected from before
+  });
+
+  it('does not touch document pixels — purely a selection', () => {
+    const history = newHistory();
+    const document = history.document;
+    const layerId = document.layers.activeLayerId;
+    document.ensureDrawableBuffer(layerId).setPixel(3, 3, WHITE);
+
+    history.execute(magicWandSelectCommand({ x: 3, y: 3 }, 'replace'));
+
+    expect(rgbaEquals(pixel(history.document, 3, 3), WHITE)).toBe(true);
   });
 });
 

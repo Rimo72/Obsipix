@@ -61,6 +61,7 @@ import { DEFAULT_BRUSH, type Brush, type BrushShape } from '@core/tools/Brush';
 import { EraserTool, ERASER_TOOL_ID } from '@core/tools/EraserTool';
 import { EyedropperTool, EYEDROPPER_TOOL_ID } from '@core/tools/EyedropperTool';
 import { FillTool, FILL_TOOL_ID } from '@core/tools/FillTool';
+import { MagicWandTool, MAGIC_WAND_TOOL_ID } from '@core/tools/MagicWandTool';
 import { MoveTool, MOVE_TOOL_ID } from '@core/tools/MoveTool';
 import { PencilTool, PENCIL_TOOL_ID } from '@core/tools/PencilTool';
 import type { PointerInput } from '@core/tools/PointerInput';
@@ -172,6 +173,7 @@ export class EditorSession {
       [ELLIPSE_TOOL_ID, new EllipseTool()],
       [RECT_SELECT_TOOL_ID, new RectangleSelectTool()],
       [LASSO_SELECT_TOOL_ID, new LassoSelectTool()],
+      [MAGIC_WAND_TOOL_ID, new MagicWandTool()],
       [MOVE_TOOL_ID, new MoveTool()],
     ]);
   }

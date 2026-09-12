@@ -23,7 +23,8 @@ release notes are in [`CHANGELOG.md`](CHANGELOG.md).
   3/4/6/8-digit HEX); eyedropper samples the composite or the active layer.
 - **Layers** — add / duplicate / delete / reorder, visibility, lock, opacity, merge
   down, merge visible, flatten.
-- **Selection & transform** — rectangular and lasso select, marching ants, invert
+- **Selection & transform** — rectangular and lasso select, Magic Wand
+  (click a colour to select its contiguous region), marching ants, invert
   selection, move as a floating selection, nudge, flip, rotate, delete,
   cut / copy / paste.
 - **Palettes** — PICO-8 default, create / duplicate / rename / delete, recent-colours
@@ -56,7 +57,7 @@ release notes are in [`CHANGELOG.md`](CHANGELOG.md).
 ## Shortcuts (v2 map)
 
 `B` Pencil · `E` Eraser · `I` Eyedropper · `G` Fill · `L` Line · `R` Rectangle ·
-`O` Ellipse · `S` Rectangle-select · `Q` Lasso · `M` Move · `X` swap colours.
+`O` Ellipse · `S` Rectangle-select · `Q` Lasso · `W` Magic Wand · `M` Move · `X` swap colours.
 `Space` + drag pans. `1` / `2` set 100 % / 200 % zoom. `Ctrl+Z` / `Ctrl+Shift+Z`
 undo / redo, `Ctrl+A` select all, `Ctrl+Shift+A` deselect, `Ctrl+Shift+I` invert
 selection. Press `?` for the full reference.

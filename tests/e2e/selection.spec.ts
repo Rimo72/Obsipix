@@ -58,6 +58,65 @@ test.describe('selection and transform', () => {
     expect(await alphaAt(page, 20, 6)).toBe(0);
   });
 
+  test('magic wand selects a contiguous colour region and Shift adds to it', async ({ page }) => {
+    await open(page);
+
+    // paint a wall splitting the 32x32 canvas into a left and right half
+    await page.getByRole('button', { name: 'Pencil' }).click();
+    await dragPixels(page, [16, 0], [16, 31]);
+
+    await page.getByRole('button', { name: 'Wand' }).click();
+    const leftScreen = await screenForPixel(page, 5, 5);
+    await page.mouse.click(leftScreen.x, leftScreen.y);
+
+    expect(await page.evaluate(() => window.__obsipix?.document.selection.bounds())).toEqual({
+      x: 0,
+      y: 0,
+      width: 16,
+      height: 32,
+    });
+    // the wall itself was never selected
+    expect(await page.evaluate(() => window.__obsipix?.document.selection.isSelected(16, 5))).toBe(
+      false,
+    );
+
+    // Shift-click the other side adds to the selection
+    const rightScreen = await screenForPixel(page, 25, 5);
+    await page.keyboard.down('Shift');
+    await page.mouse.click(rightScreen.x, rightScreen.y);
+    await page.keyboard.up('Shift');
+
+    expect(await page.evaluate(() => window.__obsipix?.document.selection.bounds())).toEqual({
+      x: 0,
+      y: 0,
+      width: 32,
+      height: 32,
+    });
+    expect(await page.evaluate(() => window.__obsipix?.document.selection.isSelected(5, 5))).toBe(
+      true,
+    );
+    expect(await page.evaluate(() => window.__obsipix?.document.selection.isSelected(25, 5))).toBe(
+      true,
+    );
+    expect(await page.evaluate(() => window.__obsipix?.document.selection.isSelected(16, 5))).toBe(
+      false,
+    );
+
+    // a plain click elsewhere replaces the selection rather than adding to it
+    await page.mouse.click(rightScreen.x, rightScreen.y);
+    expect(await page.evaluate(() => window.__obsipix?.document.selection.isSelected(5, 5))).toBe(
+      false,
+    );
+    expect(await page.evaluate(() => window.__obsipix?.document.selection.isSelected(25, 5))).toBe(
+      true,
+    );
+
+    // deleting the selection clears the right half but leaves the wall alone
+    await page.keyboard.press('Delete');
+    expect(await alphaAt(page, 25, 5)).toBe(0);
+    expect(await alphaAt(page, 16, 5)).toBeGreaterThan(0);
+  });
+
   test('flip horizontal mirrors the layer and undoes', async ({ page }) => {
     await open(page);
     await page.getByRole('button', { name: 'Pencil' }).click();

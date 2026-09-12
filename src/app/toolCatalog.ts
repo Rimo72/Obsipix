@@ -1,6 +1,7 @@
 import { ERASER_TOOL_ID } from '@core/tools/EraserTool';
 import { EYEDROPPER_TOOL_ID } from '@core/tools/EyedropperTool';
 import { FILL_TOOL_ID } from '@core/tools/FillTool';
+import { MAGIC_WAND_TOOL_ID } from '@core/tools/MagicWandTool';
 import { MOVE_TOOL_ID } from '@core/tools/MoveTool';
 import { PENCIL_TOOL_ID } from '@core/tools/PencilTool';
 import { LASSO_SELECT_TOOL_ID, RECT_SELECT_TOOL_ID } from '@core/tools/SelectTools';
@@ -12,8 +13,9 @@ export interface ToolEntry {
   readonly key: string;
 }
 
-// Keys follow PROJECT_CORE §17 / §95.6 (B/E/G/I/L/M/R/O). Select and Lasso have
-// no key in the spec's tool list; Obsipix keeps them on S and Q.
+// Keys follow PROJECT_CORE §17 / §95.6 (B/E/G/I/L/M/R/O). Select, Lasso and
+// Magic Wand have no key in the spec's tool list; Obsipix keeps them on S, Q
+// and W (the conventional magic-wand shortcut).
 export const TOOL_CATALOG: readonly ToolEntry[] = [
   { id: PENCIL_TOOL_ID, label: 'Pencil', key: 'B' },
   { id: ERASER_TOOL_ID, label: 'Eraser', key: 'E' },
@@ -24,6 +26,7 @@ export const TOOL_CATALOG: readonly ToolEntry[] = [
   { id: ELLIPSE_TOOL_ID, label: 'Ellipse', key: 'O' },
   { id: RECT_SELECT_TOOL_ID, label: 'Select', key: 'S' },
   { id: LASSO_SELECT_TOOL_ID, label: 'Lasso', key: 'Q' },
+  { id: MAGIC_WAND_TOOL_ID, label: 'Wand', key: 'W' },
   { id: MOVE_TOOL_ID, label: 'Move', key: 'M' },
 ];
 

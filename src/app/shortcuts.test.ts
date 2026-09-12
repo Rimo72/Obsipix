@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { MAGIC_WAND_TOOL_ID } from '@core/tools/MagicWandTool';
 import { MOVE_TOOL_ID } from '@core/tools/MoveTool';
 import { PENCIL_TOOL_ID } from '@core/tools/PencilTool';
 import { RECTANGLE_TOOL_ID } from '@core/tools/shapeTools';
@@ -65,6 +66,7 @@ describe('resolveShortcut (v2 keymap)', () => {
     });
     expect(resolveShortcut(key('r'), IDLE)).toMatchObject({ toolId: RECTANGLE_TOOL_ID });
     expect(resolveShortcut(key('m'), IDLE)).toMatchObject({ toolId: MOVE_TOOL_ID });
+    expect(resolveShortcut(key('w'), IDLE)).toMatchObject({ toolId: MAGIC_WAND_TOOL_ID });
     // U and V are no longer tool keys
     expect(resolveShortcut(key('u'), IDLE)).toBeNull();
     expect(resolveShortcut(key('v'), IDLE)).toBeNull();

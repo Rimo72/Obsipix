@@ -34,7 +34,11 @@ interface ObsipixSession {
       layers: readonly { id: string; name: string; opacity: number; visible: boolean }[];
     };
     dimensions: { width: number; height: number };
-    selection: { active: boolean };
+    selection: {
+      active: boolean;
+      bounds(): { x: number; y: number; width: number; height: number } | null;
+      isSelected(x: number, y: number): boolean;
+    };
     palettes: { id: string; name: string; colors: PaletteColor[] }[];
     activePaletteId: string | null;
     activePalette: { id: string; name: string; colors: PaletteColor[] } | null;

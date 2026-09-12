@@ -1408,6 +1408,61 @@ the strip correctly reveals the right frames with correct thumbnail content
 
 ------------------------------------------------------------------------
 
+# Phase 28 --- Magic Wand Select Tool
+
+## Goal
+
+Add a Magic Wand tool: click a pixel and select the contiguous region of
+matching colour, the way Fill paints one.
+
+## Build
+
+-   `src/core/tools/fill.ts` — extracted the traversal both need into a
+    private `walkFloodRegion(buffer, seed, visit)`; `floodFill` now calls it
+    to paint, and a new `floodMatchRegion(buffer, seed): PixelPoint[]` calls
+    it to collect the region instead — read-only, never mutates. Zero
+    behaviour change to `floodFill` itself (its full existing test suite
+    passes unmodified).
+-   `src/core/document/editCommands.ts` — `magicWandSelectCommand(seed, mode,
+    options?)`: resolves the active layer's buffer (an empty/hold cel with
+    nothing behind it reads as a uniformly-transparent scratch buffer, so the
+    seed matches the whole canvas — built via `PixelBuffer.create`, never
+    attached to the document, so it can never accidentally convert the cel to
+    normal the way `ensureDrawableBuffer` would), flood-matches from `seed`,
+    and applies the result through `Selection.applyShape` — same mechanism
+    `selectShapeCommand` (Lasso) already uses.
+-   `src/core/tools/MagicWandTool.ts` (new) — a `kind: 'shape'` tool mirroring
+    `FillTool`: no preview, one click = one history entry, the pixel used is
+    wherever the pointer is *released* (not pressed), Shift/Alt/Shift+Alt
+    select add/subtract/intersect via the existing `selectionModeFrom` (same
+    modifier convention as Rectangle/Lasso select).
+-   Registered as `W` in `toolCatalog.ts` (between Lasso and Move) and in
+    `EditorSession`'s tool map — the tool rail button and keyboard shortcut
+    are both fully generic over the catalog, so no UI code changed.
+
+## Rules
+
+-   A select tool never mutates pixel data or the cel graph — confirmed by
+    reading from a detached scratch `PixelBuffer` rather than
+    `ensureDrawableBuffer`, which would force an empty/hold cel to become a
+    real (if blank) normal cel just from making a selection.
+
+## Exit gate
+
+Full `npm run check` + Playwright suite. 493 unit tests (`floodMatchRegion`
+tests in `fill.test.ts`, `magicWandSelectCommand` tests in
+`editCommands.test.ts` covering region containment, whole-canvas-on-empty,
+add/subtract/intersect modes, and that it never touches pixels; a `W` mapping
+assertion in `shortcuts.test.ts`), 49 e2e specs (new test in
+`selection.spec.ts`: paints a wall splitting the canvas, wand-selects one
+side, Shift-adds the other, confirms the wall itself is never selected,
+confirms a plain click replaces rather than adds, and that Delete only
+touches the selected region). Browser-verified: painted a red square, wand
+click produced a `sel 8 × 8` marching-ants selection tracing it exactly,
+Delete removed only that square, undo restored it.
+
+------------------------------------------------------------------------
+
 # Coding Rules for Every Phase
 
 ## Rule 1 --- Core is authoritative
@@ -1544,6 +1599,7 @@ V1 Release
   25      Sprite-Sheet Layout Fixes      COMPLETE
   26      Copy-on-Write Undo Snapshots   COMPLETE
   27      Virtualized Timeline Strip     COMPLETE
+  28      Magic Wand Select Tool         COMPLETE
 
 # Definition of a Coding Phase
 

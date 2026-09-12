@@ -261,7 +261,7 @@ export const SHORTCUT_REFERENCE: readonly {
     items: [
       { keys: 'B / E / I / G', label: 'Pencil / Eraser / Eyedropper / Fill' },
       { keys: 'L / R / O', label: 'Line / Rectangle / Ellipse' },
-      { keys: 'S / Q / M', label: 'Select / Lasso / Move' },
+      { keys: 'S / Q / W / M', label: 'Select / Lasso / Magic Wand / Move' },
     ],
   },
 ];

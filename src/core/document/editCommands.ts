@@ -1,8 +1,9 @@
 import { command, mutation, type Command } from '@core/history/Command';
 import { PixelBuffer } from '@core/pixels/PixelBuffer';
+import { floodMatchRegion } from '@core/tools/fill';
 import { TRANSPARENT } from '@core/types/color';
 import type { Dimensions, PixelPoint, PixelRegion } from '@core/types/geometry';
-import type { LayerId } from '@core/types/ids';
+import type { FrameId, LayerId } from '@core/types/ids';
 import {
   anchorOffset,
   flipHorizontal,
@@ -53,6 +54,35 @@ export function selectShapeCommand(pixels: readonly PixelPoint[], mode: Selectio
   return mutation('Select', (document) => {
     const width = document.dimensions.width;
     const set = new Set(pixels.map((p) => p.y * width + p.x));
+    document.selection.applyShape((x, y) => set.has(y * width + x), mode);
+  });
+}
+
+export interface MagicWandOptions {
+  readonly layerId?: LayerId;
+  readonly frameId?: FrameId;
+}
+
+/**
+ * Magic Wand: select the 4-connected region of pixels matching `seed`'s exact
+ * colour on the active layer (hard-edged, no tolerance — same matching rule
+ * as Fill, PROJECT_CORE §3.2). An empty/hold cel with nothing behind it reads
+ * as uniformly transparent, so the seed matches the whole canvas — read-only,
+ * never converts the cel to a normal one the way painting would.
+ */
+export function magicWandSelectCommand(
+  seed: PixelPoint,
+  mode: SelectionMode,
+  options: MagicWandOptions = {},
+): Command {
+  return mutation('Magic Wand', (document) => {
+    const layerId = options.layerId ?? document.layers.activeLayerId;
+    const buffer =
+      document.resolveBuffer(layerId, options.frameId) ??
+      PixelBuffer.create(document.dimensions.width, document.dimensions.height);
+    const region = floodMatchRegion(buffer, seed);
+    const width = document.dimensions.width;
+    const set = new Set(region.map((p) => p.y * width + p.x));
     document.selection.applyShape((x, y) => set.has(y * width + x), mode);
   });
 }

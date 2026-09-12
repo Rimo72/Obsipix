@@ -3,6 +3,17 @@
 All notable changes to Obsipix are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## 1.6.0 — 2026-09-12
+
+### Added
+
+- **Magic Wand tool** (`W`) — click a pixel to select the contiguous region
+  of matching colour on the active layer, the same hard-edged colour match
+  Fill uses. Shift / Alt / Shift+Alt add, subtract or intersect with the
+  current selection, exactly like the other select tools. Read-only: it
+  never paints, and clicking an empty/hold cel (uniformly transparent)
+  selects the whole canvas without converting the cel to a normal one.
+
 ## 1.5.9 — 2026-09-12
 
 ### Fixed
