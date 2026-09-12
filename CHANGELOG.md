@@ -3,6 +3,21 @@
 All notable changes to Obsipix are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## 1.5.9 — 2026-09-12
+
+### Fixed
+
+- **The rest of the many-frames drawing lag** — v1.5.8 fixed undo-snapshot
+  cost, but every stroke still re-rendered and repainted the timeline's frame
+  thumbnails for _every_ frame in the project, not just the handful actually
+  on screen, since the strip has no windowing. On a 201-frame document this
+  cost ~66–160ms per stroke by itself, unrelated to the v1.5.8 fix. The frame
+  strip now only mounts frames near the visible scroll window (plus a small
+  buffer) — measured amortized cost on a 201-frame, 3-layer document dropped
+  to ~1.2ms per stroke. Off-screen thumbnails skip their (expensive) repaint
+  entirely via an `IntersectionObserver` and catch up the moment they scroll
+  into view — never stale once visible, just lazily painted.
+
 ## 1.5.8 — 2026-09-11
 
 ### Fixed

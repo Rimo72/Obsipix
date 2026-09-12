@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { CelType } from '@core/document/Cel';
 import type { AnimationTagId } from '@core/types/ids';
 
 import type { EditorSession } from '../EditorSession';
+import { horizontalVirtualRange } from '../virtualRange';
 import { FrameThumbnail } from './FrameThumbnail';
 import './TimelinePanel.css';
 
@@ -25,10 +26,21 @@ const CEL_LABEL: Record<CelType, string> = {
   hold: 'hold',
 };
 
+// Must match .timeline-panel__frame's width (56px) plus .timeline-panel__frames'
+// gap (4px) in TimelinePanel.css.
+const FRAME_ITEM_WIDTH = 60;
+const FRAME_VIRTUAL_BUFFER = 6;
+
 /**
  * The animation timeline (PROJECT_CORE §9): a frame strip, playback transport,
  * per-frame duration, onion-skin toggle and the tag bar. Every artwork-affecting
  * action goes through {@link EditorSession} commands; playback is transient.
+ *
+ * The frame strip only renders the frames near the visible scroll window
+ * (plus a small buffer), not every frame in the project — with hundreds of
+ * frames, mounting (and repainting) all of them on every single edit was the
+ * single biggest source of editor lag, even though at most a handful are
+ * ever on screen at once.
  */
 export function TimelinePanel({ session }: TimelinePanelProps) {
   const { timeline, layers } = session.document;
@@ -38,6 +50,34 @@ export function TimelinePanel({ session }: TimelinePanelProps) {
   const activeIndex = timeline.indexOf(activeFrameId);
   const onion = session.onionSkin;
   const [newTag, setNewTag] = useState(false);
+
+  const framesRef = useRef<HTMLOListElement>(null);
+  const [viewport, setViewport] = useState({ scrollLeft: 0, clientWidth: 0 });
+  useEffect(() => {
+    const el = framesRef.current;
+    if (!el) {
+      return;
+    }
+    const measure = (): void => {
+      setViewport({ scrollLeft: el.scrollLeft, clientWidth: el.clientWidth });
+    };
+    measure();
+    el.addEventListener('scroll', measure, { passive: true });
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    observer?.observe(el);
+    return () => {
+      el.removeEventListener('scroll', measure);
+      observer?.disconnect();
+    };
+  }, []);
+  const { start: frameRangeStart, end: frameRangeEnd } = horizontalVirtualRange(
+    viewport.scrollLeft,
+    viewport.clientWidth,
+    FRAME_ITEM_WIDTH,
+    frames.length,
+    FRAME_VIRTUAL_BUFFER,
+  );
+  const visibleFrames = frames.slice(frameRangeStart, frameRangeEnd);
 
   return (
     <div className="timeline-panel">
@@ -232,8 +272,15 @@ export function TimelinePanel({ session }: TimelinePanelProps) {
         </button>
       </div>
 
-      <ol className="timeline-panel__frames">
-        {frames.map((frame, index) => {
+      <ol className="timeline-panel__frames" ref={framesRef}>
+        {frameRangeStart > 0 && (
+          <li
+            aria-hidden="true"
+            style={{ flex: `0 0 ${String(frameRangeStart * FRAME_ITEM_WIDTH)}px` }}
+          />
+        )}
+        {visibleFrames.map((frame, i) => {
+          const index = frameRangeStart + i;
           const active = frame.id === activeFrameId;
           const cel = frame.getCel(activeLayerId);
           return (
@@ -289,6 +336,14 @@ export function TimelinePanel({ session }: TimelinePanelProps) {
             </li>
           );
         })}
+        {frameRangeEnd < frames.length && (
+          <li
+            aria-hidden="true"
+            style={{
+              flex: `0 0 ${String((frames.length - frameRangeEnd) * FRAME_ITEM_WIDTH)}px`,
+            }}
+          />
+        )}
       </ol>
 
       <div className="timeline-panel__cel-ops">

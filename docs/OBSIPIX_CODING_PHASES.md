@@ -1348,6 +1348,66 @@ correct afterward.
 
 ------------------------------------------------------------------------
 
+# Phase 27 --- Virtualized Timeline Frame Strip
+
+## Goal
+
+User reported the drawing lag persisted after Phase 26. Root cause (found by
+benchmarking a real stroke end-to-end, not just the History/Document layer):
+`TimelinePanel` renders one `FrameThumbnail` per frame with no windowing, and
+every one shares the same global `session.getVersion()` — so drawing on
+*any* frame re-rendered and repainted (a full layer composite each) *every*
+frame's thumbnail, even though only a handful are ever on screen. On a
+201-frame document this cost ~66–160ms per stroke by itself, entirely
+separate from the snapshot cost Phase 26 fixed.
+
+## Build
+
+-   `src/app/virtualRange.ts` — `horizontalVirtualRange(scrollLeft,
+    clientWidth, itemWidth, itemCount, buffer)`: pure, unit-tested function
+    computing which contiguous `[start, end)` slice of a fixed-width
+    horizontal list falls within the visible viewport plus a buffer.
+    Special-cases `clientWidth <= 0` (not measured yet, e.g. first render —
+    or always true in jsdom, which is why existing unit tests needed no
+    changes) to mean "render everything".
+-   `TimelinePanel.tsx` — measures its `.timeline-panel__frames` scroll
+    container (`scrollLeft`/`clientWidth`, via a scroll listener +
+    `ResizeObserver`) and renders only `frames.slice(start, end)` as real
+    `<li>`s, flanked by two flex spacers sized to reserve the skipped items'
+    width so the scrollbar stays correct. `FRAME_ITEM_WIDTH = 60` must track
+    `.timeline-panel__frame`'s CSS width (56px) + the strip's `gap` (4px).
+-   `FrameThumbnail.tsx` — independently gated with an `IntersectionObserver`
+    (root = the scroll container): skips its own (expensive) repaint while
+    off-screen, remembering it's stale, and catches up the moment it scrolls
+    into view. Starts "visible" so the very first mount still paints
+    immediately (no blank-canvas flash) — only *later* edits are skipped for
+    anything actually off-screen. Two mechanisms — virtualized mounting and
+    per-thumbnail visibility gating — because the frame that's off-screen
+    *and* whose props otherwise look unchanged still needs a way to know it
+    became stale while unmounted the moment it's remounted.
+
+## Rules
+
+-   Never trust a "2 rAF waits" stopwatch below roughly one frame budget —
+    it has an inherent ~33ms floor (2 vsync frames at 60Hz) that swamps any
+    real cost once work is already fast. Measure amortized cost instead:
+    fire many operations back to back, wait once, divide by count.
+
+## Exit gate
+
+Full `npm run check` + Playwright suite. 485 unit tests (`virtualRange.test.ts`,
+`FrameThumbnail.test.tsx` off-screen-gating tests, `TimelinePanel.test.tsx`
+virtualization tests), 48 e2e specs (unchanged — every existing timeline e2e
+uses ≤2 frames, well inside the always-render-everything threshold, so
+nothing needed updating). Measured on a 201-frame, 3-layer, 64×64 document:
+amortized cost of 50 back-to-back strokes dropped from a ~66–160ms-per-stroke
+floor to **~1.2ms per stroke**. Browser-verified: only ~15 `<li>` frames ever
+mounted regardless of total frame count (confirmed via DOM query), scrolling
+the strip correctly reveals the right frames with correct thumbnail content
+(checked frames 187–201 after a scroll-to-end).
+
+------------------------------------------------------------------------
+
 # Coding Rules for Every Phase
 
 ## Rule 1 --- Core is authoritative
@@ -1483,6 +1543,7 @@ V1 Release
   24      Legible Sprite-Sheet Preview   COMPLETE
   25      Sprite-Sheet Layout Fixes      COMPLETE
   26      Copy-on-Write Undo Snapshots   COMPLETE
+  27      Virtualized Timeline Strip     COMPLETE
 
 # Definition of a Coding Phase
 

@@ -43,6 +43,55 @@ describe('TimelinePanel frame thumbnails', () => {
   });
 });
 
+describe('TimelinePanel frame strip virtualization', () => {
+  function stubMeasuredWidth(px: number): () => void {
+    const original = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientWidth');
+    Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
+      configurable: true,
+      get() {
+        return px;
+      },
+    });
+    return () => {
+      if (original) {
+        Object.defineProperty(HTMLElement.prototype, 'clientWidth', original);
+      }
+    };
+  }
+
+  it('mounts far fewer frames than exist once the strip is measured', () => {
+    const restore = stubMeasuredWidth(300); // room for ~5 items at 60px each
+    try {
+      const session = new EditorSession();
+      for (let i = 0; i < 199; i += 1) {
+        session.addFrame();
+      }
+
+      render(<TimelinePanel session={session} />);
+      const rendered = screen.getAllByTestId('timeline-frame');
+      expect(rendered.length).toBeGreaterThan(0);
+      // buffer is small and fixed — nowhere near the full 200 frames
+      expect(rendered.length).toBeLessThan(30);
+    } finally {
+      restore();
+    }
+  });
+
+  it('still mounts every frame for a small project (nothing to virtualize away)', () => {
+    const restore = stubMeasuredWidth(300);
+    try {
+      const session = new EditorSession();
+      session.addFrame();
+      session.addFrame();
+
+      render(<TimelinePanel session={session} />);
+      expect(screen.getAllByTestId('timeline-frame')).toHaveLength(3);
+    } finally {
+      restore();
+    }
+  });
+});
+
 describe('TimelinePanel tag editor', () => {
   it('stays open while focus moves between its fields, and closes when focus leaves', () => {
     const session = new EditorSession();
