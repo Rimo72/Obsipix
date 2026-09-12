@@ -140,6 +140,14 @@ export class EditorSession {
   #brush: Brush = DEFAULT_BRUSH;
   #eyedropperMerged = true;
   #magicWandTolerance = 0;
+  /**
+   * The frame a Magic Wand selection was made on, so it can be cleared when
+   * the user navigates away instead of silently applying to a frame it was
+   * never computed against (unlike Rectangle/Lasso selects, a wand selection
+   * is a snapshot of one frame's colours and has no meaning on another).
+   * `null` once the selection has been replaced by anything else.
+   */
+  #magicWandSelectionFrameId: FrameId | null = null;
   #preview: readonly PreviewStamp[] | null = null;
   #showGrid = true;
   #showCheckerboard = true;
@@ -678,6 +686,11 @@ export class EditorSession {
       this.#stroke = null;
     } else if (command) {
       this.history.execute(command);
+      if (tool.id === MAGIC_WAND_TOOL_ID) {
+        this.#magicWandSelectionFrameId = this.document.timeline.activeFrameId;
+      } else if (tool.id === RECT_SELECT_TOOL_ID || tool.id === LASSO_SELECT_TOOL_ID) {
+        this.#magicWandSelectionFrameId = null;
+      }
     }
 
     this.#preview = null;
@@ -786,6 +799,7 @@ export class EditorSession {
       }
     }
     document.selection.applyShape((x, y) => placed.has(y * width + x), 'replace');
+    this.#magicWandSelectionFrameId = null;
     float.handle.commit();
     this.#emit();
   }
@@ -859,6 +873,7 @@ export class EditorSession {
   // --- Selection & transform ------------------------------------------
 
   selectAll(): void {
+    this.#magicWandSelectionFrameId = null;
     this.runCommand(selectAllCommand());
   }
 
@@ -866,6 +881,7 @@ export class EditorSession {
     if (this.#float) {
       this.#commitFloat();
     }
+    this.#magicWandSelectionFrameId = null;
     this.runCommand(deselectCommand());
   }
 
@@ -873,6 +889,7 @@ export class EditorSession {
     if (this.#float) {
       this.#commitFloat();
     }
+    this.#magicWandSelectionFrameId = null;
     this.runCommand(invertSelectionCommand());
   }
 
@@ -957,6 +974,7 @@ export class EditorSession {
       x: Math.max(0, Math.floor((width - this.#clipboard.width) / 2)),
       y: Math.max(0, Math.floor((height - this.#clipboard.height) / 2)),
     };
+    this.#magicWandSelectionFrameId = null;
     this.runCommand(pasteCommand(this.#clipboard, at));
   }
 
@@ -1022,8 +1040,26 @@ export class EditorSession {
   }
 
   setActiveFrame(frameId: Parameters<Document['setActiveFrame']>[0]): void {
-    this.document.setActiveFrame(frameId);
+    this.#gotoFrame(frameId);
     this.#emit();
+  }
+
+  /**
+   * Switch frames, first dropping a Magic Wand selection made on a different
+   * frame — its mask is a snapshot of that frame's colours and means nothing
+   * elsewhere (unlike a Rectangle/Lasso selection, which is left alone: the
+   * same coordinates are a deliberate, reusable region across frames).
+   */
+  #gotoFrame(frameId: FrameId): void {
+    if (
+      this.#magicWandSelectionFrameId !== null &&
+      this.#magicWandSelectionFrameId !== frameId &&
+      this.document.selection.active
+    ) {
+      this.document.selection.deselect();
+      this.#magicWandSelectionFrameId = null;
+    }
+    this.document.setActiveFrame(frameId);
   }
 
   addLayer(): void {
@@ -1226,14 +1262,14 @@ export class EditorSession {
 
   firstFrame(): void {
     this.pause();
-    this.document.setActiveFrame(this.document.timeline.frameAt(0).id);
+    this.#gotoFrame(this.document.timeline.frameAt(0).id);
     this.#emit();
   }
 
   lastFrame(): void {
     this.pause();
     const timeline = this.document.timeline;
-    this.document.setActiveFrame(timeline.frameAt(timeline.frameCount - 1).id);
+    this.#gotoFrame(timeline.frameAt(timeline.frameCount - 1).id);
     this.#emit();
   }
 
@@ -1251,7 +1287,7 @@ export class EditorSession {
     const timeline = this.document.timeline;
     const index = timeline.indexOf(timeline.activeFrameId);
     const next = (index + delta + timeline.frameCount) % timeline.frameCount;
-    this.document.setActiveFrame(timeline.frameAt(next).id);
+    this.#gotoFrame(timeline.frameAt(next).id);
     this.#emit();
   }
 
@@ -1278,10 +1314,10 @@ export class EditorSession {
       if (this.#playMode === 'once') {
         return false;
       }
-      this.document.setActiveFrame(timeline.frameAt(0).id);
+      this.#gotoFrame(timeline.frameAt(0).id);
       return true;
     }
-    this.document.setActiveFrame(timeline.frameAt(index + 1).id);
+    this.#gotoFrame(timeline.frameAt(index + 1).id);
     return true;
   }
 

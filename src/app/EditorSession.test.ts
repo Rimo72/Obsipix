@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { selectRectCommand } from '@core/document/editCommands';
 import { ERASER_TOOL_ID } from '@core/tools/EraserTool';
+import { MAGIC_WAND_TOOL_ID } from '@core/tools/MagicWandTool';
 import { PENCIL_TOOL_ID } from '@core/tools/PencilTool';
+import { RECT_SELECT_TOOL_ID } from '@core/tools/SelectTools';
 import { NO_MODIFIERS, type PointerInput } from '@core/tools/PointerInput';
 import { BLACK, TRANSPARENT, rgbaEquals, type RGBA } from '@core/types/color';
 
@@ -204,6 +206,74 @@ describe('EditorSession selection & float', () => {
     session.setTool(ERASER_TOOL_ID);
     expect(session.hasFloat).toBe(false);
     expect(rgbaEquals(pixel(session, 9, 5), BLACK)).toBe(true);
+  });
+});
+
+describe('EditorSession magic wand — frame-scoped selection', () => {
+  function twoFramesWithMatchingSquares(): EditorSession {
+    const session = new EditorSession();
+    session.addFrame();
+    const frames = session.document.timeline.frames;
+    const layerId = session.document.layers.activeLayerId;
+    // an isolated black square at the same coordinates on both frames
+    for (const frame of frames) {
+      const buffer = session.document.ensureDrawableBuffer(layerId, frame.id);
+      for (let x = 4; x < 8; x += 1) {
+        for (let y = 4; y < 8; y += 1) {
+          buffer.setPixel(x, y, BLACK);
+        }
+      }
+    }
+    session.setActiveFrame(frames[0]!.id);
+    return session;
+  }
+
+  it('clears a wand selection when the active frame changes', () => {
+    const session = twoFramesWithMatchingSquares();
+    const frames = session.document.timeline.frames;
+    session.setTool(MAGIC_WAND_TOOL_ID);
+    session.pointerDown(press(5, 5));
+    session.pointerUp(press(5, 5, 'none'));
+    expect(session.document.selection.active).toBe(true);
+
+    session.setActiveFrame(frames[1]!.id);
+    expect(session.document.selection.active).toBe(false);
+  });
+
+  it('does not clear the selection when re-selecting the same frame', () => {
+    const session = twoFramesWithMatchingSquares();
+    const frames = session.document.timeline.frames;
+    session.setTool(MAGIC_WAND_TOOL_ID);
+    session.pointerDown(press(5, 5));
+    session.pointerUp(press(5, 5, 'none'));
+
+    session.setActiveFrame(frames[0]!.id); // same frame the selection was made on
+    expect(session.document.selection.active).toBe(true);
+  });
+
+  it('leaves a Rectangle selection alone across a frame change', () => {
+    const session = twoFramesWithMatchingSquares();
+    const frames = session.document.timeline.frames;
+    session.runCommand(selectRectCommand({ x: 4, y: 4, width: 4, height: 4 }, 'replace'));
+
+    session.setActiveFrame(frames[1]!.id);
+    expect(session.document.selection.active).toBe(true);
+    expect(session.document.selection.bounds()).toEqual({ x: 4, y: 4, width: 4, height: 4 });
+  });
+
+  it('a wand selection followed by a Rectangle selection is no longer frame-scoped', () => {
+    const session = twoFramesWithMatchingSquares();
+    const frames = session.document.timeline.frames;
+    session.setTool(MAGIC_WAND_TOOL_ID);
+    session.pointerDown(press(5, 5));
+    session.pointerUp(press(5, 5, 'none'));
+
+    session.setTool(RECT_SELECT_TOOL_ID);
+    session.pointerDown(press(0, 0));
+    session.pointerUp(press(2, 2, 'none'));
+
+    session.setActiveFrame(frames[1]!.id);
+    expect(session.document.selection.active).toBe(true); // the rect selection survives
   });
 });
 

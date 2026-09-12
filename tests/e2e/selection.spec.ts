@@ -168,6 +168,38 @@ test.describe('selection and transform', () => {
     );
   });
 
+  test('magic wand selection clears on a frame switch, unlike a rectangle selection', async ({
+    page,
+  }) => {
+    await open(page);
+
+    await page.getByRole('button', { name: 'Add frame' }).click();
+    const timelineFrames = page.getByTestId('timeline-frame');
+    await timelineFrames.first().click(); // back to frame 1
+
+    await page.getByRole('button', { name: 'Pencil' }).click();
+    await dragPixels(page, [5, 5], [5, 5]);
+
+    await page.getByRole('button', { name: 'Wand' }).click();
+    const seed = await screenForPixel(page, 5, 5);
+    await page.mouse.click(seed.x, seed.y);
+    expect(await page.evaluate(() => window.__obsipix?.document.selection.active)).toBe(true);
+
+    await timelineFrames.nth(1).click(); // switch to frame 2
+    expect(await page.evaluate(() => window.__obsipix?.document.selection.active)).toBe(false);
+
+    // switching back doesn't resurrect the stale selection
+    await timelineFrames.first().click();
+    expect(await page.evaluate(() => window.__obsipix?.document.selection.active)).toBe(false);
+
+    // a rectangle selection, by contrast, is a deliberate reusable region and survives
+    await page.getByRole('button', { name: 'Select', exact: true }).click();
+    await dragScreen(page, [1, 1], [3, 3]);
+    expect(await page.evaluate(() => window.__obsipix?.document.selection.active)).toBe(true);
+    await timelineFrames.nth(1).click();
+    expect(await page.evaluate(() => window.__obsipix?.document.selection.active)).toBe(true);
+  });
+
   test('flip horizontal mirrors the layer and undoes', async ({ page }) => {
     await open(page);
     await page.getByRole('button', { name: 'Pencil' }).click();

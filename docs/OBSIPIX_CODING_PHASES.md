@@ -1509,6 +1509,61 @@ field appears only for the wand and the selection responds live to it.
 
 ------------------------------------------------------------------------
 
+# Phase 30 --- Frame-Scoped Magic Wand Selection
+
+## Goal
+
+User: a Magic Wand selection was showing up (and would apply) on other
+frames after switching, even though it was computed from a different frame's
+colours. Confirmed this is how the whole selection system already works —
+`Document.selection` is one document-wide mask, not per-frame, and
+Rectangle/Lasso selections already rely on that to reuse a region across
+frames — so the fix has to be wand-specific, not a change to selection's
+architecture.
+
+## Build
+
+-   `EditorSession` gained `#magicWandSelectionFrameId: FrameId | null` —
+    which frame (if any) the *current* selection was made on by the wand.
+    Set in `pointerUp()` when the active tool is the wand; cleared whenever
+    anything else replaces the selection with something that is not a
+    frame-specific wand snapshot: `pointerUp()` when Rect/Lasso select
+    executes, `selectAll`/`deselect`/`invertSelection`, `paste`, and
+    `#commitFloat` (a committed float's placement is its own new selection).
+    Other shape tools (Fill/Line/Rectangle/Ellipse) don't touch selection at
+    all, so they correctly leave the flag alone.
+-   A new private `#gotoFrame(frameId)` is now the *only* path that changes
+    the active frame — it deselects first if a wand selection belongs to a
+    *different* frame than the one being switched to, then delegates to
+    `Document.setActiveFrame`. All five previous direct call sites
+    (`setActiveFrame`, `firstFrame`, `lastFrame`, `#step`, `#advancePlayback`)
+    now go through it, so this also covers frame-stepping and playback, not
+    just explicit frame clicks.
+-   The clear itself is a direct, non-undoable mutation
+    (`document.selection.deselect()`), matching frame navigation's own
+    not-undoable status (Rule 5 — transient state stays transient).
+
+## Rules
+
+-   Only the wand's selection is frame-scoped. Rectangle/Lasso stay
+    document-wide on purpose — reusing the same region across frames for a
+    batch edit is a deliberate, existing feature, not a bug.
+
+## Exit gate
+
+Full `npm run check` + Playwright suite. 505 unit tests (new
+`EditorSession.test.ts` describe block: wand selection clears on a frame
+change, survives switching back to its own frame, a Rectangle selection
+survives a frame change untouched, and a Rect-select made *after* a wand
+click is no longer frame-scoped), 51 e2e specs (new `selection.spec.ts` test
+using real frame-thumbnail clicks). Browser-verified the exact reported
+repro: red square on frame 1, blue square at the same coordinates on frame
+2, wand-select frame 1's red region, switch to frame 2 — selection is now
+gone (previously showed the frame-1-shaped mask over the blue square);
+confirmed a Rectangle selection still carries across frames unchanged.
+
+------------------------------------------------------------------------
+
 # Coding Rules for Every Phase
 
 ## Rule 1 --- Core is authoritative
@@ -1647,6 +1702,7 @@ V1 Release
   27      Virtualized Timeline Strip     COMPLETE
   28      Magic Wand Select Tool         COMPLETE
   29      Magic Wand Tolerance           COMPLETE
+  30      Frame-Scoped Wand Selection    COMPLETE
 
 # Definition of a Coding Phase
 

@@ -3,6 +3,19 @@
 All notable changes to Obsipix are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## 1.6.2 — 2026-09-12
+
+### Fixed
+
+- **A Magic Wand selection no longer leaks into other frames.** Selection is
+  shared document-wide, so switching frames used to leave a wand-made
+  selection active on whatever frame you landed on — even though its shape
+  was computed from a _different_ frame's colours and meant nothing there.
+  The wand's own selection now clears automatically the moment you switch
+  away from the frame it was made on. Rectangle and Lasso selections are
+  unaffected and still deliberately carry across frames, for reusing the
+  same region in a batch edit.
+
 ## 1.6.1 — 2026-09-12
 
 ### Added
