@@ -6,11 +6,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
  * (§111.13). Persisted to `localStorage` as a user preference (§111.7).
  */
 
-export type PanelId = 'assets' | 'color' | 'layers' | 'palette' | 'preview' | 'timeline';
+export type PanelId =
+  'assets' | 'color' | 'layers' | 'palette' | 'preview' | 'terrain' | 'timeline';
 
 /** Sidebar panels stack top-to-bottom in this order; `timeline` is the bottom dock. */
 export const SIDEBAR_PANELS: readonly PanelId[] = [
   'assets',
+  'terrain',
   'color',
   'layers',
   'palette',
@@ -23,6 +25,7 @@ export const PANEL_TITLE: Record<PanelId, string> = {
   layers: 'Layers',
   palette: 'Palettes',
   preview: 'Animation Preview',
+  terrain: 'Terrain Grid',
   timeline: 'Animation',
 };
 
@@ -52,6 +55,7 @@ export const DEFAULT_LAYOUT: PanelLayout = {
     layers: { visible: true, collapsed: false, height: 210 },
     palette: { visible: true, collapsed: false, height: 170 },
     preview: { visible: true, collapsed: false, height: 200 },
+    terrain: { visible: true, collapsed: true, height: 220 },
     timeline: { visible: true, collapsed: false, height: 264 },
   },
   sidebarWidth: 300,

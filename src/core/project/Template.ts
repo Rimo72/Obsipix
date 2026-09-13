@@ -3,6 +3,7 @@ import type { Dimensions } from '@core/types/geometry';
 
 import type { AssetCategory } from './AssetCategory';
 import type { PerspectiveKind } from './Perspective';
+import type { TerrainTileRole } from './TerrainTileRole';
 
 /** A stable, human-authored slug (e.g. `"character-hero"`) — not a generated id. */
 export type TemplateId = string;
@@ -14,11 +15,11 @@ export type TemplateId = string;
  * a template only states what makes it distinctive.
  *
  * The vision doc also lists outline rules, shading rules, animation
- * config, tile rules, export config, and asset constraints as template
- * fields. They are deliberately absent here rather than stubbed out: no
- * system in the editor gives them meaning yet, and a field nothing acts on
- * is a half-finished feature, not forward compatibility. They join this
- * schema as the phases that build those systems (5-7) need them.
+ * config, export config, and asset constraints as template fields. They
+ * are deliberately absent here rather than stubbed out: no system in the
+ * editor gives them meaning yet, and a field nothing acts on is a
+ * half-finished feature, not forward compatibility. They join this schema
+ * as the phases that build those systems (6-7) need them.
  */
 export interface Template {
   readonly id: TemplateId;
@@ -31,4 +32,19 @@ export interface Template {
   readonly layerNames?: readonly string[];
   /** Defaults to the standard default palette when omitted. */
   readonly paletteColors?: readonly RGBA[];
+  /**
+   * Terrain tile-role slots (V2 coding-phases Phase 5). When set,
+   * instantiation creates one Frame per role, in order, and records the
+   * role → frame mapping on the resulting Asset's metadata.
+   */
+  readonly tileRoles?: readonly TerrainTileRole[];
 }
+
+/**
+ * A Template that defines a terrain tile-role set. A type-level
+ * convenience for authoring terrain templates — `instantiateTemplate`
+ * itself only ever reads the optional `tileRoles` field on `Template`, the
+ * same generic way it reads every other field (Phase 2 rule: no branching
+ * on which template it was given).
+ */
+export type TerrainTemplate = Template & { readonly tileRoles: readonly TerrainTileRole[] };

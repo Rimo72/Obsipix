@@ -1,5 +1,5 @@
 import { isAssetCategory } from '@core/project/AssetCategory';
-import type { AssetMetadata } from '@core/project/AssetMetadata';
+import type { AssetMetadata, TerrainRoleSlot } from '@core/project/AssetMetadata';
 import { isResolutionPreset, type AssetResolution } from '@core/project/AssetResolution';
 import {
   isPerspectiveKind,
@@ -9,6 +9,7 @@ import {
   type Perspective,
   type ShadowDirection,
 } from '@core/project/Perspective';
+import { isTerrainTileRole } from '@core/project/TerrainTileRole';
 import { EditorError } from '@core/errors/EditorError';
 
 /**
@@ -74,6 +75,26 @@ function assertResolution(value: unknown): asserts value is AssetResolution {
   }
 }
 
+function assertTerrainRoles(value: unknown): asserts value is readonly TerrainRoleSlot[] {
+  if (!Array.isArray(value)) {
+    throw new AssetMetadataParseError('terrainRoles must be an array');
+  }
+  for (const entry of value) {
+    if (typeof entry !== 'object' || entry === null) {
+      throw new AssetMetadataParseError('Each terrainRoles entry must be an object');
+    }
+    const { role, frameIndex } = entry as Record<string, unknown>;
+    if (!isTerrainTileRole(role)) {
+      throw new AssetMetadataParseError(`Unknown terrain tile role: ${JSON.stringify(role)}`);
+    }
+    if (typeof frameIndex !== 'number' || !Number.isInteger(frameIndex) || frameIndex < 0) {
+      throw new AssetMetadataParseError(
+        `terrainRoles.frameIndex must be a non-negative integer: ${JSON.stringify(frameIndex)}`,
+      );
+    }
+  }
+}
+
 /** Parse bytes produced by {@link serializeAssetMetadata}. Throws {@link AssetMetadataParseError}. */
 export function parseAssetMetadata(bytes: Uint8Array): AssetMetadata {
   let raw: unknown;
@@ -85,15 +106,15 @@ export function parseAssetMetadata(bytes: Uint8Array): AssetMetadata {
   if (typeof raw !== 'object' || raw === null) {
     throw new AssetMetadataParseError('Asset metadata must be a JSON object');
   }
-  const { category, perspective, resolution } = raw as Record<string, unknown>;
+  const { category, perspective, resolution, terrainRoles } = raw as Record<string, unknown>;
   if (!isAssetCategory(category)) {
     throw new AssetMetadataParseError(`Unknown asset category: ${JSON.stringify(category)}`);
   }
   assertPerspective(perspective);
   assertResolution(resolution);
-  return {
-    category,
-    perspective,
-    resolution,
-  };
+  if (terrainRoles === undefined) {
+    return { category, perspective, resolution };
+  }
+  assertTerrainRoles(terrainRoles);
+  return { category, perspective, resolution, terrainRoles };
 }

@@ -1,5 +1,6 @@
 import type { RGBA } from '@core/types/color';
 
+import { TERRAIN_TILE_ROLES } from './TerrainTileRole';
 import type { Template } from './Template';
 import { TemplateRegistry } from './TemplateRegistry';
 
@@ -17,17 +18,21 @@ const EFFECT_PALETTE: readonly RGBA[] = [
 /**
  * A handful of seed templates, one per major category, proving the
  * Template Engine end-to-end (V2 coding-phases Phase 2). Deliberately not
- * full content — real terrain/character/object depth arrives in Phases 5-7.
+ * full content — real character/object depth arrives in Phases 6-7. The
+ * terrain template is the exception: it's a full 3x3 tile-role set
+ * (Phase 5), since terrain is the phase that defines what "full content"
+ * for a terrain template even means.
  */
 export const SEED_TEMPLATES: readonly Template[] = [
   {
     id: 'terrain-grass-tile',
-    name: 'Grass Tile',
+    name: 'Grass Terrain Set',
     category: 'terrain',
     assetType: 'grass-tile',
     perspective: 'top_down',
     canvasSize: { width: 32, height: 32 },
     layerNames: ['Terrain'],
+    tileRoles: TERRAIN_TILE_ROLES,
   },
   {
     id: 'character-hero',

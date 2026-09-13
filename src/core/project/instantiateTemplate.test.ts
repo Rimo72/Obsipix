@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createSequentialIdFactory } from '@core/document/IdFactory';
-import { rgbaEquals, type RGBA } from '@core/types/color';
+import { rgbaEquals, TRANSPARENT, type RGBA } from '@core/types/color';
 
 import { inferAssetMetadata } from './AssetMetadata';
 import { instantiateTemplate } from './instantiateTemplate';
@@ -10,6 +10,7 @@ import type { ProjectStyle } from './ProjectStyle';
 import { SEED_TEMPLATES, createSeedTemplateRegistry } from './seedTemplates';
 import type { Template } from './Template';
 import { TemplateRegistry } from './TemplateRegistry';
+import { TERRAIN_TILE_ROLES } from './TerrainTileRole';
 
 const FULL_TEMPLATE: Template = {
   id: 'test-full',
@@ -186,5 +187,65 @@ describe('instantiateTemplate + ProjectStyle (V2 coding-phases Phase 4)', () => 
     const withoutOption = instantiateTemplate(MINIMAL_TEMPLATE);
     expect(withNull.document.palettes).toHaveLength(1);
     expect(withNull.metadata).toEqual(withoutOption.metadata);
+  });
+});
+
+describe('instantiateTemplate + terrain tile roles (V2 coding-phases Phase 5)', () => {
+  const TERRAIN_TEMPLATE: Template = {
+    id: 'test-terrain',
+    name: 'Test Terrain',
+    category: 'terrain',
+    assetType: 'grass',
+    perspective: 'top_down',
+    canvasSize: { width: 16, height: 16 },
+    layerNames: ['Terrain'],
+    tileRoles: TERRAIN_TILE_ROLES,
+  };
+
+  it('creates one independent Frame per tile role, in order', () => {
+    const { document } = instantiateTemplate(TERRAIN_TEMPLATE);
+    expect(document.timeline.frames).toHaveLength(TERRAIN_TILE_ROLES.length);
+  });
+
+  it('every tile-role frame starts blank and independent of the others', () => {
+    const { document } = instantiateTemplate(TERRAIN_TEMPLATE);
+    const layerId = document.layers.activeLayerId;
+    const frames = document.timeline.frames;
+
+    // draw on the "center" frame only, then confirm no other frame changed
+    const centerIndex = TERRAIN_TILE_ROLES.indexOf('center');
+    document.timeline.setActiveFrame(frames[centerIndex]!.id);
+    document.ensureDrawableBuffer(layerId).setPixel(0, 0, { r: 255, g: 0, b: 0, a: 255 });
+
+    for (const [index, frame] of frames.entries()) {
+      const buffer = document.resolveBuffer(layerId, frame.id);
+      const pixel = buffer?.getPixel(0, 0) ?? TRANSPARENT;
+      if (index === centerIndex) {
+        expect(rgbaEquals(pixel, { r: 255, g: 0, b: 0, a: 255 })).toBe(true);
+      } else {
+        expect(rgbaEquals(pixel, TRANSPARENT)).toBe(true);
+      }
+    }
+  });
+
+  it('records the role -> frameIndex mapping on the resulting metadata', () => {
+    const { metadata } = instantiateTemplate(TERRAIN_TEMPLATE);
+    expect(metadata.terrainRoles).toHaveLength(TERRAIN_TILE_ROLES.length);
+    expect(metadata.terrainRoles).toEqual(
+      TERRAIN_TILE_ROLES.map((role, frameIndex) => ({ role, frameIndex })),
+    );
+  });
+
+  it('a template with no tileRoles produces no terrainRoles metadata (same as Phase 2)', () => {
+    const { document, metadata } = instantiateTemplate(MINIMAL_TEMPLATE);
+    expect(document.timeline.frames).toHaveLength(1);
+    expect(metadata.terrainRoles).toBeUndefined();
+  });
+
+  it('the grass seed template is a full 9-role terrain set', () => {
+    const template = createSeedTemplateRegistry().get('terrain-grass-tile')!;
+    const { document, metadata } = instantiateTemplate(template);
+    expect(document.timeline.frames).toHaveLength(9);
+    expect(metadata.terrainRoles?.map((slot) => slot.role)).toEqual(TERRAIN_TILE_ROLES);
   });
 });

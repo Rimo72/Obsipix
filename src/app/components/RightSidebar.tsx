@@ -17,6 +17,7 @@ import { LayerPanel } from './LayerPanel';
 import { Panel } from './Panel';
 import { PalettePanel } from './PalettePanel';
 import { ResizeHandle } from './ResizeHandle';
+import { TerrainGridPanel } from './TerrainGridPanel';
 import './RightSidebar.css';
 
 interface RightSidebarProps {
@@ -102,6 +103,8 @@ export function RightSidebar({
         return <PalettePanel session={session} onAddColor={onAddColor} onEditColor={onEditColor} />;
       case 'preview':
         return <AnimationPreview session={session} />;
+      case 'terrain':
+        return <TerrainGridPanel session={session} />;
       default:
         return null;
     }

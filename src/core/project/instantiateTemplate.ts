@@ -5,7 +5,7 @@ import { rgbaEquals, type RGBA } from '@core/types/color';
 import type { Dimensions } from '@core/types/geometry';
 
 import { DEFAULT_ASSET_CATEGORY } from './AssetCategory';
-import type { AssetMetadata } from './AssetMetadata';
+import type { AssetMetadata, TerrainRoleSlot } from './AssetMetadata';
 import { resolutionFromDimensions } from './AssetResolution';
 import { DEFAULT_PERSPECTIVE_KIND, getPerspective, type Perspective } from './Perspective';
 import type { ProjectStyle } from './ProjectStyle';
@@ -76,6 +76,18 @@ export function instantiateTemplate(
     }
   }
 
+  // One Frame per tile-role slot (V2 coding-phases Phase 5) — the first
+  // role reuses the Document's existing first frame; each further role gets
+  // its own independent (not held/linked) blank frame, ready to draw into.
+  const tileRoles = template?.tileRoles;
+  let terrainRoles: readonly TerrainRoleSlot[] | undefined;
+  if (tileRoles && tileRoles.length > 0) {
+    for (let i = 1; i < tileRoles.length; i += 1) {
+      document.addFrame();
+    }
+    terrainRoles = tileRoles.map((role, frameIndex) => ({ role, frameIndex }));
+  }
+
   // A template's own palette wins outright; otherwise the Project's shared
   // primary palette is the default, same as an explicit template palette
   // would be — only falling through to DocumentFactory's own default when
@@ -102,6 +114,7 @@ export function instantiateTemplate(
     category: template?.category ?? DEFAULT_ASSET_CATEGORY,
     perspective,
     resolution: resolutionFromDimensions(document.dimensions),
+    ...(terrainRoles ? { terrainRoles } : {}),
   };
 
   return { document, metadata };
