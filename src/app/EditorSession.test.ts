@@ -646,3 +646,52 @@ describe('EditorSession multi-asset Project (V2 Phase 0)', () => {
     expect(session.activeAssetId).toBe(before);
   });
 });
+
+describe('EditorSession asset metadata (V2 coding-phases Phase 1)', () => {
+  it('a new session infers sensible default metadata for its asset', () => {
+    const session = new EditorSession();
+    expect(session.assetMetadata.category).toBe('object');
+    expect(session.assetMetadata.perspective.kind).toBe('top_down');
+    expect(session.assetMetadata.resolution).toEqual({ preset: '32x32', width: 32, height: 32 });
+  });
+
+  it('addAsset accepts explicit metadata that switchAsset then surfaces', () => {
+    const session = new EditorSession();
+    const secondId = session.addAsset(createDefaultDocument(), {
+      category: 'character',
+      perspective: session.assetMetadata.perspective,
+      resolution: { preset: '32x32', width: 32, height: 32 },
+    });
+
+    expect(session.project.getAsset(secondId)?.metadata.category).toBe('character');
+    session.switchAsset(secondId);
+    expect(session.assetMetadata.category).toBe('character');
+  });
+
+  it('setAssetMetadata persists on the asset across switching away and back', () => {
+    const session = new EditorSession();
+    const firstId = session.activeAssetId;
+    session.setAssetMetadata({ ...session.assetMetadata, category: 'terrain' });
+
+    const secondId = session.addAsset(createDefaultDocument());
+    session.switchAsset(secondId);
+    expect(session.assetMetadata.category).toBe('object'); // second asset's own default
+
+    session.switchAsset(firstId);
+    expect(session.assetMetadata.category).toBe('terrain'); // untouched while away
+  });
+
+  it('opening an old-format (metadata-free) file infers fresh defaults from it', () => {
+    const session = new EditorSession();
+    session.setAssetMetadata({ ...session.assetMetadata, category: 'weapon' });
+
+    // session.serialize() is exactly what a pre-Phase-1 .obsipix file looks
+    // like — no metadata channel — so re-opening it is the real test case.
+    const bytes = session.serialize();
+    session.newDocument({ width: 64, height: 64 });
+    session.open(bytes, 'legacy.obsipix');
+
+    expect(session.assetMetadata.category).toBe('object'); // re-inferred, not "weapon"
+    expect(session.assetMetadata.resolution).toEqual({ preset: '32x32', width: 32, height: 32 });
+  });
+});

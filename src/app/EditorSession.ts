@@ -53,6 +53,7 @@ import {
 } from '@core/document/layerCommands';
 import { History, type StrokeHandle } from '@core/history/History';
 import type { Command } from '@core/history/Command';
+import { inferAssetMetadata, type AssetMetadata } from '@core/project/AssetMetadata';
 import { Project } from '@core/project/Project';
 import type { AssetId } from '@core/types/ids';
 import { exportPng } from '@core/persistence/png';
@@ -210,9 +211,19 @@ export class EditorSession {
     return this.#project.assetIds;
   }
 
+  /** The active Asset's category/perspective/resolution (V2 coding-phases Phase 1). */
+  get assetMetadata(): AssetMetadata {
+    return this.#project.activeAsset.metadata;
+  }
+
+  setAssetMetadata(metadata: AssetMetadata): void {
+    this.#project.activeAsset.setMetadata(metadata);
+    this.#emit();
+  }
+
   /** Add a new Asset to this session's Project. Does not switch to it. */
-  addAsset(document: Document): AssetId {
-    return this.#project.addAsset(document);
+  addAsset(document: Document, metadata?: AssetMetadata): AssetId {
+    return this.#project.addAsset(document, metadata);
   }
 
   /**
@@ -318,7 +329,7 @@ export class EditorSession {
   open(bytes: Uint8Array, name: string): void {
     const document = parseDocument(bytes);
     this.#discardInteraction();
-    this.history.reset(document);
+    this.#resetActiveAsset(document);
     this.#fileName = name;
     this.fitView();
     this.#emit();
@@ -331,7 +342,7 @@ export class EditorSession {
   recover(bytes: Uint8Array, name: string | null): void {
     const document = parseDocument(bytes);
     this.#discardInteraction();
-    this.history.reset(document, true);
+    this.#resetActiveAsset(document, true);
     this.#fileName = name;
     this.fitView();
     this.#emit();
@@ -363,7 +374,7 @@ export class EditorSession {
         }
       }
     }
-    this.history.reset(document);
+    this.#resetActiveAsset(document);
     this.#fileName = null;
     this.fitView();
     this.#emit();
@@ -384,7 +395,7 @@ export class EditorSession {
         { x: 0, y: 0 },
       );
     this.#discardInteraction();
-    this.history.reset(document, true);
+    this.#resetActiveAsset(document, true);
     this.#fileName = null;
     this.fitView();
     this.#emit();
@@ -405,7 +416,7 @@ export class EditorSession {
     const frames = sliceSpriteSheet(image, slice);
     const document = new DocumentFactory().createFromFrames(frames, { name });
     this.#discardInteraction();
-    this.history.reset(document, true);
+    this.#resetActiveAsset(document, true);
     this.#fileName = null;
     this.fitView();
     this.#emit();
@@ -757,6 +768,18 @@ export class EditorSession {
     this.cancelFloat();
     this.cancelColorSample();
     this.#preview = null;
+  }
+
+  /**
+   * Swap the active Asset's document (open/new/import/recover) and refresh
+   * its metadata to match. `.obsipix` bytes never carry category/perspective/
+   * resolution (Phase 0 rule: the Document format does not change), so every
+   * fresh load re-infers metadata from the loaded document rather than
+   * leaving stale metadata from whatever the asset held before.
+   */
+  #resetActiveAsset(document: Document, markDirty = false): void {
+    this.history.reset(document, markDirty);
+    this.#project.activeAsset.setMetadata(inferAssetMetadata(document));
   }
 
   // --- Floating selection (PROJECT_CORE §3.7) -------------------------

@@ -2,6 +2,7 @@ import type { Document } from '@core/document/Document';
 import { EditorError } from '@core/errors/EditorError';
 import type { AssetId, ProjectId } from '@core/types/ids';
 
+import type { AssetMetadata } from './AssetMetadata';
 import { Asset } from './Asset';
 import { createProjectIdFactory, type ProjectIdFactory } from './ProjectIdFactory';
 
@@ -12,6 +13,8 @@ export interface ProjectMetadata {
 export interface CreateSingleAssetOptions {
   readonly name?: string;
   readonly ids?: ProjectIdFactory;
+  /** Defaults to inferred metadata for `document` when omitted. */
+  readonly metadata?: AssetMetadata;
 }
 
 /**
@@ -48,7 +51,11 @@ export class Project {
    */
   static createSingleAsset(document: Document, options: CreateSingleAssetOptions = {}): Project {
     const ids = options.ids ?? createProjectIdFactory();
-    const asset = new Asset(ids.asset(), document);
+    const asset = new Asset(
+      ids.asset(),
+      document,
+      options.metadata ? { metadata: options.metadata } : {},
+    );
     return new Project(ids.project(), { name: options.name ?? 'Untitled Project' }, ids, asset);
   }
 
@@ -77,8 +84,8 @@ export class Project {
   }
 
   /** Add a new Asset wrapping `document` to the project. Does not change the active asset. */
-  addAsset(document: Document): AssetId {
-    const asset = new Asset(this.#ids.asset(), document);
+  addAsset(document: Document, metadata?: AssetMetadata): AssetId {
+    const asset = new Asset(this.#ids.asset(), document, metadata ? { metadata } : {});
     this.#assets.set(asset.id, asset);
     return asset.id;
   }
