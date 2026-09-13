@@ -73,6 +73,7 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
   const [aboutOpen, setAboutOpen] = useState(false);
   const [resizing, setResizing] = useState<'image' | 'canvas' | null>(null);
   const [newDialogOpen, setNewDialogOpen] = useState(false);
+  const [addAssetDialogOpen, setAddAssetDialogOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [pngImport, setPngImport] = useState<{ image: ImageData8; name: string } | null>(null);
   const [colorDialog, setColorDialog] = useState<
@@ -598,6 +599,9 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
           actions={panelActions}
           onAddColor={openAddColor}
           onEditColor={openEditColor}
+          onCreateAsset={() => {
+            setAddAssetDialogOpen(true);
+          }}
         />
       </div>
 
@@ -634,6 +638,23 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
             session.newAssetFromTemplate(templateId);
             resolveAutosave();
             setNewDialogOpen(false);
+          }}
+        />
+      )}
+
+      {addAssetDialogOpen && (
+        <NewDocumentDialog
+          onClose={() => {
+            setAddAssetDialogOpen(false);
+          }}
+          onCreate={(options) => {
+            session.createBlankAsset(options);
+            setAddAssetDialogOpen(false);
+          }}
+          templates={session.templates}
+          onCreateFromTemplate={(templateId) => {
+            session.createAsset(templateId);
+            setAddAssetDialogOpen(false);
           }}
         />
       )}

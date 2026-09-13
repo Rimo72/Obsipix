@@ -11,6 +11,7 @@ import {
   type PanelLayoutActions,
 } from '../panelLayout';
 import { AnimationPreview } from './AnimationPreview';
+import { AssetLibraryPanel } from './AssetLibraryPanel';
 import { ColorPanel } from './ColorPanel';
 import { LayerPanel } from './LayerPanel';
 import { Panel } from './Panel';
@@ -24,6 +25,7 @@ interface RightSidebarProps {
   readonly actions: PanelLayoutActions;
   readonly onAddColor: () => void;
   readonly onEditColor: (colorId: PaletteColorId) => void;
+  readonly onCreateAsset: () => void;
 }
 
 /**
@@ -36,6 +38,7 @@ export function RightSidebar({
   actions,
   onAddColor,
   onEditColor,
+  onCreateAsset,
 }: RightSidebarProps) {
   const visible = SIDEBAR_PANELS.filter((id) => layout.panels[id].visible);
   if (visible.length === 0) {
@@ -81,6 +84,8 @@ export function RightSidebar({
 
   const content = (id: PanelId) => {
     switch (id) {
+      case 'assets':
+        return <AssetLibraryPanel session={session} onCreateAsset={onCreateAsset} />;
       case 'color':
         return <ColorPanel session={session} />;
       case 'layers':

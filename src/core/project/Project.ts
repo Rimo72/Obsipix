@@ -1,5 +1,7 @@
 import type { Document } from '@core/document/Document';
 import { EditorError } from '@core/errors/EditorError';
+import { parseDocument } from '@core/persistence/parse';
+import { serializeDocument } from '@core/persistence/serialize';
 import type { AssetId, ProjectId } from '@core/types/ids';
 
 import type { AssetMetadata } from './AssetMetadata';
@@ -99,5 +101,57 @@ export class Project {
       );
     }
     this.#activeAssetId = id;
+  }
+
+  /**
+   * Remove an asset. A Project must always keep at least one asset (mirrors
+   * a Document always keeping at least one layer), so removing the last one
+   * throws instead of leaving the Project unusable. Removing the active
+   * asset falls back to its neighbour, same rule as `LayerCollection.remove`.
+   */
+  removeAsset(id: AssetId): void {
+    if (!this.#assets.has(id)) {
+      throw new EditorError(
+        'project/unknown-asset',
+        `Asset ${String(id)} is not part of this project`,
+      );
+    }
+    if (this.#assets.size === 1) {
+      throw new EditorError('project/last-asset', 'Cannot remove the last asset in a project');
+    }
+    const index = this.assetIds.indexOf(id);
+    const wasActive = this.#activeAssetId === id;
+    this.#assets.delete(id);
+    if (wasActive) {
+      const remaining = this.assetIds;
+      const fallback = remaining[Math.max(0, index - 1)];
+      if (!fallback) {
+        throw new EditorError(
+          'project/no-active-asset',
+          'Project unexpectedly empty after removal',
+        );
+      }
+      this.#activeAssetId = fallback;
+    }
+  }
+
+  /**
+   * Duplicate an asset: an independent copy of its Document (fresh identity,
+   * fresh pixel buffers) carrying the same metadata, added to the project
+   * without switching to it. Reuses the `.obsipix` serialize/parse pair
+   * rather than a bespoke deep-clone, so the copy is exactly as independent
+   * as opening a saved file would produce.
+   */
+  duplicateAsset(id: AssetId): AssetId {
+    const source = this.#assets.get(id);
+    if (!source) {
+      throw new EditorError(
+        'project/unknown-asset',
+        `Asset ${String(id)} is not part of this project`,
+      );
+    }
+    const copy = parseDocument(serializeDocument(source.document));
+    copy.metadata.name = `${source.document.metadata.name} copy`;
+    return this.addAsset(copy, source.metadata);
   }
 }

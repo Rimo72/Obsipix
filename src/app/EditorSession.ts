@@ -129,6 +129,13 @@ export interface EditorSessionOptions {
   readonly templates?: TemplateRegistry;
 }
 
+interface BlankDocumentOptions {
+  readonly width?: number;
+  readonly height?: number;
+  /** Fill the first layer with this colour; omit / transparent for a blank canvas. */
+  readonly background?: RGBA | null;
+}
+
 const FIT_PADDING = 24;
 const ZOOM_STEP = 1.4;
 const RECENT_COLOR_LIMIT = 16;
@@ -236,7 +243,9 @@ export class EditorSession {
 
   /** Add a new Asset to this session's Project. Does not switch to it. */
   addAsset(document: Document, metadata?: AssetMetadata): AssetId {
-    return this.#project.addAsset(document, metadata);
+    const id = this.#project.addAsset(document, metadata);
+    this.#emit();
+    return id;
   }
 
   /**
@@ -250,6 +259,62 @@ export class EditorSession {
     this.#discardInteraction();
     this.#project.setActiveAsset(id);
     this.fitView();
+    this.#emit();
+  }
+
+  /**
+   * Create a new Asset from a Template (or the documented default when
+   * `templateId` is omitted/unknown) and switch to it (V2 coding-phases
+   * Phase 3). Unlike {@link newAssetFromTemplate}, this adds to the Project
+   * instead of replacing the currently active Asset — the Asset Library's
+   * "+ New" action.
+   */
+  createAsset(templateId?: TemplateId): AssetId {
+    const template = templateId ? this.#templates.get(templateId) : undefined;
+    const { document, metadata } = instantiateTemplate(template);
+    const id = this.#project.addAsset(document, metadata);
+    this.switchAsset(id);
+    return id;
+  }
+
+  /** Rename an asset (any asset — active or not). Not undoable, like a filename change. */
+  renameAsset(id: AssetId, name: string): void {
+    const trimmed = name.trim();
+    const asset = this.#project.getAsset(id);
+    if (!trimmed || !asset) {
+      return;
+    }
+    asset.document.metadata.name = trimmed;
+    this.#emit();
+  }
+
+  /**
+   * Duplicate an asset into an independent copy (fresh document identity,
+   * fresh pixel buffers) carrying the same metadata. Does not switch to it.
+   */
+  duplicateAsset(id: AssetId): AssetId {
+    this.#commitFloat();
+    const copyId = this.#project.duplicateAsset(id);
+    this.#emit();
+    return copyId;
+  }
+
+  /**
+   * Remove an asset from the Project. Refuses to remove the last asset, and
+   * refuses to remove the active asset's own in-progress interaction without
+   * discarding it first — removing the active asset behaves like switching
+   * away from it before it disappears.
+   */
+  removeAsset(id: AssetId): void {
+    const wasActive = id === this.activeAssetId;
+    if (wasActive) {
+      this.#discardInteraction();
+    }
+    this.#project.removeAsset(id);
+    if (wasActive) {
+      // removeAsset() picked a new active asset when the removed one was active
+      this.fitView();
+    }
     this.#emit();
   }
 
@@ -361,18 +426,7 @@ export class EditorSession {
     this.#emit();
   }
 
-  /**
-   * Start a fresh project (PROJECT_CORE §56.1). With no options this is the
-   * canonical 32×32 transparent default; `options` come from the New Document
-   * dialog.
-   */
-  newDocument(options?: {
-    readonly width?: number;
-    readonly height?: number;
-    /** Fill the first layer with this colour; omit / transparent for a blank canvas. */
-    readonly background?: RGBA | null;
-  }): void {
-    this.#discardInteraction();
+  #buildBlankDocument(options?: BlankDocumentOptions): Document {
     const document =
       options && options.width !== undefined && options.height !== undefined
         ? new DocumentFactory().create({ width: options.width, height: options.height })
@@ -387,10 +441,33 @@ export class EditorSession {
         }
       }
     }
+    return document;
+  }
+
+  /**
+   * Start a fresh project (PROJECT_CORE §56.1). With no options this is the
+   * canonical 32×32 transparent default; `options` come from the New Document
+   * dialog.
+   */
+  newDocument(options?: BlankDocumentOptions): void {
+    this.#discardInteraction();
+    const document = this.#buildBlankDocument(options);
     this.#resetActiveAsset(document);
     this.#fileName = null;
     this.fitView();
     this.#emit();
+  }
+
+  /**
+   * Add a new blank Asset and switch to it (V2 coding-phases Phase 3: the
+   * Asset Library's "+ New" → Blank). Unlike {@link newDocument}, this adds
+   * to the Project instead of replacing the active Asset.
+   */
+  createBlankAsset(options?: BlankDocumentOptions): AssetId {
+    const document = this.#buildBlankDocument(options);
+    const id = this.#project.addAsset(document);
+    this.switchAsset(id);
+    return id;
   }
 
   /**

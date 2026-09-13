@@ -731,3 +731,83 @@ describe('EditorSession Template Engine (V2 coding-phases Phase 2)', () => {
     expect(session.assetMetadata.category).toBe('object');
   });
 });
+
+describe('EditorSession Asset Library operations (V2 coding-phases Phase 3)', () => {
+  it('createAsset adds a new asset from a template and switches to it', () => {
+    const session = new EditorSession();
+    const firstId = session.activeAssetId;
+
+    const newId = session.createAsset('character-hero');
+
+    expect(session.assetIds).toEqual([firstId, newId]);
+    expect(session.activeAssetId).toBe(newId);
+    expect(session.document.layers.layers.map((l) => l.name)).toEqual(['Body', 'Outline']);
+    expect(session.assetMetadata.category).toBe('character');
+  });
+
+  it('renameAsset renames any asset, active or not, without touching history', () => {
+    const session = new EditorSession();
+    const firstId = session.activeAssetId;
+    const secondId = session.addAsset(createDefaultDocument());
+
+    session.renameAsset(secondId, '  Goblin  ');
+    expect(session.project.getAsset(secondId)?.document.metadata.name).toBe('Goblin');
+    expect(session.activeAssetId).toBe(firstId); // renaming doesn't switch
+
+    session.renameAsset(firstId, 'Hero Sprite');
+    expect(session.document.metadata.name).toBe('Hero Sprite');
+    expect(session.canUndo).toBe(false); // not a History-tracked change
+  });
+
+  it('renameAsset ignores a blank name and an unknown id', () => {
+    const session = new EditorSession();
+    const originalName = session.document.metadata.name;
+    session.renameAsset(session.activeAssetId, '   ');
+    expect(session.document.metadata.name).toBe(originalName);
+    expect(() => session.renameAsset('ast_unknown' as never, 'X')).not.toThrow();
+  });
+
+  it('duplicateAsset copies the active asset without switching to the copy', () => {
+    const session = new EditorSession();
+    session.runCommand(selectRectCommand({ x: 0, y: 0, width: 2, height: 2 }, 'replace'));
+    const firstId = session.activeAssetId;
+
+    const copyId = session.duplicateAsset(firstId);
+
+    expect(session.activeAssetId).toBe(firstId); // still on the original
+    expect(session.assetIds).toEqual([firstId, copyId]);
+    expect(session.project.getAsset(copyId)?.document.metadata.name).toContain('copy');
+    expect(session.project.getAsset(copyId)?.metadata).toEqual(session.assetMetadata);
+  });
+
+  it('removeAsset deletes a non-active asset cleanly', () => {
+    const session = new EditorSession();
+    const firstId = session.activeAssetId;
+    const secondId = session.addAsset(createDefaultDocument());
+
+    session.removeAsset(secondId);
+    expect(session.assetIds).toEqual([firstId]);
+    expect(session.activeAssetId).toBe(firstId);
+  });
+
+  it('removeAsset on the active asset discards its interaction and falls back cleanly', () => {
+    const session = new EditorSession();
+    const firstId = session.activeAssetId;
+    const secondId = session.addAsset(createDefaultDocument());
+    session.switchAsset(secondId);
+
+    session.pointerDown(press(1, 1));
+    expect(session.isInteracting).toBe(true);
+
+    session.removeAsset(secondId);
+    expect(session.activeAssetId).toBe(firstId);
+    expect(session.assetIds).toEqual([firstId]);
+    expect(session.isInteracting).toBe(false);
+  });
+
+  it('removeAsset refuses to remove the last asset', () => {
+    const session = new EditorSession();
+    expect(() => session.removeAsset(session.activeAssetId)).toThrow();
+    expect(session.assetIds).toHaveLength(1);
+  });
+});

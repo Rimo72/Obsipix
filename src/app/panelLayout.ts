@@ -6,12 +6,19 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
  * (§111.13). Persisted to `localStorage` as a user preference (§111.7).
  */
 
-export type PanelId = 'color' | 'layers' | 'palette' | 'preview' | 'timeline';
+export type PanelId = 'assets' | 'color' | 'layers' | 'palette' | 'preview' | 'timeline';
 
 /** Sidebar panels stack top-to-bottom in this order; `timeline` is the bottom dock. */
-export const SIDEBAR_PANELS: readonly PanelId[] = ['color', 'layers', 'palette', 'preview'];
+export const SIDEBAR_PANELS: readonly PanelId[] = [
+  'assets',
+  'color',
+  'layers',
+  'palette',
+  'preview',
+];
 
 export const PANEL_TITLE: Record<PanelId, string> = {
+  assets: 'Asset Library',
   color: 'Color Management',
   layers: 'Layers',
   palette: 'Palettes',
@@ -40,6 +47,7 @@ const STORAGE_KEY = 'obsipix.panelLayout.v1';
 
 export const DEFAULT_LAYOUT: PanelLayout = {
   panels: {
+    assets: { visible: true, collapsed: false, height: 220 },
     color: { visible: true, collapsed: true, height: 260 },
     layers: { visible: true, collapsed: false, height: 210 },
     palette: { visible: true, collapsed: false, height: 170 },
