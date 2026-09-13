@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { createDefaultDocument } from '@core/document/DocumentFactory';
 import { inferAssetMetadata, type AssetMetadata } from '@core/project/AssetMetadata';
 import { getPerspective } from '@core/project/Perspective';
+import type { AssetId } from '@core/types/ids';
 
 import {
   AssetMetadataParseError,
@@ -161,5 +162,47 @@ describe('AssetMetadata character fields serialization (V2 coding-phases Phase 6
     expect(() => parseAssetMetadata(new TextEncoder().encode(JSON.stringify(bad)))).toThrow(
       AssetMetadataParseError,
     );
+  });
+});
+
+describe('AssetMetadata variant lineage serialization (V2 coding-phases Phase 7)', () => {
+  it('round-trips objectVariants, variantOf, and variantLabel exactly (lineage survives save/load)', () => {
+    const original: AssetMetadata = {
+      ...inferAssetMetadata(createDefaultDocument()),
+      category: 'object',
+      objectVariants: ['small', 'medium', 'large'],
+      variantOf: 'ast_forest-tree' as AssetId,
+      variantLabel: 'small',
+    };
+    const parsed = parseAssetMetadata(serializeAssetMetadata(original));
+    expect(parsed).toEqual(original);
+  });
+
+  it('omits every variant field entirely when absent', () => {
+    const original = inferAssetMetadata(createDefaultDocument());
+    const parsed = parseAssetMetadata(serializeAssetMetadata(original));
+    for (const field of ['objectVariants', 'variantOf', 'variantLabel']) {
+      expect(field in parsed).toBe(false);
+    }
+  });
+
+  it('rejects an objectVariants entry that is not a string', () => {
+    const base = inferAssetMetadata(createDefaultDocument());
+    const bad = { ...base, objectVariants: ['small', 42] };
+    expect(() => parseAssetMetadata(new TextEncoder().encode(JSON.stringify(bad)))).toThrow(
+      AssetMetadataParseError,
+    );
+  });
+
+  it('rejects a non-string variantOf or variantLabel', () => {
+    const base = inferAssetMetadata(createDefaultDocument());
+    const badVariantOf = { ...base, variantOf: 42 };
+    expect(() =>
+      parseAssetMetadata(new TextEncoder().encode(JSON.stringify(badVariantOf))),
+    ).toThrow(AssetMetadataParseError);
+    const badVariantLabel = { ...base, variantLabel: 42 };
+    expect(() =>
+      parseAssetMetadata(new TextEncoder().encode(JSON.stringify(badVariantLabel))),
+    ).toThrow(AssetMetadataParseError);
   });
 });

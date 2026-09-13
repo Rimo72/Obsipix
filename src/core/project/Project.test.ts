@@ -133,7 +133,7 @@ describe('Project.duplicateAsset (V2 coding-phases Phase 3)', () => {
     expect(copyId).not.toBe(sourceId);
     expect(copy.document.id).not.toBe(source.id);
     expect(copy.document.dimensions).toEqual(source.dimensions);
-    expect(copy.metadata).toEqual({ ...metadata, category: 'character' });
+    expect(copy.metadata).toEqual({ ...metadata, category: 'character', variantOf: sourceId });
     expect(copy.document.metadata.name).toBe(`${source.metadata.name} copy`);
     expect(project.activeAssetId).toBe(sourceId); // duplicating does not switch
   });
@@ -156,6 +156,53 @@ describe('Project.duplicateAsset (V2 coding-phases Phase 3)', () => {
   it('refuses to duplicate an unknown asset id', () => {
     const project = Project.createSingleAsset(createDefaultDocument());
     expect(() => project.duplicateAsset('ast_unknown' as never)).toThrow();
+  });
+});
+
+describe('Project.duplicateAsset variant lineage (V2 coding-phases Phase 7)', () => {
+  it('a plain duplicate records variantOf but no variantLabel, and names it "copy"', () => {
+    const project = Project.createSingleAsset(createDefaultDocument());
+    const sourceId = project.activeAssetId;
+    const copyId = project.duplicateAsset(sourceId);
+    const copy = project.getAsset(copyId)!;
+
+    expect(copy.metadata.variantOf).toBe(sourceId);
+    expect(copy.metadata.variantLabel).toBeUndefined();
+    expect(copy.document.metadata.name).toContain('copy');
+  });
+
+  it('a labelled variation records the label and folds it into the name', () => {
+    const project = Project.createSingleAsset(createDefaultDocument());
+    const sourceId = project.activeAssetId;
+    const variantId = project.duplicateAsset(sourceId, 'small');
+    const variant = project.getAsset(variantId)!;
+
+    expect(variant.metadata.variantLabel).toBe('small');
+    expect(variant.metadata.variantOf).toBe(sourceId);
+    expect(variant.document.metadata.name).toContain('Small');
+  });
+
+  it('duplicating a variant chains to that variant, not to the original root', () => {
+    const project = Project.createSingleAsset(createDefaultDocument());
+    const rootId = project.activeAssetId;
+    const smallId = project.duplicateAsset(rootId, 'small');
+    const smallerId = project.duplicateAsset(smallId, 'tiny');
+
+    expect(project.getAsset(smallerId)!.metadata.variantOf).toBe(smallId);
+    expect(project.getAsset(smallerId)!.metadata.variantOf).not.toBe(rootId);
+  });
+
+  it('a variation carries forward the rest of the source metadata unchanged', () => {
+    const source = createDefaultDocument();
+    const project = Project.createSingleAsset(source, {
+      metadata: { ...inferAssetMetadata(source), category: 'object', objectVariants: ['small'] },
+    });
+    const sourceId = project.activeAssetId;
+    const copyId = project.duplicateAsset(sourceId, 'small');
+    const copy = project.getAsset(copyId)!;
+
+    expect(copy.metadata.category).toBe('object');
+    expect(copy.metadata.objectVariants).toEqual(['small']);
   });
 });
 

@@ -19,12 +19,11 @@ const EFFECT_PALETTE: readonly RGBA[] = [
 
 /**
  * A handful of seed templates, one per major category, proving the
- * Template Engine end-to-end (V2 coding-phases Phase 2). Deliberately not
- * full content — real object depth arrives in Phase 7. The terrain and
- * character templates are the exceptions: terrain is a full 3x3 tile-role
- * set (Phase 5) and Hero is a full view/state/proportion set (Phase 6),
- * since those are the phases that define what "full content" for each
- * means.
+ * Template Engine end-to-end (V2 coding-phases Phase 2). Terrain, Hero,
+ * Tree, and Chest are the exceptions with real content, since Phases 5-7
+ * are the ones that define what "full content" means for each: terrain is
+ * a full 3x3 tile-role set, Hero a full view/state/proportion set, and
+ * Tree/Chest a full variant/state list ready for "Create Variation".
  */
 export const SEED_TEMPLATES: readonly Template[] = [
   {
@@ -57,6 +56,17 @@ export const SEED_TEMPLATES: readonly Template[] = [
     perspective: 'top_down',
     canvasSize: { width: 48, height: 48 },
     layerNames: ['Object'],
+    variants: ['small', 'medium', 'large'],
+  },
+  {
+    id: 'object-chest',
+    name: 'Chest',
+    category: 'object',
+    assetType: 'chest',
+    perspective: 'three_quarter_top_down',
+    canvasSize: { width: 32, height: 32 },
+    layerNames: ['Object'],
+    variants: ['closed', 'open', 'damaged'],
   },
   {
     id: 'item-potion',

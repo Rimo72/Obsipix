@@ -157,13 +157,22 @@ export class Project {
   }
 
   /**
-   * Duplicate an asset: an independent copy of its Document (fresh identity,
-   * fresh pixel buffers) carrying the same metadata, added to the project
-   * without switching to it. Reuses the `.obsipix` serialize/parse pair
-   * rather than a bespoke deep-clone, so the copy is exactly as independent
-   * as opening a saved file would produce.
+   * Duplicate an asset — the same operation the vision doc calls "Create
+   * Variation" (§9): an independent copy of its Document (fresh identity,
+   * fresh pixel buffers) carrying the same style-relevant metadata
+   * (palette, perspective, resolution, proportions all live on the
+   * Document/AssetMetadata that gets copied wholesale), added to the
+   * project without switching to it. Reuses the `.obsipix` serialize/parse
+   * pair rather than a bespoke deep-clone, so the copy is exactly as
+   * independent as opening a saved file would produce.
+   *
+   * Records lineage (V2 coding-phases Phase 7): the copy's
+   * `variantOf` always points at `id`, the asset just duplicated — not at
+   * that asset's own ultimate ancestor, so duplicating a variant forms a
+   * chain rather than collapsing to one shared root. `variantLabel`, when
+   * given, should be one of the source's own declared `objectVariants`.
    */
-  duplicateAsset(id: AssetId): AssetId {
+  duplicateAsset(id: AssetId, variantLabel?: string): AssetId {
     const source = this.#assets.get(id);
     if (!source) {
       throw new EditorError(
@@ -172,7 +181,18 @@ export class Project {
       );
     }
     const copy = parseDocument(serializeDocument(source.document));
-    copy.metadata.name = `${source.document.metadata.name} copy`;
-    return this.addAsset(copy, source.metadata);
+    copy.metadata.name = variantLabel
+      ? `${source.document.metadata.name} (${capitalize(variantLabel)})`
+      : `${source.document.metadata.name} copy`;
+    const metadata: AssetMetadata = {
+      ...source.metadata,
+      variantOf: id,
+      ...(variantLabel ? { variantLabel } : {}),
+    };
+    return this.addAsset(copy, metadata);
   }
+}
+
+function capitalize(label: string): string {
+  return label.charAt(0).toUpperCase() + label.slice(1);
 }

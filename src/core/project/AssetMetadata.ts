@@ -1,4 +1,5 @@
 import type { Document } from '@core/document/Document';
+import type { AssetId } from '@core/types/ids';
 
 import { DEFAULT_ASSET_CATEGORY, type AssetCategory } from './AssetCategory';
 import { resolutionFromDimensions, type AssetResolution } from './AssetResolution';
@@ -49,6 +50,18 @@ export interface AssetMetadata {
   readonly animationStates?: readonly CharacterAnimationState[];
   /** The template's head-height proportion guideline (0-1) this asset was created under. */
   readonly headHeightRatio?: number;
+  /** The declared variant/state labels this asset's template expects (V2 coding-phases Phase 7), as a checklist — like `animationStates`, not auto-generated frames. */
+  readonly objectVariants?: readonly string[];
+  /**
+   * This asset was created as a variation of another asset (V2
+   * coding-phases Phase 7, vision doc §9) — lineage, not a live reference.
+   * The source may since have been removed from the Project; a dangling
+   * `variantOf` is a known limitation, same as `terrainRoles.frameIndex`
+   * going stale under manual reordering.
+   */
+  readonly variantOf?: AssetId;
+  /** Which of the source's declared `objectVariants` this variation fulfils, when it was created as one. */
+  readonly variantLabel?: string;
 }
 
 /**

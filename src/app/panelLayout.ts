@@ -7,13 +7,22 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
  */
 
 export type PanelId =
-  'assets' | 'character' | 'color' | 'layers' | 'palette' | 'preview' | 'terrain' | 'timeline';
+  | 'assets'
+  | 'character'
+  | 'color'
+  | 'layers'
+  | 'objectVariants'
+  | 'palette'
+  | 'preview'
+  | 'terrain'
+  | 'timeline';
 
 /** Sidebar panels stack top-to-bottom in this order; `timeline` is the bottom dock. */
 export const SIDEBAR_PANELS: readonly PanelId[] = [
   'assets',
   'terrain',
   'character',
+  'objectVariants',
   'color',
   'layers',
   'palette',
@@ -25,6 +34,7 @@ export const PANEL_TITLE: Record<PanelId, string> = {
   character: 'Character Info',
   color: 'Color Management',
   layers: 'Layers',
+  objectVariants: 'Object Variants',
   palette: 'Palettes',
   preview: 'Animation Preview',
   terrain: 'Terrain Grid',
@@ -56,6 +66,7 @@ export const DEFAULT_LAYOUT: PanelLayout = {
     character: { visible: true, collapsed: true, height: 260 },
     color: { visible: true, collapsed: true, height: 260 },
     layers: { visible: true, collapsed: false, height: 210 },
+    objectVariants: { visible: true, collapsed: true, height: 220 },
     palette: { visible: true, collapsed: false, height: 170 },
     preview: { visible: true, collapsed: false, height: 200 },
     terrain: { visible: true, collapsed: true, height: 220 },

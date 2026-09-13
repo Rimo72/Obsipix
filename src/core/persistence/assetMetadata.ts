@@ -20,6 +20,10 @@ import {
 } from '@core/project/Perspective';
 import { isTerrainTileRole } from '@core/project/TerrainTileRole';
 import { EditorError } from '@core/errors/EditorError';
+import type { AssetId } from '@core/types/ids';
+
+// The parse boundary turns an untrusted string from the file into a branded id.
+const brandAssetId = (value: string): AssetId => value as unknown as AssetId;
 
 /**
  * A small sibling format to `.obsipix`, kept deliberately separate from it:
@@ -147,6 +151,20 @@ function assertHeadHeightRatio(value: unknown): asserts value is number {
   }
 }
 
+function assertStringArray(value: unknown, label: string): asserts value is readonly string[] {
+  if (!Array.isArray(value) || value.some((entry) => typeof entry !== 'string')) {
+    throw new AssetMetadataParseError(
+      `${label} must be an array of strings: ${JSON.stringify(value)}`,
+    );
+  }
+}
+
+function assertString(value: unknown, label: string): asserts value is string {
+  if (typeof value !== 'string') {
+    throw new AssetMetadataParseError(`${label} must be a string: ${JSON.stringify(value)}`);
+  }
+}
+
 /** Parse bytes produced by {@link serializeAssetMetadata}. Throws {@link AssetMetadataParseError}. */
 export function parseAssetMetadata(bytes: Uint8Array): AssetMetadata {
   let raw: unknown;
@@ -167,6 +185,9 @@ export function parseAssetMetadata(bytes: Uint8Array): AssetMetadata {
     characterViews,
     animationStates,
     headHeightRatio,
+    objectVariants,
+    variantOf,
+    variantLabel,
   } = raw as Record<string, unknown>;
 
   if (!isAssetCategory(category)) {
@@ -178,8 +199,8 @@ export function parseAssetMetadata(bytes: Uint8Array): AssetMetadata {
   if (terrainRoles !== undefined) {
     assertTerrainRoles(terrainRoles);
   }
-  if (templateId !== undefined && typeof templateId !== 'string') {
-    throw new AssetMetadataParseError(`templateId must be a string: ${JSON.stringify(templateId)}`);
+  if (templateId !== undefined) {
+    assertString(templateId, 'templateId');
   }
   if (characterViews !== undefined) {
     assertCharacterViews(characterViews);
@@ -189,6 +210,15 @@ export function parseAssetMetadata(bytes: Uint8Array): AssetMetadata {
   }
   if (headHeightRatio !== undefined) {
     assertHeadHeightRatio(headHeightRatio);
+  }
+  if (objectVariants !== undefined) {
+    assertStringArray(objectVariants, 'objectVariants');
+  }
+  if (variantOf !== undefined) {
+    assertString(variantOf, 'variantOf');
+  }
+  if (variantLabel !== undefined) {
+    assertString(variantLabel, 'variantLabel');
   }
 
   return {
@@ -200,5 +230,8 @@ export function parseAssetMetadata(bytes: Uint8Array): AssetMetadata {
     ...(characterViews !== undefined ? { characterViews } : {}),
     ...(animationStates !== undefined ? { animationStates } : {}),
     ...(headHeightRatio !== undefined ? { headHeightRatio } : {}),
+    ...(objectVariants !== undefined ? { objectVariants } : {}),
+    ...(variantOf !== undefined ? { variantOf: brandAssetId(variantOf) } : {}),
+    ...(variantLabel !== undefined ? { variantLabel } : {}),
   };
 }

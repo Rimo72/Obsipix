@@ -777,7 +777,10 @@ describe('EditorSession Asset Library operations (V2 coding-phases Phase 3)', ()
     expect(session.activeAssetId).toBe(firstId); // still on the original
     expect(session.assetIds).toEqual([firstId, copyId]);
     expect(session.project.getAsset(copyId)?.document.metadata.name).toContain('copy');
-    expect(session.project.getAsset(copyId)?.metadata).toEqual(session.assetMetadata);
+    expect(session.project.getAsset(copyId)?.metadata).toEqual({
+      ...session.assetMetadata,
+      variantOf: firstId,
+    });
   });
 
   it('removeAsset deletes a non-active asset cleanly', () => {

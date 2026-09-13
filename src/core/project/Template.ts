@@ -61,6 +61,17 @@ export interface Template {
    * gives meaning to yet.
    */
   readonly headHeightRatio?: number;
+  /**
+   * Object variant/state labels this template expects (V2 coding-phases
+   * Phase 7, vision doc §8) — e.g. `["small", "medium", "large"]` for a
+   * Tree, or `["closed", "open", "damaged"]` for a Chest. Free-form
+   * strings rather than a fixed union: unlike terrain roles or character
+   * views/states, there is no universal vocabulary here — each object
+   * template defines its own. A declared checklist, like
+   * `animationStates` — fulfilled via `duplicateAsset`'s variant lineage,
+   * not auto-generated frames.
+   */
+  readonly variants?: readonly string[];
 }
 
 /**
@@ -89,4 +100,15 @@ export function isCharacterTemplate(template: Template): template is CharacterTe
     template.animationStates !== undefined &&
     template.headHeightRatio !== undefined
   );
+}
+
+/**
+ * A Template that defines an object variant/state set. Same
+ * type-level-convenience relationship to `Template` as `TerrainTemplate`.
+ */
+export type ObjectTemplate = Template & { readonly variants: readonly string[] };
+
+/** Narrows a `Template` to `ObjectTemplate` when it carries a variant list. */
+export function isObjectTemplate(template: Template): template is ObjectTemplate {
+  return template.variants !== undefined && template.variants.length > 0;
 }

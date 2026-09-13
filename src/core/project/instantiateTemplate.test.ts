@@ -103,7 +103,7 @@ describe('TemplateRegistry (V2 coding-phases Phase 2)', () => {
 });
 
 describe('seed templates (V2 coding-phases Phase 2)', () => {
-  it('every seed template instantiates successfully and covers a distinct category', () => {
+  it('every seed template instantiates successfully and covers every major category', () => {
     const registry = createSeedTemplateRegistry();
     const categoriesSeen = new Set<string>();
     for (const template of registry.list()) {
@@ -112,7 +112,12 @@ describe('seed templates (V2 coding-phases Phase 2)', () => {
       expect(metadata.category).toBe(template.category);
       categoriesSeen.add(template.category);
     }
-    expect(categoriesSeen.size).toBe(SEED_TEMPLATES.length); // one per major category, no overlap
+    // Tree and Chest share the 'object' category on purpose (Phase 7: two
+    // worked examples of the variant/state pattern), so there are more
+    // templates than distinct categories.
+    expect(categoriesSeen).toEqual(
+      new Set(['terrain', 'character', 'object', 'item', 'building', 'effect']),
+    );
   });
 
   it('the effect template overrides the default palette', () => {
@@ -331,5 +336,28 @@ describe('instantiateTemplate + character views/states (V2 coding-phases Phase 6
     expect(metadata.characterViews).toHaveLength(4);
     expect(metadata.animationStates).toEqual(['idle', 'walk', 'run', 'attack', 'hurt', 'death']);
     expect(metadata.headHeightRatio).toBe(0.25);
+  });
+});
+
+describe('instantiateTemplate + object variants (V2 coding-phases Phase 7)', () => {
+  it('records the declared variant list as objectVariants, no frames added', () => {
+    const template: Template = { ...MINIMAL_TEMPLATE, variants: ['small', 'medium', 'large'] };
+    const { document, metadata } = instantiateTemplate(template);
+    expect(document.timeline.frames).toHaveLength(1); // unlike tileRoles/views, no auto-generated frames
+    expect(metadata.objectVariants).toEqual(['small', 'medium', 'large']);
+  });
+
+  it('omits objectVariants when the template declares none, same as Phase 2', () => {
+    const { metadata } = instantiateTemplate(MINIMAL_TEMPLATE);
+    expect(metadata.objectVariants).toBeUndefined();
+  });
+
+  it('the Tree and Chest seed templates declare their variant/state lists', () => {
+    const registry = createSeedTemplateRegistry();
+    const tree = instantiateTemplate(registry.get('object-tree'));
+    expect(tree.metadata.objectVariants).toEqual(['small', 'medium', 'large']);
+
+    const chest = instantiateTemplate(registry.get('object-chest'));
+    expect(chest.metadata.objectVariants).toEqual(['closed', 'open', 'damaged']);
   });
 });

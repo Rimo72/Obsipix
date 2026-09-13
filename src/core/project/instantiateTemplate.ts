@@ -135,6 +135,9 @@ export function instantiateTemplate(
     ...(template?.headHeightRatio !== undefined
       ? { headHeightRatio: template.headHeightRatio }
       : {}),
+    ...(template?.variants && template.variants.length > 0
+      ? { objectVariants: template.variants }
+      : {}),
   };
 
   return { document, metadata };

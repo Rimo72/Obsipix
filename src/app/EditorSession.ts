@@ -304,11 +304,15 @@ export class EditorSession {
 
   /**
    * Duplicate an asset into an independent copy (fresh document identity,
-   * fresh pixel buffers) carrying the same metadata. Does not switch to it.
+   * fresh pixel buffers) carrying the same metadata, with lineage recorded
+   * (V2 coding-phases Phase 7 — "Create Variation"). Does not switch to it.
+   * `variantLabel`, when given, should be one of the source's own declared
+   * `objectVariants` — it names which variant this fulfils and is folded
+   * into the copy's display name.
    */
-  duplicateAsset(id: AssetId): AssetId {
+  duplicateAsset(id: AssetId, variantLabel?: string): AssetId {
     this.#commitFloat();
-    const copyId = this.#project.duplicateAsset(id);
+    const copyId = this.#project.duplicateAsset(id, variantLabel);
     this.#emit();
     return copyId;
   }

@@ -15,6 +15,7 @@ import { AssetLibraryPanel } from './AssetLibraryPanel';
 import { CharacterInfoPanel } from './CharacterInfoPanel';
 import { ColorPanel } from './ColorPanel';
 import { LayerPanel } from './LayerPanel';
+import { ObjectVariantsPanel } from './ObjectVariantsPanel';
 import { Panel } from './Panel';
 import { PalettePanel } from './PalettePanel';
 import { ResizeHandle } from './ResizeHandle';
@@ -102,6 +103,8 @@ export function RightSidebar({
         return <ColorPanel session={session} />;
       case 'layers':
         return <LayerPanel session={session} />;
+      case 'objectVariants':
+        return <ObjectVariantsPanel session={session} />;
       case 'palette':
         return <PalettePanel session={session} onAddColor={onAddColor} onEditColor={onEditColor} />;
       case 'preview':
