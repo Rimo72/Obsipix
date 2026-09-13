@@ -54,7 +54,11 @@ import {
 import { History, type StrokeHandle } from '@core/history/History';
 import type { Command } from '@core/history/Command';
 import { inferAssetMetadata, type AssetMetadata } from '@core/project/AssetMetadata';
+import { instantiateTemplate } from '@core/project/instantiateTemplate';
 import { Project } from '@core/project/Project';
+import { createSeedTemplateRegistry } from '@core/project/seedTemplates';
+import type { TemplateId } from '@core/project/Template';
+import { TemplateRegistry } from '@core/project/TemplateRegistry';
 import type { AssetId } from '@core/types/ids';
 import { exportPng } from '@core/persistence/png';
 import { parseDocument } from '@core/persistence/parse';
@@ -121,6 +125,8 @@ export interface EditorSessionOptions {
   readonly document?: Document;
   /** A pre-built multi-asset Project. Overrides `document` when given. */
   readonly project?: Project;
+  /** Defaults to the built-in seed templates when omitted. */
+  readonly templates?: TemplateRegistry;
 }
 
 const FIT_PADDING = 24;
@@ -136,6 +142,7 @@ const RECENT_COLOR_LIMIT = 16;
  */
 export class EditorSession {
   #project: Project;
+  readonly #templates: TemplateRegistry;
   readonly viewport = new Viewport();
 
   readonly #tools: ReadonlyMap<string, Tool>;
@@ -178,6 +185,7 @@ export class EditorSession {
   constructor(options: EditorSessionOptions = {}) {
     this.#project =
       options.project ?? Project.createSingleAsset(options.document ?? createDefaultDocument());
+    this.#templates = options.templates ?? createSeedTemplateRegistry();
     this.#tools = new Map<string, Tool>([
       [PENCIL_TOOL_ID, new PencilTool()],
       [ERASER_TOOL_ID, new EraserTool()],
@@ -201,6 +209,11 @@ export class EditorSession {
   /** The Project backing this session (V2 coding-phases Phase 0). */
   get project(): Project {
     return this.#project;
+  }
+
+  /** Available Templates for "Create Asset" (V2 coding-phases Phase 2). */
+  get templates(): TemplateRegistry {
+    return this.#templates;
   }
 
   get activeAssetId(): AssetId {
@@ -375,6 +388,24 @@ export class EditorSession {
       }
     }
     this.#resetActiveAsset(document);
+    this.#fileName = null;
+    this.fitView();
+    this.#emit();
+  }
+
+  /**
+   * Start a fresh asset from a Template (V2 coding-phases Phase 2):
+   * "Create Asset → Choose Category → Choose Template → Configure →
+   * Create". Like {@link newDocument}, replaces the active asset's document
+   * — Template-driven multi-asset creation arrives with the Asset Library
+   * (Phase 3). An unknown `templateId` falls back to the documented default
+   * (the same shape as a blank {@link newDocument}) instead of throwing.
+   */
+  newAssetFromTemplate(templateId?: TemplateId): void {
+    this.#discardInteraction();
+    const template = templateId ? this.#templates.get(templateId) : undefined;
+    const { document, metadata } = instantiateTemplate(template);
+    this.#resetActiveAsset(document, false, metadata);
     this.#fileName = null;
     this.fitView();
     this.#emit();
@@ -777,9 +808,9 @@ export class EditorSession {
    * fresh load re-infers metadata from the loaded document rather than
    * leaving stale metadata from whatever the asset held before.
    */
-  #resetActiveAsset(document: Document, markDirty = false): void {
+  #resetActiveAsset(document: Document, markDirty = false, metadata?: AssetMetadata): void {
     this.history.reset(document, markDirty);
-    this.#project.activeAsset.setMetadata(inferAssetMetadata(document));
+    this.#project.activeAsset.setMetadata(metadata ?? inferAssetMetadata(document));
   }
 
   // --- Floating selection (PROJECT_CORE §3.7) -------------------------

@@ -695,3 +695,39 @@ describe('EditorSession asset metadata (V2 coding-phases Phase 1)', () => {
     expect(session.assetMetadata.resolution).toEqual({ preset: '32x32', width: 32, height: 32 });
   });
 });
+
+describe('EditorSession Template Engine (V2 coding-phases Phase 2)', () => {
+  it('exposes the built-in seed templates by default', () => {
+    const session = new EditorSession();
+    expect(session.templates.get('character-hero')?.name).toBe('Hero');
+    expect(session.templates.list().length).toBeGreaterThan(0);
+  });
+
+  it('newAssetFromTemplate configures the active asset from a chosen template', () => {
+    const session = new EditorSession();
+    session.newAssetFromTemplate('building-house');
+
+    expect(session.document.dimensions).toEqual({ width: 64, height: 64 });
+    expect(session.document.layers.layers.map((l) => l.name)).toEqual(['Structure', 'Roof']);
+    expect(session.assetMetadata.category).toBe('building');
+    expect(session.assetMetadata.perspective.kind).toBe('three_quarter_top_down');
+    expect(session.canUndo).toBe(false);
+    expect(session.fileName).toBeNull();
+  });
+
+  it('newAssetFromTemplate with an unknown id falls back to the documented default', () => {
+    const session = new EditorSession();
+    session.newAssetFromTemplate('does-not-exist');
+
+    expect(session.document.dimensions).toEqual({ width: 32, height: 32 });
+    expect(session.assetMetadata.category).toBe('object');
+    expect(session.assetMetadata.perspective.kind).toBe('top_down');
+  });
+
+  it('newAssetFromTemplate with no id at all is the same documented default', () => {
+    const session = new EditorSession();
+    session.newAssetFromTemplate();
+    expect(session.document.dimensions).toEqual({ width: 32, height: 32 });
+    expect(session.assetMetadata.category).toBe('object');
+  });
+});

@@ -629,6 +629,12 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
             resolveAutosave();
             setNewDialogOpen(false);
           }}
+          templates={session.templates}
+          onCreateFromTemplate={(templateId) => {
+            session.newAssetFromTemplate(templateId);
+            resolveAutosave();
+            setNewDialogOpen(false);
+          }}
         />
       )}
 

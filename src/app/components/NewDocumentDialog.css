@@ -50,7 +50,8 @@
   color: var(--obsipix-text-muted);
 }
 
-.new-doc__field input {
+.new-doc__field input,
+.new-doc__field select {
   width: 84px;
   padding: 4px 6px;
   font: inherit;
@@ -58,6 +59,17 @@
   background: var(--obsipix-bg);
   border: 1px solid var(--obsipix-border);
   border-radius: 4px;
+}
+
+.new-doc__field select {
+  width: auto;
+  min-width: 120px;
+}
+
+.new-doc__template-summary {
+  margin: -6px 0 14px;
+  font-size: 12px;
+  color: var(--obsipix-text-muted);
 }
 
 .new-doc__backgrounds {
