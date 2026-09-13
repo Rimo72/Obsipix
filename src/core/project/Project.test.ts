@@ -158,3 +158,25 @@ describe('Project.duplicateAsset (V2 coding-phases Phase 3)', () => {
     expect(() => project.duplicateAsset('ast_unknown' as never)).toThrow();
   });
 });
+
+describe('Project.style (V2 coding-phases Phase 4)', () => {
+  it('defaults to null when no style is given', () => {
+    const project = Project.createSingleAsset(createDefaultDocument());
+    expect(project.style).toBeNull();
+  });
+
+  it('accepts an initial style at creation', () => {
+    const style = { primaryPalette: [{ r: 1, g: 2, b: 3, a: 255 }] };
+    const project = Project.createSingleAsset(createDefaultDocument(), { style });
+    expect(project.style).toBe(style);
+  });
+
+  it('setStyle replaces the style, and null clears it', () => {
+    const project = Project.createSingleAsset(createDefaultDocument());
+    const style = { outlineColor: { r: 0, g: 0, b: 0, a: 255 } };
+    project.setStyle(style);
+    expect(project.style).toBe(style);
+    project.setStyle(null);
+    expect(project.style).toBeNull();
+  });
+});

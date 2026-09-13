@@ -6,6 +6,7 @@ import { rgbaEquals, type RGBA } from '@core/types/color';
 import { inferAssetMetadata } from './AssetMetadata';
 import { instantiateTemplate } from './instantiateTemplate';
 import { getPerspective } from './Perspective';
+import type { ProjectStyle } from './ProjectStyle';
 import { SEED_TEMPLATES, createSeedTemplateRegistry } from './seedTemplates';
 import type { Template } from './Template';
 import { TemplateRegistry } from './TemplateRegistry';
@@ -39,7 +40,9 @@ function paletteRgbas(colors: readonly { rgba: RGBA }[]): RGBA[] {
 
 describe('instantiateTemplate (V2 coding-phases Phase 2)', () => {
   it('applies every configured field from a fully-specified template', () => {
-    const { document, metadata } = instantiateTemplate(FULL_TEMPLATE, createSequentialIdFactory());
+    const { document, metadata } = instantiateTemplate(FULL_TEMPLATE, {
+      ids: createSequentialIdFactory(),
+    });
 
     expect(document.dimensions).toEqual({ width: 16, height: 24 });
     expect(document.layers.layers.map((l) => l.name)).toEqual(['Base', 'Outline', 'Fx']);
@@ -118,5 +121,70 @@ describe('seed templates (V2 coding-phases Phase 2)', () => {
     expect(
       rgbaEquals(document.palettes[0]!.colors[0]!.rgba, { r: 255, g: 255, b: 255, a: 255 }),
     ).toBe(true);
+  });
+});
+
+describe('instantiateTemplate + ProjectStyle (V2 coding-phases Phase 4)', () => {
+  const STYLE: ProjectStyle = {
+    primaryPalette: [
+      { r: 1, g: 2, b: 3, a: 255 },
+      { r: 4, g: 5, b: 6, a: 255 },
+    ],
+    secondaryPalette: [{ r: 200, g: 200, b: 200, a: 255 }],
+    outlineColor: { r: 0, g: 0, b: 0, a: 255 },
+    highlightColor: { r: 255, g: 255, b: 255, a: 255 },
+    shadowColor: { r: 50, g: 50, b: 50, a: 255 },
+    lightingDirection: 'down_left',
+  };
+
+  it("a template's own palette wins over the Project style's primary palette", () => {
+    const { document } = instantiateTemplate(FULL_TEMPLATE, { style: STYLE });
+    const colors = paletteRgbas(document.palettes[0]!.colors);
+    // the template's own colours come first; style reference colours are appended after
+    expect(colors.slice(0, FULL_TEMPLATE.paletteColors!.length)).toEqual(
+      FULL_TEMPLATE.paletteColors,
+    );
+  });
+
+  it("falls back to the Project style's primary palette when the template has none", () => {
+    const { document } = instantiateTemplate(MINIMAL_TEMPLATE, { style: STYLE });
+    expect(document.palettes).toHaveLength(2); // primary (active) + secondary
+    const colors = paletteRgbas(document.palettes[0]!.colors);
+    expect(colors.slice(0, STYLE.primaryPalette!.length)).toEqual(STYLE.primaryPalette);
+  });
+
+  it('adds the secondary palette without activating it', () => {
+    const { document } = instantiateTemplate(MINIMAL_TEMPLATE, { style: STYLE });
+    const secondary = document.palettes[1]!;
+    expect(paletteRgbas(secondary.colors)).toEqual(STYLE.secondaryPalette);
+    expect(document.activePaletteId).not.toBe(secondary.id);
+  });
+
+  it('adds outline/highlight/shadow reference colours to the active palette', () => {
+    const { document } = instantiateTemplate(MINIMAL_TEMPLATE, { style: STYLE });
+    const names = document.palettes[0]!.colors.map((c) => c.name);
+    expect(names).toEqual(expect.arrayContaining(['Outline', 'Highlight', 'Shadow']));
+  });
+
+  it('does not duplicate a reference colour already present in the palette', () => {
+    const template: Template = { ...MINIMAL_TEMPLATE, paletteColors: [STYLE.outlineColor!] };
+    const { document } = instantiateTemplate(template, { style: STYLE });
+    const matches = document.palettes[0]!.colors.filter((c) =>
+      rgbaEquals(c.rgba, STYLE.outlineColor!),
+    );
+    expect(matches).toHaveLength(1);
+  });
+
+  it("overrides the resulting perspective's shadow direction with the Project style's lighting direction", () => {
+    const { metadata } = instantiateTemplate(FULL_TEMPLATE, { style: STYLE });
+    expect(metadata.perspective.shadowDirection).toBe('down_left');
+    expect(metadata.perspective.kind).toBe('isometric'); // the template's own perspective choice stands
+  });
+
+  it('a null/absent style leaves instantiation exactly as it was in Phase 2', () => {
+    const withNull = instantiateTemplate(MINIMAL_TEMPLATE, { style: null });
+    const withoutOption = instantiateTemplate(MINIMAL_TEMPLATE);
+    expect(withNull.document.palettes).toHaveLength(1);
+    expect(withNull.metadata).toEqual(withoutOption.metadata);
   });
 });

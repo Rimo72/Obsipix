@@ -14,6 +14,8 @@ interface AssetLibraryPanelProps {
   readonly session: EditorSession;
   /** Open the "+ New Asset" dialog (Blank / From Template), added to the Project. */
   readonly onCreateAsset: () => void;
+  /** Open the Project Style dialog (V2 coding-phases Phase 4). */
+  readonly onEditStyle: () => void;
 }
 
 function formatLabel(value: string): string {
@@ -28,7 +30,7 @@ function formatLabel(value: string): string {
  * Phase 3, vision doc §10): create, rename, duplicate, delete, search,
  * filter by category/perspective/resolution, preview, open-for-edit.
  */
-export function AssetLibraryPanel({ session, onCreateAsset }: AssetLibraryPanelProps) {
+export function AssetLibraryPanel({ session, onCreateAsset, onEditStyle }: AssetLibraryPanelProps) {
   const [renaming, setRenaming] = useState<AssetId | null>(null);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<AssetCategory | ''>('');
@@ -76,6 +78,14 @@ export function AssetLibraryPanel({ session, onCreateAsset }: AssetLibraryPanelP
           }}
         >
           &#128465;
+        </button>
+        <button
+          type="button"
+          aria-label="Project style"
+          title="Project style"
+          onClick={onEditStyle}
+        >
+          &#127912;
         </button>
       </div>
 

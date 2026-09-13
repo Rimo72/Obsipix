@@ -26,6 +26,7 @@ interface RightSidebarProps {
   readonly onAddColor: () => void;
   readonly onEditColor: (colorId: PaletteColorId) => void;
   readonly onCreateAsset: () => void;
+  readonly onEditStyle: () => void;
 }
 
 /**
@@ -39,6 +40,7 @@ export function RightSidebar({
   onAddColor,
   onEditColor,
   onCreateAsset,
+  onEditStyle,
 }: RightSidebarProps) {
   const visible = SIDEBAR_PANELS.filter((id) => layout.panels[id].visible);
   if (visible.length === 0) {
@@ -85,7 +87,13 @@ export function RightSidebar({
   const content = (id: PanelId) => {
     switch (id) {
       case 'assets':
-        return <AssetLibraryPanel session={session} onCreateAsset={onCreateAsset} />;
+        return (
+          <AssetLibraryPanel
+            session={session}
+            onCreateAsset={onCreateAsset}
+            onEditStyle={onEditStyle}
+          />
+        );
       case 'color':
         return <ColorPanel session={session} />;
       case 'layers':

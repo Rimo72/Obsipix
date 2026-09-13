@@ -7,6 +7,7 @@ import type { AssetId, ProjectId } from '@core/types/ids';
 import type { AssetMetadata } from './AssetMetadata';
 import { Asset } from './Asset';
 import { createProjectIdFactory, type ProjectIdFactory } from './ProjectIdFactory';
+import type { ProjectStyle } from './ProjectStyle';
 
 export interface ProjectMetadata {
   readonly name: string;
@@ -17,6 +18,8 @@ export interface CreateSingleAssetOptions {
   readonly ids?: ProjectIdFactory;
   /** Defaults to inferred metadata for `document` when omitted. */
   readonly metadata?: AssetMetadata;
+  /** The Project's shared visual style (V2 coding-phases Phase 4). */
+  readonly style?: ProjectStyle;
 }
 
 /**
@@ -32,18 +35,21 @@ export class Project {
   readonly #ids: ProjectIdFactory;
   readonly #assets = new Map<AssetId, Asset>();
   #activeAssetId: AssetId;
+  #style: ProjectStyle | null;
 
   private constructor(
     id: ProjectId,
     metadata: ProjectMetadata,
     ids: ProjectIdFactory,
     firstAsset: Asset,
+    style: ProjectStyle | null,
   ) {
     this.id = id;
     this.metadata = metadata;
     this.#ids = ids;
     this.#assets.set(firstAsset.id, firstAsset);
     this.#activeAssetId = firstAsset.id;
+    this.#style = style;
   }
 
   /**
@@ -58,7 +64,22 @@ export class Project {
       document,
       options.metadata ? { metadata: options.metadata } : {},
     );
-    return new Project(ids.project(), { name: options.name ?? 'Untitled Project' }, ids, asset);
+    return new Project(
+      ids.project(),
+      { name: options.name ?? 'Untitled Project' },
+      ids,
+      asset,
+      options.style ?? null,
+    );
+  }
+
+  /** The Project's shared visual style (V2 coding-phases Phase 4), or `null` when unset. */
+  get style(): ProjectStyle | null {
+    return this.#style;
+  }
+
+  setStyle(style: ProjectStyle | null): void {
+    this.#style = style;
   }
 
   get assetIds(): readonly AssetId[] {

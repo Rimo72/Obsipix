@@ -56,6 +56,7 @@ import type { Command } from '@core/history/Command';
 import { inferAssetMetadata, type AssetMetadata } from '@core/project/AssetMetadata';
 import { instantiateTemplate } from '@core/project/instantiateTemplate';
 import { Project } from '@core/project/Project';
+import type { ProjectStyle } from '@core/project/ProjectStyle';
 import { createSeedTemplateRegistry } from '@core/project/seedTemplates';
 import type { TemplateId } from '@core/project/Template';
 import { TemplateRegistry } from '@core/project/TemplateRegistry';
@@ -218,6 +219,19 @@ export class EditorSession {
     return this.#project;
   }
 
+  /**
+   * The Project's shared visual style (V2 coding-phases Phase 4), applied
+   * as defaults the next time a Template-driven asset is created.
+   */
+  get projectStyle(): ProjectStyle | null {
+    return this.#project.style;
+  }
+
+  setProjectStyle(style: ProjectStyle | null): void {
+    this.#project.setStyle(style);
+    this.#emit();
+  }
+
   /** Available Templates for "Create Asset" (V2 coding-phases Phase 2). */
   get templates(): TemplateRegistry {
     return this.#templates;
@@ -271,7 +285,7 @@ export class EditorSession {
    */
   createAsset(templateId?: TemplateId): AssetId {
     const template = templateId ? this.#templates.get(templateId) : undefined;
-    const { document, metadata } = instantiateTemplate(template);
+    const { document, metadata } = instantiateTemplate(template, { style: this.#project.style });
     const id = this.#project.addAsset(document, metadata);
     this.switchAsset(id);
     return id;
@@ -481,7 +495,7 @@ export class EditorSession {
   newAssetFromTemplate(templateId?: TemplateId): void {
     this.#discardInteraction();
     const template = templateId ? this.#templates.get(templateId) : undefined;
-    const { document, metadata } = instantiateTemplate(template);
+    const { document, metadata } = instantiateTemplate(template, { style: this.#project.style });
     this.#resetActiveAsset(document, false, metadata);
     this.#fileName = null;
     this.fitView();

@@ -179,9 +179,9 @@ export class Document {
   }
 
   /** Create and add a new palette, returning its id. */
-  createPalette(name: string, colors: readonly RGBA[] = []): PaletteId {
+  createPalette(name: string, colors: readonly RGBA[] = [], activate = true): PaletteId {
     const palette = createPalette(this.#ids, name, colors);
-    this.addPalette(palette);
+    this.addPalette(palette, activate);
     return palette.id;
   }
 

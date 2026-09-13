@@ -43,6 +43,7 @@ describe('RightSidebar', () => {
         onAddColor={vi.fn()}
         onEditColor={vi.fn()}
         onCreateAsset={vi.fn()}
+        onEditStyle={vi.fn()}
       />,
     );
     for (const name of [
@@ -69,6 +70,7 @@ describe('RightSidebar', () => {
         onAddColor={vi.fn()}
         onEditColor={vi.fn()}
         onCreateAsset={vi.fn()}
+        onEditStyle={vi.fn()}
       />,
     );
     expect(screen.queryByRole('region', { name: 'Palettes' })).not.toBeInTheDocument();
@@ -85,6 +87,7 @@ describe('RightSidebar', () => {
         onAddColor={vi.fn()}
         onEditColor={vi.fn()}
         onCreateAsset={vi.fn()}
+        onEditStyle={vi.fn()}
       />,
     );
     fireEvent.click(screen.getByRole('button', { name: 'Close Layers panel' }));
@@ -100,6 +103,7 @@ describe('RightSidebar', () => {
         onAddColor={vi.fn()}
         onEditColor={vi.fn()}
         onCreateAsset={vi.fn()}
+        onEditStyle={vi.fn()}
       />,
     );
     expect(screen.getByText(/View/)).toBeInTheDocument();

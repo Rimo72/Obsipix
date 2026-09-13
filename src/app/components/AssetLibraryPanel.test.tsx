@@ -10,7 +10,7 @@ describe('AssetLibraryPanel (V2 coding-phases Phase 3)', () => {
   it('lists every asset in the project and marks the active one', () => {
     const session = new EditorSession();
     session.addAsset(createDefaultDocument());
-    render(<AssetLibraryPanel session={session} onCreateAsset={vi.fn()} />);
+    render(<AssetLibraryPanel session={session} onCreateAsset={vi.fn()} onEditStyle={vi.fn()} />);
 
     const rows = screen.getAllByTestId('asset-row');
     expect(rows).toHaveLength(2);
@@ -21,7 +21,7 @@ describe('AssetLibraryPanel (V2 coding-phases Phase 3)', () => {
   it('clicking a row switches the active asset', () => {
     const session = new EditorSession();
     const secondId = session.addAsset(createDefaultDocument());
-    render(<AssetLibraryPanel session={session} onCreateAsset={vi.fn()} />);
+    render(<AssetLibraryPanel session={session} onCreateAsset={vi.fn()} onEditStyle={vi.fn()} />);
 
     const rows = screen.getAllByTestId('asset-row');
     fireEvent.click(within(rows[1]!).getByRole('button', { name: 'Untitled' }));
@@ -31,28 +31,34 @@ describe('AssetLibraryPanel (V2 coding-phases Phase 3)', () => {
   it('the + button calls onCreateAsset', () => {
     const onCreateAsset = vi.fn();
     const session = new EditorSession();
-    render(<AssetLibraryPanel session={session} onCreateAsset={onCreateAsset} />);
+    render(
+      <AssetLibraryPanel session={session} onCreateAsset={onCreateAsset} onEditStyle={vi.fn()} />,
+    );
     fireEvent.click(screen.getByRole('button', { name: 'New asset' }));
     expect(onCreateAsset).toHaveBeenCalledTimes(1);
   });
 
   it('duplicates the active asset and lists the copy', () => {
     const session = new EditorSession();
-    const { rerender } = render(<AssetLibraryPanel session={session} onCreateAsset={vi.fn()} />);
+    const { rerender } = render(
+      <AssetLibraryPanel session={session} onCreateAsset={vi.fn()} onEditStyle={vi.fn()} />,
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Duplicate asset' }));
     expect(session.assetIds).toHaveLength(2);
-    rerender(<AssetLibraryPanel session={session} onCreateAsset={vi.fn()} />);
+    rerender(<AssetLibraryPanel session={session} onCreateAsset={vi.fn()} onEditStyle={vi.fn()} />);
     expect(screen.getAllByTestId('asset-row')).toHaveLength(2);
   });
 
   it('delete is disabled with only one asset, enabled with more than one', () => {
     const session = new EditorSession();
-    const { rerender } = render(<AssetLibraryPanel session={session} onCreateAsset={vi.fn()} />);
+    const { rerender } = render(
+      <AssetLibraryPanel session={session} onCreateAsset={vi.fn()} onEditStyle={vi.fn()} />,
+    );
     expect(screen.getByRole('button', { name: 'Delete asset' })).toBeDisabled();
 
     session.addAsset(createDefaultDocument());
-    rerender(<AssetLibraryPanel session={session} onCreateAsset={vi.fn()} />);
+    rerender(<AssetLibraryPanel session={session} onCreateAsset={vi.fn()} onEditStyle={vi.fn()} />);
     expect(screen.getByRole('button', { name: 'Delete asset' })).not.toBeDisabled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete asset' }));
@@ -61,7 +67,7 @@ describe('AssetLibraryPanel (V2 coding-phases Phase 3)', () => {
 
   it('renames an asset via double-click, Enter to commit', () => {
     const session = new EditorSession();
-    render(<AssetLibraryPanel session={session} onCreateAsset={vi.fn()} />);
+    render(<AssetLibraryPanel session={session} onCreateAsset={vi.fn()} onEditStyle={vi.fn()} />);
 
     const nameButton = within(screen.getAllByTestId('asset-row')[0]!).getByRole('button', {
       name: 'Untitled',
@@ -78,7 +84,7 @@ describe('AssetLibraryPanel (V2 coding-phases Phase 3)', () => {
   it('filters the list by category', () => {
     const session = new EditorSession();
     session.createAsset('character-hero');
-    render(<AssetLibraryPanel session={session} onCreateAsset={vi.fn()} />);
+    render(<AssetLibraryPanel session={session} onCreateAsset={vi.fn()} onEditStyle={vi.fn()} />);
 
     expect(screen.getAllByTestId('asset-row')).toHaveLength(2);
     fireEvent.change(screen.getByLabelText('Filter by category'), {
@@ -91,7 +97,7 @@ describe('AssetLibraryPanel (V2 coding-phases Phase 3)', () => {
   it('filters the list by search text', () => {
     const session = new EditorSession();
     session.createAsset('character-hero');
-    render(<AssetLibraryPanel session={session} onCreateAsset={vi.fn()} />);
+    render(<AssetLibraryPanel session={session} onCreateAsset={vi.fn()} onEditStyle={vi.fn()} />);
 
     fireEvent.change(screen.getByLabelText('Search assets'), { target: { value: 'hero' } });
     expect(screen.getAllByTestId('asset-row')).toHaveLength(1);
@@ -100,7 +106,7 @@ describe('AssetLibraryPanel (V2 coding-phases Phase 3)', () => {
 
   it('shows an empty-state message when filters match nothing', () => {
     const session = new EditorSession();
-    render(<AssetLibraryPanel session={session} onCreateAsset={vi.fn()} />);
+    render(<AssetLibraryPanel session={session} onCreateAsset={vi.fn()} onEditStyle={vi.fn()} />);
     fireEvent.change(screen.getByLabelText('Search assets'), { target: { value: 'nope' } });
     expect(screen.getByText('No assets match your filters.')).toBeInTheDocument();
   });

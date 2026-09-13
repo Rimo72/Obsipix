@@ -17,7 +17,10 @@ export const PERSPECTIVE_KINDS = [
 export type PerspectiveKind = (typeof PERSPECTIVE_KINDS)[number];
 
 export type GridGeometry = 'square' | 'diamond' | 'hexagonal' | 'none';
-export type ShadowDirection = 'none' | 'down' | 'down_right' | 'down_left' | 'custom';
+
+export const SHADOW_DIRECTIONS = ['none', 'down', 'down_right', 'down_left', 'custom'] as const;
+export type ShadowDirection = (typeof SHADOW_DIRECTIONS)[number];
+
 export type AlignmentRule = 'bottom_center' | 'center' | 'baseline' | 'custom';
 
 /**

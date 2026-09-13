@@ -33,6 +33,7 @@ import { MagicWandControls } from './MagicWandControls';
 import { MenuBar, type MenuDef } from './MenuBar';
 import { NewDocumentDialog } from './NewDocumentDialog';
 import { Panel } from './Panel';
+import { ProjectStyleDialog } from './ProjectStyleDialog';
 import { RecoveryPrompt } from './RecoveryPrompt';
 import { ResizeDialog } from './ResizeDialog';
 import { ResizeHandle } from './ResizeHandle';
@@ -74,6 +75,7 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
   const [resizing, setResizing] = useState<'image' | 'canvas' | null>(null);
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [addAssetDialogOpen, setAddAssetDialogOpen] = useState(false);
+  const [styleDialogOpen, setStyleDialogOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [pngImport, setPngImport] = useState<{ image: ImageData8; name: string } | null>(null);
   const [colorDialog, setColorDialog] = useState<
@@ -602,6 +604,9 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
           onCreateAsset={() => {
             setAddAssetDialogOpen(true);
           }}
+          onEditStyle={() => {
+            setStyleDialogOpen(true);
+          }}
         />
       </div>
 
@@ -655,6 +660,15 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
           onCreateFromTemplate={(templateId) => {
             session.createAsset(templateId);
             setAddAssetDialogOpen(false);
+          }}
+        />
+      )}
+
+      {styleDialogOpen && (
+        <ProjectStyleDialog
+          session={session}
+          onClose={() => {
+            setStyleDialogOpen(false);
           }}
         />
       )}

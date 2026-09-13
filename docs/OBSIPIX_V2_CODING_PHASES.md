@@ -395,7 +395,7 @@ development time until the core product (Phases 0–9) is proven.
   1       Asset Metadata                      COMPLETE
   2       Template Engine                     COMPLETE
   3       Asset Library UI                    COMPLETE
-  4       Project Style                       PLANNED
+  4       Project Style                       COMPLETE
   5       Terrain Template System             PLANNED
   6       Character Template System           PLANNED
   7       Object System / Variations          PLANNED

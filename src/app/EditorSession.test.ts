@@ -811,3 +811,49 @@ describe('EditorSession Asset Library operations (V2 coding-phases Phase 3)', ()
     expect(session.assetIds).toHaveLength(1);
   });
 });
+
+describe('EditorSession Project Style (V2 coding-phases Phase 4)', () => {
+  it('defaults to no style, and setProjectStyle is reflected immediately', () => {
+    const session = new EditorSession();
+    expect(session.projectStyle).toBeNull();
+
+    const style = { primaryPalette: [{ r: 9, g: 9, b: 9, a: 255 }] };
+    session.setProjectStyle(style);
+    expect(session.projectStyle).toBe(style);
+  });
+
+  it('createAsset applies the Project style as a default for a template with no palette of its own', () => {
+    const session = new EditorSession();
+    session.setProjectStyle({ primaryPalette: [{ r: 5, g: 5, b: 5, a: 255 }] });
+
+    // grass-tile has no paletteColors of its own — the style should apply
+    session.createAsset('terrain-grass-tile');
+    expect(session.document.palettes[0]!.colors[0]!.rgba).toEqual({
+      r: 5,
+      g: 5,
+      b: 5,
+      a: 255,
+    });
+  });
+
+  it('newAssetFromTemplate also applies the Project style', () => {
+    const session = new EditorSession();
+    session.setProjectStyle({ lightingDirection: 'down_left' });
+    session.newAssetFromTemplate('terrain-grass-tile');
+    expect(session.assetMetadata.perspective.shadowDirection).toBe('down_left');
+  });
+
+  it("two assets created from different templates in the same project share the style's palette by default", () => {
+    const session = new EditorSession();
+    session.setProjectStyle({ primaryPalette: [{ r: 7, g: 7, b: 7, a: 255 }] });
+
+    session.createAsset('terrain-grass-tile'); // no template palette of its own
+    const firstColor = session.document.palettes[0]!.colors[0]!.rgba;
+
+    session.createAsset('item-potion'); // no template palette of its own either
+    const secondColor = session.document.palettes[0]!.colors[0]!.rgba;
+
+    expect(firstColor).toEqual({ r: 7, g: 7, b: 7, a: 255 });
+    expect(secondColor).toEqual({ r: 7, g: 7, b: 7, a: 255 });
+  });
+});

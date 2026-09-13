@@ -3,6 +3,7 @@ import type { AssetMetadata } from '@core/project/AssetMetadata';
 import { isResolutionPreset, type AssetResolution } from '@core/project/AssetResolution';
 import {
   isPerspectiveKind,
+  SHADOW_DIRECTIONS,
   type AlignmentRule,
   type GridGeometry,
   type Perspective,
@@ -37,13 +38,6 @@ function isDimensions(value: unknown): value is { width: number; height: number 
 }
 
 const GRID_GEOMETRIES: readonly GridGeometry[] = ['square', 'diamond', 'hexagonal', 'none'];
-const SHADOW_DIRECTIONS: readonly ShadowDirection[] = [
-  'none',
-  'down',
-  'down_right',
-  'down_left',
-  'custom',
-];
 const ALIGNMENT_RULES: readonly AlignmentRule[] = ['bottom_center', 'center', 'baseline', 'custom'];
 
 function assertPerspective(value: unknown): asserts value is Perspective {
