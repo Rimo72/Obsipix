@@ -14,6 +14,7 @@ import {
   saveProject,
   saveProjectAs,
 } from '../fileCommands';
+import { runGameAssetExport } from '../gameAssetExport';
 import { runExport } from '../imageExport';
 import { decodePng } from '../pngDecode';
 import { PANEL_TITLE, SIDEBAR_PANELS, usePanelLayout, type PanelId } from '../panelLayout';
@@ -27,6 +28,7 @@ import { ColorControls } from './ColorControls';
 import { ColorManagementDialog } from './ColorManagementDialog';
 import { ExportDialog } from './ExportDialog';
 import { EyedropperControls } from './EyedropperControls';
+import { GameAssetExportDialog } from './GameAssetExportDialog';
 import { ImportPngDialog } from './ImportPngDialog';
 import { KeyboardHelp } from './KeyboardHelp';
 import { MagicWandControls } from './MagicWandControls';
@@ -77,6 +79,7 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
   const [addAssetDialogOpen, setAddAssetDialogOpen] = useState(false);
   const [styleDialogOpen, setStyleDialogOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [gameExportOpen, setGameExportOpen] = useState(false);
   const [pngImport, setPngImport] = useState<{ image: ImageData8; name: string } | null>(null);
   const [colorDialog, setColorDialog] = useState<
     { kind: 'add' } | { kind: 'edit'; colorId: PaletteColorId; name: string } | null
@@ -369,6 +372,12 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
             label: 'Export PNG',
             onSelect: () => {
               exportProjectPng(session);
+            },
+          },
+          {
+            label: 'Export Game Asset…',
+            onSelect: () => {
+              setGameExportOpen(true);
             },
           },
           null,
@@ -731,6 +740,20 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
             void runExport(session, settings).then((message) => {
               notify(message ?? `Exported ${settings.fileName}`, message ? 'error' : 'success');
             });
+          }}
+        />
+      )}
+
+      {gameExportOpen && (
+        <GameAssetExportDialog
+          session={session}
+          onClose={() => {
+            setGameExportOpen(false);
+          }}
+          onExport={(settings) => {
+            setGameExportOpen(false);
+            const message = runGameAssetExport(session.project.activeAsset, settings);
+            notify(message ?? `Exported ${settings.fileName}`, message ? 'error' : 'success');
           }}
         />
       )}

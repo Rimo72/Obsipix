@@ -1,0 +1,124 @@
+.game-export__intro {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--obsipix-text-muted);
+}
+
+.game-export__group {
+  margin: 0 0 12px;
+  padding: 0;
+  border: 0;
+}
+
+.game-export__group legend {
+  padding: 0 0 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--obsipix-text-muted);
+}
+
+.game-export__seg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.game-export__seg button {
+  flex: 1 1 0;
+  padding: 5px 6px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--obsipix-text-muted);
+  background: var(--obsipix-surface-raised);
+  border: 1px solid var(--obsipix-border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.game-export__seg button.is-active {
+  color: var(--obsipix-bg);
+  background: var(--obsipix-accent);
+  border-color: var(--obsipix-accent);
+}
+
+.game-export__seg button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.game-export__row {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.game-export__field {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--obsipix-text-muted);
+}
+
+.game-export__field--wide {
+  margin-bottom: 12px;
+}
+
+.game-export__field select,
+.game-export__field input {
+  padding: 4px 6px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--obsipix-text);
+  background: var(--obsipix-bg);
+  border: 1px solid var(--obsipix-border);
+  border-radius: 4px;
+}
+
+.game-export__scales {
+  display: flex;
+  gap: 3px;
+}
+
+.game-export__scales button {
+  flex: 1 1 0;
+  padding: 4px 0;
+  font: inherit;
+  font-size: 12px;
+  color: var(--obsipix-text);
+  background: var(--obsipix-surface-raised);
+  border: 1px solid var(--obsipix-border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.game-export__scales button.is-active {
+  color: var(--obsipix-bg);
+  background: var(--obsipix-accent);
+  border-color: var(--obsipix-accent);
+}
+
+.game-export__hint {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--obsipix-text-muted);
+}
+
+.game-export__button {
+  padding: 5px 12px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--obsipix-text);
+  background: var(--obsipix-surface-raised);
+  border: 1px solid var(--obsipix-border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.game-export__button.is-primary {
+  color: var(--obsipix-bg);
+  background: var(--obsipix-accent);
+  border-color: var(--obsipix-accent);
+}
