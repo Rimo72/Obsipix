@@ -21,6 +21,11 @@ export type PaletteId = Brand<string, 'PaletteId'>;
 export type PaletteColorId = Brand<string, 'PaletteColorId'>;
 export type AnimationTagId = Brand<string, 'AnimationTagId'>;
 
+/** Identifies a Project — the V2 container that owns one or more Assets. */
+export type ProjectId = Brand<string, 'ProjectId'>;
+/** Identifies an Asset — a Project's unit of editable work, wrapping one Document. */
+export type AssetId = Brand<string, 'AssetId'>;
+
 /** Zero-based position of a frame in the timeline. Ordering, not identity. */
 export type FrameIndex = Brand<number, 'FrameIndex'>;
 

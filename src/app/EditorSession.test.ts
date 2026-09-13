@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { selectRectCommand } from '@core/document/editCommands';
+import { createDefaultDocument } from '@core/document/DocumentFactory';
 import { ERASER_TOOL_ID } from '@core/tools/EraserTool';
 import { MAGIC_WAND_TOOL_ID } from '@core/tools/MagicWandTool';
 import { PENCIL_TOOL_ID } from '@core/tools/PencilTool';
@@ -578,5 +579,70 @@ describe('EditorSession one-shot colour sample', () => {
     session.sampleColorAt(2, 2);
     expect(picks).toHaveLength(1);
     expect(rgbaEquals(picks[0]!, TRANSPARENT)).toBe(true); // active layer is empty here
+  });
+});
+
+describe('EditorSession multi-asset Project (V2 Phase 0)', () => {
+  it('starts as a single-asset project, indistinguishable from V1 behaviour', () => {
+    const session = new EditorSession();
+    expect(session.assetIds).toEqual([session.activeAssetId]);
+    expect(session.project.activeAsset.document.id).toBe(session.document.id);
+  });
+
+  it('addAsset registers a second asset without switching to it', () => {
+    const session = new EditorSession();
+    const originalAssetId = session.activeAssetId;
+    const originalDocumentId = session.document.id;
+
+    const secondDocument = createDefaultDocument();
+    const secondAssetId = session.addAsset(secondDocument);
+
+    expect(session.assetIds).toEqual([originalAssetId, secondAssetId]);
+    expect(session.activeAssetId).toBe(originalAssetId);
+    expect(session.document.id).toBe(originalDocumentId);
+  });
+
+  it('switchAsset changes the active document and preserves each asset independent undo history', () => {
+    const session = new EditorSession();
+    const firstAssetId = session.activeAssetId;
+
+    session.runCommand(selectRectCommand({ x: 0, y: 0, width: 4, height: 4 }, 'replace'));
+    expect(session.history.depth).toBe(1);
+
+    const secondAssetId = session.addAsset(createDefaultDocument());
+    session.switchAsset(secondAssetId);
+
+    expect(session.activeAssetId).toBe(secondAssetId);
+    expect(session.canUndo).toBe(false); // the second asset has never been touched
+
+    session.runCommand(selectRectCommand({ x: 0, y: 0, width: 2, height: 2 }, 'replace'));
+    expect(session.history.depth).toBe(1);
+
+    session.switchAsset(firstAssetId);
+    expect(session.history.depth).toBe(1); // the first asset's history was untouched while away
+    expect(session.canUndo).toBe(true);
+    session.undo();
+    expect(session.history.depth).toBe(0);
+
+    session.switchAsset(secondAssetId);
+    expect(session.history.depth).toBe(1); // the second asset's own entry survived the round trip
+  });
+
+  it('switchAsset discards an in-progress interaction on the outgoing asset', () => {
+    const session = new EditorSession();
+    const secondAssetId = session.addAsset(createDefaultDocument());
+
+    session.pointerDown(press(1, 1));
+    expect(session.isInteracting).toBe(true);
+
+    session.switchAsset(secondAssetId);
+    expect(session.isInteracting).toBe(false);
+  });
+
+  it('switchAsset to an unknown id throws and leaves the active asset unchanged', () => {
+    const session = new EditorSession();
+    const before = session.activeAssetId;
+    expect(() => session.switchAsset('ast_does-not-exist' as never)).toThrow();
+    expect(session.activeAssetId).toBe(before);
   });
 });

@@ -53,6 +53,8 @@ import {
 } from '@core/document/layerCommands';
 import { History, type StrokeHandle } from '@core/history/History';
 import type { Command } from '@core/history/Command';
+import { Project } from '@core/project/Project';
+import type { AssetId } from '@core/types/ids';
 import { exportPng } from '@core/persistence/png';
 import { parseDocument } from '@core/persistence/parse';
 import { serializeDocument } from '@core/persistence/serialize';
@@ -116,6 +118,8 @@ export interface FloatPreview {
 
 export interface EditorSessionOptions {
   readonly document?: Document;
+  /** A pre-built multi-asset Project. Overrides `document` when given. */
+  readonly project?: Project;
 }
 
 const FIT_PADDING = 24;
@@ -130,7 +134,7 @@ const RECENT_COLOR_LIMIT = 16;
  * {@link EditorSession.subscribe}.
  */
 export class EditorSession {
-  readonly history: History;
+  #project: Project;
   readonly viewport = new Viewport();
 
   readonly #tools: ReadonlyMap<string, Tool>;
@@ -171,7 +175,8 @@ export class EditorSession {
   #cursorVersion = 0;
 
   constructor(options: EditorSessionOptions = {}) {
-    this.history = new History(options.document ?? createDefaultDocument());
+    this.#project =
+      options.project ?? Project.createSingleAsset(options.document ?? createDefaultDocument());
     this.#tools = new Map<string, Tool>([
       [PENCIL_TOOL_ID, new PencilTool()],
       [ERASER_TOOL_ID, new EraserTool()],
@@ -185,6 +190,43 @@ export class EditorSession {
       [MAGIC_WAND_TOOL_ID, new MagicWandTool()],
       [MOVE_TOOL_ID, new MoveTool()],
     ]);
+  }
+
+  /** The active Asset's History. Swaps when {@link switchAsset} changes which Asset is active. */
+  get history(): History {
+    return this.#project.activeAsset.history;
+  }
+
+  /** The Project backing this session (V2 coding-phases Phase 0). */
+  get project(): Project {
+    return this.#project;
+  }
+
+  get activeAssetId(): AssetId {
+    return this.#project.activeAssetId;
+  }
+
+  get assetIds(): readonly AssetId[] {
+    return this.#project.assetIds;
+  }
+
+  /** Add a new Asset to this session's Project. Does not switch to it. */
+  addAsset(document: Document): AssetId {
+    return this.#project.addAsset(document);
+  }
+
+  /**
+   * Make `id` the active Asset — `this.document`/`this.history` immediately
+   * reflect it. The Asset being switched away from keeps its own History
+   * untouched, exactly as it was left. Any in-progress interaction (a stroke,
+   * a floating selection) belongs to the outgoing Asset's document and is
+   * discarded, matching {@link open}/{@link newDocument}.
+   */
+  switchAsset(id: AssetId): void {
+    this.#discardInteraction();
+    this.#project.setActiveAsset(id);
+    this.fitView();
+    this.#emit();
   }
 
   get document(): Document {
