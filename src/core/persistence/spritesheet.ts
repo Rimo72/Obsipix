@@ -19,7 +19,8 @@ export interface SheetOptions {
   readonly background?: RGBA | null;
 }
 
-function gridShape(count: number, options: SheetOptions): { cols: number; rows: number } {
+/** The grid a sheet's frames pack into for a given layout — reused by callers that need to describe the shape without recomposing the image (e.g. a Godot export profile). */
+export function gridShape(count: number, options: SheetOptions): { cols: number; rows: number } {
   if (options.layout === 'horizontal') {
     return { cols: count, rows: 1 };
   }

@@ -28,6 +28,16 @@ export interface GameAssetExportInput {
   readonly perspective: PerspectiveKind;
   readonly resolutionWidth: number;
   readonly frameCount: number;
+  /**
+   * The packed sheet's grid shape (V2 coding-phases Phase 9) — the generic
+   * profile ignores these; an engine-specific profile (e.g. Godot) needs
+   * them to describe how its importer should slice the sheet back into
+   * cells.
+   */
+  readonly columns: number;
+  readonly rows: number;
+  readonly frameWidth: number;
+  readonly frameHeight: number;
 }
 
 /**

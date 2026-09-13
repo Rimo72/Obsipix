@@ -7,6 +7,7 @@ import { instantiateTemplate } from '@core/project/instantiateTemplate';
 import { createSeedTemplateRegistry } from '@core/project/seedTemplates';
 
 import { exportGameAsset } from './gameAssetExport';
+import { GODOT_EXPORT_PROFILE } from './godotExportProfile';
 
 describe('exportGameAsset (V2 coding-phases Phase 8)', () => {
   it('exports a single-frame asset as a 1x1 sheet at the document size', () => {
@@ -84,6 +85,30 @@ describe('exportGameAsset (V2 coding-phases Phase 8)', () => {
 
     const { metadata } = exportGameAsset(asset, { frameRange: { start: 0, end: 99 } });
     expect(metadata.frames).toBe(2); // clamped to the 2 real frames
+  });
+
+  it("feeds the packed grid shape to a chosen profile (V2 coding-phases Phase 9's Godot profile)", () => {
+    const registry = createSeedTemplateRegistry();
+    const { document, metadata: assetMetadata } = instantiateTemplate(
+      registry.get('terrain-grass-tile'),
+    );
+    const asset = new Asset(createSequentialProjectIdFactory().asset(), document, {
+      metadata: assetMetadata,
+    });
+
+    const { metadata } = exportGameAsset(asset, {
+      layout: 'grid',
+      columns: 3,
+      profile: GODOT_EXPORT_PROFILE,
+    });
+
+    expect(metadata).toMatchObject({
+      engine: 'godot',
+      columns: 3,
+      rows: 3,
+      frame_width: 32,
+      frame_height: 32,
+    });
   });
 
   it('the asset/type/perspective/frames metadata matches the vision doc §13 schema exactly', () => {

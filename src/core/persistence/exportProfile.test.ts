@@ -29,6 +29,10 @@ describe('GENERIC_EXPORT_PROFILE (V2 coding-phases Phase 8)', () => {
       perspective: 'top_down',
       resolutionWidth: 32,
       frameCount: 4,
+      columns: 4,
+      rows: 1,
+      frameWidth: 32,
+      frameHeight: 32,
     });
     expect(metadata).toEqual({
       asset: 'forest_tree',

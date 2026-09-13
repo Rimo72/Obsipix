@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { EditorSession } from '../EditorSession';
+import type { GameAssetExportSettings } from '../gameAssetExport';
 import { GameAssetExportDialog } from './GameAssetExportDialog';
 
 function heroSession(): EditorSession {
@@ -82,6 +83,26 @@ describe('GameAssetExportDialog (V2 coding-phases Phase 8)', () => {
     expect(onExport).toHaveBeenCalledWith(
       expect.objectContaining({ frameRange: { start: 0, end: frameCount - 1 } }),
     );
+  });
+
+  it('exports with the Godot profile when that target is selected', () => {
+    const onExport = vi.fn();
+    render(
+      <GameAssetExportDialog session={new EditorSession()} onClose={vi.fn()} onExport={onExport} />,
+    );
+
+    fireEvent.change(screen.getByLabelText('Target'), { target: { value: 'godot' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+
+    const settings = onExport.mock.calls[0]?.[0] as GameAssetExportSettings | undefined;
+    expect(settings?.profile?.id).toBe('godot');
+  });
+
+  it('defaults to the Generic target', () => {
+    render(
+      <GameAssetExportDialog session={new EditorSession()} onClose={vi.fn()} onExport={vi.fn()} />,
+    );
+    expect(screen.getByLabelText('Target')).toHaveValue('generic');
   });
 
   it('defaults a terrain asset to a 3-column grid matching its 3x3 tile-role set', () => {

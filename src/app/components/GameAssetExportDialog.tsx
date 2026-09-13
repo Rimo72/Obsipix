@@ -1,5 +1,8 @@
 import { useMemo, useState } from 'react';
 
+import { GENERIC_EXPORT_PROFILE, type ExportProfile } from '@core/persistence/exportProfile';
+import { GODOT_EXPORT_PROFILE } from '@core/persistence/godotExportProfile';
+
 import type { EditorSession } from '../EditorSession';
 import type { GameAssetExportSettings } from '../gameAssetExport';
 import { Dialog } from './Dialog';
@@ -12,6 +15,9 @@ interface GameAssetExportDialogProps {
 }
 
 const SCALES = [1, 2, 4, 8] as const;
+
+/** Selectable export targets (V2 coding-phases Phase 9): Generic's plain §13 schema, or Godot's widened one (`GODOT_EXPORT_PROFILE`) — adding another engine later only means appending here, `exportGameAsset` itself never branches on which profile it's given. */
+const PROFILES: readonly ExportProfile[] = [GENERIC_EXPORT_PROFILE, GODOT_EXPORT_PROFILE];
 
 function formatLabel(value: string): string {
   return value
@@ -50,6 +56,7 @@ export function GameAssetExportDialog({ session, onClose, onExport }: GameAssetE
   }, [doc]);
 
   const [scope, setScope] = useState('all');
+  const [profileId, setProfileId] = useState(GENERIC_EXPORT_PROFILE.id);
   const [scale, setScale] = useState(1);
   const [layout, setLayout] = useState<'horizontal' | 'vertical' | 'grid'>(
     isTerrain ? 'grid' : 'horizontal',
@@ -87,6 +94,9 @@ export function GameAssetExportDialog({ session, onClose, onExport }: GameAssetE
     };
   }, [layout, columns, spacing, selectedFrameCount, width, height, scale]);
 
+  const profile =
+    PROFILES.find((candidate) => candidate.id === profileId) ?? GENERIC_EXPORT_PROFILE;
+
   const submit = (): void => {
     onExport({
       fileName,
@@ -94,6 +104,7 @@ export function GameAssetExportDialog({ session, onClose, onExport }: GameAssetE
       layout,
       columns: Math.max(1, columns),
       spacing: Math.max(0, spacing),
+      profile,
       ...(frameRange
         ? { frameRange: { start: frameRange.startFrame, end: frameRange.endFrame } }
         : {}),
@@ -159,6 +170,22 @@ export function GameAssetExportDialog({ session, onClose, onExport }: GameAssetE
       )}
 
       <div className="game-export__row">
+        <label className="game-export__field">
+          Target
+          <select
+            value={profileId}
+            onChange={(event) => {
+              setProfileId(event.target.value);
+            }}
+          >
+            {PROFILES.map((candidate) => (
+              <option key={candidate.id} value={candidate.id}>
+                {candidate.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
         <div className="game-export__field">
           <span>Scale</span>
           <div className="game-export__scales">

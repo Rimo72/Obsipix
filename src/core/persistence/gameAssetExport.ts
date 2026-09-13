@@ -8,7 +8,7 @@ import {
   type ExportProfile,
   type GameAssetExportMetadata,
 } from './exportProfile';
-import { composeSpriteSheet, type SheetLayout } from './spritesheet';
+import { composeSpriteSheet, gridShape, type SheetLayout } from './spritesheet';
 
 export interface FrameRange {
   /** Zero-based, inclusive. */
@@ -66,12 +66,14 @@ export function exportGameAsset(
   const end = Math.max(start, Math.min(requested.end, maxIndex));
   const selected = allFrames.slice(start, end + 1).map((frame) => frame.buffer);
 
-  const image = composeSpriteSheet(selected, {
+  const sheetOptions = {
     layout: options.layout ?? 'horizontal',
     ...(options.columns !== undefined ? { columns: options.columns } : {}),
     ...(options.spacing !== undefined ? { spacing: options.spacing } : {}),
     background: options.background ?? null,
-  });
+  };
+  const image = composeSpriteSheet(selected, sheetOptions);
+  const { cols, rows } = gridShape(selected.length, sheetOptions);
 
   const profile = options.profile ?? GENERIC_EXPORT_PROFILE;
   const metadata = profile.buildMetadata({
@@ -80,6 +82,10 @@ export function exportGameAsset(
     perspective: asset.metadata.perspective.kind,
     resolutionWidth: asset.document.dimensions.width,
     frameCount: selected.length,
+    columns: cols,
+    rows,
+    frameWidth: selected[0]?.width ?? 0,
+    frameHeight: selected[0]?.height ?? 0,
   });
 
   return { image, metadata };
