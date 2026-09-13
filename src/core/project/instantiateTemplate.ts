@@ -5,7 +5,7 @@ import { rgbaEquals, type RGBA } from '@core/types/color';
 import type { Dimensions } from '@core/types/geometry';
 
 import { DEFAULT_ASSET_CATEGORY } from './AssetCategory';
-import type { AssetMetadata, TerrainRoleSlot } from './AssetMetadata';
+import type { AssetMetadata, CharacterViewSlot, TerrainRoleSlot } from './AssetMetadata';
 import { resolutionFromDimensions } from './AssetResolution';
 import { DEFAULT_PERSPECTIVE_KIND, getPerspective, type Perspective } from './Perspective';
 import type { ProjectStyle } from './ProjectStyle';
@@ -88,6 +88,20 @@ export function instantiateTemplate(
     terrainRoles = tileRoles.map((role, frameIndex) => ({ role, frameIndex }));
   }
 
+  // One Frame per character view (V2 coding-phases Phase 6) — the same
+  // pattern as terrain tile roles above. A template combining `tileRoles`
+  // and `views` is not a supported/real scenario (a template is either
+  // terrain or character), so this assumes frame 0 is still free exactly
+  // like the tileRoles block does.
+  const views = template?.views;
+  let characterViews: readonly CharacterViewSlot[] | undefined;
+  if (views && views.length > 0) {
+    for (let i = 1; i < views.length; i += 1) {
+      document.addFrame();
+    }
+    characterViews = views.map((view, frameIndex) => ({ view, frameIndex }));
+  }
+
   // A template's own palette wins outright; otherwise the Project's shared
   // primary palette is the default, same as an explicit template palette
   // would be — only falling through to DocumentFactory's own default when
@@ -114,7 +128,13 @@ export function instantiateTemplate(
     category: template?.category ?? DEFAULT_ASSET_CATEGORY,
     perspective,
     resolution: resolutionFromDimensions(document.dimensions),
+    ...(template ? { templateId: template.id } : {}),
     ...(terrainRoles ? { terrainRoles } : {}),
+    ...(characterViews ? { characterViews } : {}),
+    ...(template?.animationStates ? { animationStates: template.animationStates } : {}),
+    ...(template?.headHeightRatio !== undefined
+      ? { headHeightRatio: template.headHeightRatio }
+      : {}),
   };
 
   return { document, metadata };

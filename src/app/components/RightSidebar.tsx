@@ -12,6 +12,7 @@ import {
 } from '../panelLayout';
 import { AnimationPreview } from './AnimationPreview';
 import { AssetLibraryPanel } from './AssetLibraryPanel';
+import { CharacterInfoPanel } from './CharacterInfoPanel';
 import { ColorPanel } from './ColorPanel';
 import { LayerPanel } from './LayerPanel';
 import { Panel } from './Panel';
@@ -95,6 +96,8 @@ export function RightSidebar({
             onEditStyle={onEditStyle}
           />
         );
+      case 'character':
+        return <CharacterInfoPanel session={session} />;
       case 'color':
         return <ColorPanel session={session} />;
       case 'layers':

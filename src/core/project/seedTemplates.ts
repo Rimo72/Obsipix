@@ -1,5 +1,7 @@
 import type { RGBA } from '@core/types/color';
 
+import { CHARACTER_ANIMATION_STATES } from './CharacterAnimationState';
+import { CHARACTER_VIEWS } from './CharacterView';
 import { TERRAIN_TILE_ROLES } from './TerrainTileRole';
 import type { Template } from './Template';
 import { TemplateRegistry } from './TemplateRegistry';
@@ -18,10 +20,11 @@ const EFFECT_PALETTE: readonly RGBA[] = [
 /**
  * A handful of seed templates, one per major category, proving the
  * Template Engine end-to-end (V2 coding-phases Phase 2). Deliberately not
- * full content — real character/object depth arrives in Phases 6-7. The
- * terrain template is the exception: it's a full 3x3 tile-role set
- * (Phase 5), since terrain is the phase that defines what "full content"
- * for a terrain template even means.
+ * full content — real object depth arrives in Phase 7. The terrain and
+ * character templates are the exceptions: terrain is a full 3x3 tile-role
+ * set (Phase 5) and Hero is a full view/state/proportion set (Phase 6),
+ * since those are the phases that define what "full content" for each
+ * means.
  */
 export const SEED_TEMPLATES: readonly Template[] = [
   {
@@ -42,6 +45,9 @@ export const SEED_TEMPLATES: readonly Template[] = [
     perspective: 'three_quarter_top_down',
     canvasSize: { width: 32, height: 32 },
     layerNames: ['Body', 'Outline'],
+    views: CHARACTER_VIEWS.filter((view) => view !== 'custom'),
+    animationStates: CHARACTER_ANIMATION_STATES.filter((state) => state !== 'custom'),
+    headHeightRatio: 0.25,
   },
   {
     id: 'object-tree',

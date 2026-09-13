@@ -1,6 +1,15 @@
 import { isAssetCategory } from '@core/project/AssetCategory';
-import type { AssetMetadata, TerrainRoleSlot } from '@core/project/AssetMetadata';
+import type {
+  AssetMetadata,
+  CharacterViewSlot,
+  TerrainRoleSlot,
+} from '@core/project/AssetMetadata';
 import { isResolutionPreset, type AssetResolution } from '@core/project/AssetResolution';
+import {
+  isCharacterAnimationState,
+  type CharacterAnimationState,
+} from '@core/project/CharacterAnimationState';
+import { isCharacterView } from '@core/project/CharacterView';
 import {
   isPerspectiveKind,
   SHADOW_DIRECTIONS,
@@ -75,6 +84,14 @@ function assertResolution(value: unknown): asserts value is AssetResolution {
   }
 }
 
+function assertFrameIndex(value: unknown, label: string): asserts value is number {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 0) {
+    throw new AssetMetadataParseError(
+      `${label} must be a non-negative integer: ${JSON.stringify(value)}`,
+    );
+  }
+}
+
 function assertTerrainRoles(value: unknown): asserts value is readonly TerrainRoleSlot[] {
   if (!Array.isArray(value)) {
     throw new AssetMetadataParseError('terrainRoles must be an array');
@@ -87,11 +104,46 @@ function assertTerrainRoles(value: unknown): asserts value is readonly TerrainRo
     if (!isTerrainTileRole(role)) {
       throw new AssetMetadataParseError(`Unknown terrain tile role: ${JSON.stringify(role)}`);
     }
-    if (typeof frameIndex !== 'number' || !Number.isInteger(frameIndex) || frameIndex < 0) {
+    assertFrameIndex(frameIndex, 'terrainRoles.frameIndex');
+  }
+}
+
+function assertCharacterViews(value: unknown): asserts value is readonly CharacterViewSlot[] {
+  if (!Array.isArray(value)) {
+    throw new AssetMetadataParseError('characterViews must be an array');
+  }
+  for (const entry of value) {
+    if (typeof entry !== 'object' || entry === null) {
+      throw new AssetMetadataParseError('Each characterViews entry must be an object');
+    }
+    const { view, frameIndex } = entry as Record<string, unknown>;
+    if (!isCharacterView(view)) {
+      throw new AssetMetadataParseError(`Unknown character view: ${JSON.stringify(view)}`);
+    }
+    assertFrameIndex(frameIndex, 'characterViews.frameIndex');
+  }
+}
+
+function assertAnimationStates(
+  value: unknown,
+): asserts value is readonly CharacterAnimationState[] {
+  if (!Array.isArray(value)) {
+    throw new AssetMetadataParseError('animationStates must be an array');
+  }
+  for (const entry of value) {
+    if (!isCharacterAnimationState(entry)) {
       throw new AssetMetadataParseError(
-        `terrainRoles.frameIndex must be a non-negative integer: ${JSON.stringify(frameIndex)}`,
+        `Unknown character animation state: ${JSON.stringify(entry)}`,
       );
     }
+  }
+}
+
+function assertHeadHeightRatio(value: unknown): asserts value is number {
+  if (typeof value !== 'number' || value < 0 || value > 1) {
+    throw new AssetMetadataParseError(
+      `headHeightRatio must be a number between 0 and 1: ${JSON.stringify(value)}`,
+    );
   }
 }
 
@@ -106,15 +158,47 @@ export function parseAssetMetadata(bytes: Uint8Array): AssetMetadata {
   if (typeof raw !== 'object' || raw === null) {
     throw new AssetMetadataParseError('Asset metadata must be a JSON object');
   }
-  const { category, perspective, resolution, terrainRoles } = raw as Record<string, unknown>;
+  const {
+    category,
+    perspective,
+    resolution,
+    terrainRoles,
+    templateId,
+    characterViews,
+    animationStates,
+    headHeightRatio,
+  } = raw as Record<string, unknown>;
+
   if (!isAssetCategory(category)) {
     throw new AssetMetadataParseError(`Unknown asset category: ${JSON.stringify(category)}`);
   }
   assertPerspective(perspective);
   assertResolution(resolution);
-  if (terrainRoles === undefined) {
-    return { category, perspective, resolution };
+
+  if (terrainRoles !== undefined) {
+    assertTerrainRoles(terrainRoles);
   }
-  assertTerrainRoles(terrainRoles);
-  return { category, perspective, resolution, terrainRoles };
+  if (templateId !== undefined && typeof templateId !== 'string') {
+    throw new AssetMetadataParseError(`templateId must be a string: ${JSON.stringify(templateId)}`);
+  }
+  if (characterViews !== undefined) {
+    assertCharacterViews(characterViews);
+  }
+  if (animationStates !== undefined) {
+    assertAnimationStates(animationStates);
+  }
+  if (headHeightRatio !== undefined) {
+    assertHeadHeightRatio(headHeightRatio);
+  }
+
+  return {
+    category,
+    perspective,
+    resolution,
+    ...(terrainRoles !== undefined ? { terrainRoles } : {}),
+    ...(templateId !== undefined ? { templateId } : {}),
+    ...(characterViews !== undefined ? { characterViews } : {}),
+    ...(animationStates !== undefined ? { animationStates } : {}),
+    ...(headHeightRatio !== undefined ? { headHeightRatio } : {}),
+  };
 }

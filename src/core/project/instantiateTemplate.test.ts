@@ -249,3 +249,87 @@ describe('instantiateTemplate + terrain tile roles (V2 coding-phases Phase 5)', 
     expect(metadata.terrainRoles?.map((slot) => slot.role)).toEqual(TERRAIN_TILE_ROLES);
   });
 });
+
+describe('instantiateTemplate + character views/states (V2 coding-phases Phase 6)', () => {
+  const CHARACTER_TEMPLATE_FIXTURE: Template = {
+    id: 'test-character',
+    name: 'Test Character',
+    category: 'character',
+    assetType: 'test',
+    perspective: 'three_quarter_top_down',
+    canvasSize: { width: 16, height: 16 },
+    layerNames: ['Body'],
+    views: ['front', 'side', 'back'],
+    animationStates: ['idle', 'walk'],
+    headHeightRatio: 0.3,
+  };
+
+  it('creates one independent Frame per view, in order', () => {
+    const { document, metadata } = instantiateTemplate(CHARACTER_TEMPLATE_FIXTURE);
+    expect(document.timeline.frames).toHaveLength(3);
+    expect(metadata.characterViews).toEqual([
+      { view: 'front', frameIndex: 0 },
+      { view: 'side', frameIndex: 1 },
+      { view: 'back', frameIndex: 2 },
+    ]);
+  });
+
+  it('every view frame starts blank and independent of the others', () => {
+    const { document } = instantiateTemplate(CHARACTER_TEMPLATE_FIXTURE);
+    const layerId = document.layers.activeLayerId;
+    const frames = document.timeline.frames;
+
+    document.timeline.setActiveFrame(frames[1]!.id); // 'side'
+    document.ensureDrawableBuffer(layerId).setPixel(0, 0, { r: 0, g: 255, b: 0, a: 255 });
+
+    for (const [index, frame] of frames.entries()) {
+      const pixel = document.resolveBuffer(layerId, frame.id)?.getPixel(0, 0) ?? TRANSPARENT;
+      if (index === 1) {
+        expect(rgbaEquals(pixel, { r: 0, g: 255, b: 0, a: 255 })).toBe(true);
+      } else {
+        expect(rgbaEquals(pixel, TRANSPARENT)).toBe(true);
+      }
+    }
+  });
+
+  it('records the declared animationStates checklist and headHeightRatio, and the source templateId', () => {
+    const { metadata } = instantiateTemplate(CHARACTER_TEMPLATE_FIXTURE);
+    expect(metadata.animationStates).toEqual(['idle', 'walk']);
+    expect(metadata.headHeightRatio).toBe(0.3);
+    expect(metadata.templateId).toBe('test-character');
+  });
+
+  it('does not add animationStates/headHeightRatio/characterViews when the template omits them', () => {
+    const { metadata } = instantiateTemplate(MINIMAL_TEMPLATE);
+    expect(metadata.animationStates).toBeUndefined();
+    expect(metadata.headHeightRatio).toBeUndefined();
+    expect(metadata.characterViews).toBeUndefined();
+    expect(metadata.templateId).toBe(MINIMAL_TEMPLATE.id); // templateId is set for any known template
+  });
+
+  it('an undefined template (unknown id) sets no templateId at all', () => {
+    const { metadata } = instantiateTemplate(undefined);
+    expect(metadata.templateId).toBeUndefined();
+  });
+
+  it('two characters from the same template share views, palette, and frame dimensions', () => {
+    const first = instantiateTemplate(CHARACTER_TEMPLATE_FIXTURE);
+    const second = instantiateTemplate(CHARACTER_TEMPLATE_FIXTURE);
+
+    expect(second.document.dimensions).toEqual(first.document.dimensions);
+    expect(second.metadata.headHeightRatio).toBe(first.metadata.headHeightRatio);
+    expect(second.metadata.characterViews).toEqual(first.metadata.characterViews);
+    expect(paletteRgbas(second.document.palettes[0]!.colors)).toEqual(
+      paletteRgbas(first.document.palettes[0]!.colors),
+    );
+  });
+
+  it('the Hero seed template is a full 3-view, 6-state character', () => {
+    const template = createSeedTemplateRegistry().get('character-hero')!;
+    const { document, metadata } = instantiateTemplate(template);
+    expect(document.timeline.frames).toHaveLength(4); // front, back, side, three_quarter
+    expect(metadata.characterViews).toHaveLength(4);
+    expect(metadata.animationStates).toEqual(['idle', 'walk', 'run', 'attack', 'hurt', 'death']);
+    expect(metadata.headHeightRatio).toBe(0.25);
+  });
+});

@@ -397,7 +397,7 @@ development time until the core product (Phases 0–9) is proven.
   3       Asset Library UI                    COMPLETE
   4       Project Style                       COMPLETE
   5       Terrain Template System             COMPLETE
-  6       Character Template System           PLANNED
+  6       Character Template System           COMPLETE
   7       Object System / Variations          PLANNED
   8       Game Asset Export                   PLANNED
   9       Godot Export Preparation            PLANNED

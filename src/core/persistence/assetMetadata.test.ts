@@ -101,3 +101,65 @@ describe('AssetMetadata terrainRoles serialization (V2 coding-phases Phase 5)', 
     );
   });
 });
+
+describe('AssetMetadata character fields serialization (V2 coding-phases Phase 6)', () => {
+  it('round-trips templateId, characterViews, animationStates, and headHeightRatio exactly', () => {
+    const original: AssetMetadata = {
+      ...inferAssetMetadata(createDefaultDocument()),
+      category: 'character',
+      templateId: 'character-hero',
+      characterViews: [
+        { view: 'front', frameIndex: 0 },
+        { view: 'side', frameIndex: 1 },
+      ],
+      animationStates: ['idle', 'walk'],
+      headHeightRatio: 0.25,
+    };
+    const parsed = parseAssetMetadata(serializeAssetMetadata(original));
+    expect(parsed).toEqual(original);
+  });
+
+  it('omits every character field entirely when absent', () => {
+    const original = inferAssetMetadata(createDefaultDocument());
+    const parsed = parseAssetMetadata(serializeAssetMetadata(original));
+    for (const field of ['templateId', 'characterViews', 'animationStates', 'headHeightRatio']) {
+      expect(field in parsed).toBe(false);
+    }
+  });
+
+  it('rejects an unknown character view', () => {
+    const base = inferAssetMetadata(createDefaultDocument());
+    const bad = { ...base, characterViews: [{ view: 'upside_down', frameIndex: 0 }] };
+    expect(() => parseAssetMetadata(new TextEncoder().encode(JSON.stringify(bad)))).toThrow(
+      AssetMetadataParseError,
+    );
+  });
+
+  it('rejects an unknown animation state', () => {
+    const base = inferAssetMetadata(createDefaultDocument());
+    const bad = { ...base, animationStates: ['sleeping'] };
+    expect(() => parseAssetMetadata(new TextEncoder().encode(JSON.stringify(bad)))).toThrow(
+      AssetMetadataParseError,
+    );
+  });
+
+  it('rejects a headHeightRatio outside 0-1', () => {
+    const base = inferAssetMetadata(createDefaultDocument());
+    const tooHigh = { ...base, headHeightRatio: 1.5 };
+    expect(() => parseAssetMetadata(new TextEncoder().encode(JSON.stringify(tooHigh)))).toThrow(
+      AssetMetadataParseError,
+    );
+    const negative = { ...base, headHeightRatio: -0.1 };
+    expect(() => parseAssetMetadata(new TextEncoder().encode(JSON.stringify(negative)))).toThrow(
+      AssetMetadataParseError,
+    );
+  });
+
+  it('rejects a non-string templateId', () => {
+    const base = inferAssetMetadata(createDefaultDocument());
+    const bad = { ...base, templateId: 42 };
+    expect(() => parseAssetMetadata(new TextEncoder().encode(JSON.stringify(bad)))).toThrow(
+      AssetMetadataParseError,
+    );
+  });
+});

@@ -98,7 +98,7 @@ describe('RightSidebar', () => {
     render(
       <RightSidebar
         session={new EditorSession()}
-        layout={hiding('assets', 'terrain', 'color', 'layers', 'palette', 'preview')}
+        layout={hiding('assets', 'terrain', 'character', 'color', 'layers', 'palette', 'preview')}
         actions={actions()}
         onAddColor={vi.fn()}
         onEditColor={vi.fn()}
