@@ -85,4 +85,24 @@ describe('AutosaveController', () => {
     await new AutosaveController(session, store).resolve();
     expect(await store.load()).toBeNull();
   });
+
+  it('snapshots the active asset metadata alongside the document bytes', async () => {
+    const session = new EditorSession();
+    session.createAsset('terrain-grass-tile');
+    session.pointerDown(press(2, 2));
+    session.pointerUp(press(2, 2, 'none'));
+    expect(session.isDirty).toBe(true);
+    const store = new MemoryRecoveryStore();
+    const autosave = new AutosaveController(session, store);
+
+    await autosave.tick();
+    const snapshot = await store.load();
+    expect(snapshot?.metadata).toBeDefined();
+    const metadata = JSON.parse(new TextDecoder().decode(snapshot?.metadata)) as {
+      category: string;
+      terrainRoles?: unknown[];
+    };
+    expect(metadata.category).toBe('terrain');
+    expect(metadata.terrainRoles).toHaveLength(9);
+  });
 });

@@ -15,6 +15,14 @@ export interface RecoverySnapshot {
   readonly fileName: string | null;
   /** `Date.now()` when the snapshot was written. */
   readonly savedAt: number;
+  /**
+   * The active asset's `AssetMetadata` (category/perspective/terrainRoles/
+   * etc.), serialized via `serializeAssetMetadata` — without this, recovery
+   * would fall back to `inferAssetMetadata` and silently lose things like a
+   * terrain asset's tile-role frames. Optional so older snapshots (written
+   * before this field existed) still load.
+   */
+  readonly metadata?: Uint8Array;
 }
 
 export interface RecoveryStore {
@@ -39,6 +47,7 @@ export class MemoryRecoveryStore implements RecoveryStore {
       bytes: snapshot.bytes.slice(),
       fileName: snapshot.fileName,
       savedAt: snapshot.savedAt,
+      ...(snapshot.metadata !== undefined ? { metadata: snapshot.metadata.slice() } : {}),
     };
     return Promise.resolve();
   }
@@ -101,6 +110,7 @@ export class IndexedDbRecoveryStore implements RecoveryStore {
           bytes: snapshot.bytes.slice(),
           fileName: snapshot.fileName,
           savedAt: snapshot.savedAt,
+          ...(snapshot.metadata !== undefined ? { metadata: snapshot.metadata.slice() } : {}),
         };
         await runRequest(tx.objectStore(STORE_NAME).put(record, KEY));
       } finally {
@@ -157,10 +167,18 @@ function normalizeSnapshot(raw: unknown): RecoverySnapshot | null {
   if (!buffer || buffer.length === 0) {
     return null;
   }
+  const metadata = record.metadata;
+  const metadataBuffer =
+    metadata instanceof Uint8Array
+      ? metadata
+      : metadata instanceof ArrayBuffer
+        ? new Uint8Array(metadata)
+        : null;
   return {
     bytes: buffer,
     fileName: typeof record.fileName === 'string' ? record.fileName : null,
     savedAt: typeof record.savedAt === 'number' ? record.savedAt : Date.now(),
+    ...(metadataBuffer ? { metadata: metadataBuffer } : {}),
   };
 }
 

@@ -1,3 +1,5 @@
+import { serializeAssetMetadata } from '@core/persistence/assetMetadata';
+
 import type { RecoveryStore } from '@infrastructure/recovery/RecoveryStore';
 
 import type { EditorSession } from './EditorSession';
@@ -57,6 +59,7 @@ export class AutosaveController {
         bytes: this.#session.peekBytes(),
         fileName: this.#session.fileName,
         savedAt: this.#now(),
+        metadata: serializeAssetMetadata(this.#session.assetMetadata),
       });
     } catch {
       // autosave is best-effort

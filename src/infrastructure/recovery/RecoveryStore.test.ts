@@ -24,6 +24,23 @@ describe('MemoryRecoveryStore', () => {
     await store.clear();
     expect(await store.load()).toBeNull();
   });
+
+  it('round-trips the optional asset metadata bytes, defensively copied', async () => {
+    const store = new MemoryRecoveryStore();
+    const metadata = new Uint8Array([9, 8, 7]);
+    await store.save({ bytes: new Uint8Array([1]), fileName: null, savedAt: 0, metadata });
+    metadata[0] = 1; // mutating the caller's array must not affect the store
+
+    const loaded = await store.load();
+    expect([...(loaded?.metadata ?? [])]).toEqual([9, 8, 7]);
+  });
+
+  it('a snapshot with no metadata round-trips without one', async () => {
+    const store = new MemoryRecoveryStore();
+    await store.save({ bytes: new Uint8Array([1]), fileName: null, savedAt: 0 });
+    const loaded = await store.load();
+    expect(loaded?.metadata).toBeUndefined();
+  });
 });
 
 describe('createRecoveryStore', () => {

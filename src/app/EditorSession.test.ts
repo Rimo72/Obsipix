@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { selectRectCommand } from '@core/document/editCommands';
 import { createDefaultDocument } from '@core/document/DocumentFactory';
+import { serializeAssetMetadata } from '@core/persistence/assetMetadata';
 import { ERASER_TOOL_ID } from '@core/tools/EraserTool';
 import { MAGIC_WAND_TOOL_ID } from '@core/tools/MagicWandTool';
 import { PENCIL_TOOL_ID } from '@core/tools/PencilTool';
@@ -433,6 +434,32 @@ describe('EditorSession lifecycle & import', () => {
     expect(session.fileName).toBe('crash.obsipix');
     expect(session.canUndo).toBe(false);
     expect(rgbaEquals(pixel(session, 2, 2), BLACK)).toBe(true);
+  });
+
+  it('recover() restores asset metadata (e.g. terrainRoles) when given metadata bytes', () => {
+    const source = new EditorSession();
+    source.createAsset('terrain-grass-tile');
+    const bytes = source.peekBytes();
+    const metadataBytes = serializeAssetMetadata(source.assetMetadata);
+
+    const session = new EditorSession();
+    session.recover(bytes, 'terrain.obsipix', metadataBytes);
+    expect(session.assetMetadata.terrainRoles).toHaveLength(9);
+    expect(session.assetMetadata.category).toBe('terrain');
+  });
+
+  it('recover() falls back to inferred metadata when metadata bytes are omitted or corrupt', () => {
+    const source = new EditorSession();
+    source.createAsset('terrain-grass-tile');
+    const bytes = source.peekBytes();
+
+    const withoutMetadata = new EditorSession();
+    withoutMetadata.recover(bytes, 'terrain.obsipix');
+    expect(withoutMetadata.assetMetadata.terrainRoles).toBeUndefined();
+
+    const withCorruptMetadata = new EditorSession();
+    withCorruptMetadata.recover(bytes, 'terrain.obsipix', new TextEncoder().encode('not json'));
+    expect(withCorruptMetadata.assetMetadata.terrainRoles).toBeUndefined();
   });
 
   it('importAsDocument replaces the project, resized and dirty', () => {

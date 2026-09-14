@@ -61,6 +61,7 @@ import { createSeedTemplateRegistry } from '@core/project/seedTemplates';
 import type { TemplateId } from '@core/project/Template';
 import { TemplateRegistry } from '@core/project/TemplateRegistry';
 import type { AssetId } from '@core/types/ids';
+import { parseAssetMetadata } from '@core/persistence/assetMetadata';
 import { exportPng } from '@core/persistence/png';
 import { parseDocument } from '@core/persistence/parse';
 import { serializeDocument } from '@core/persistence/serialize';
@@ -456,11 +457,24 @@ export class EditorSession {
   /**
    * Load recovered autosave bytes. Like {@link open}, but the document stays
    * dirty — it is unsaved work that still needs a real Save (PROJECT_CORE §3.13).
+   * `metadataBytes` restores the asset's category/perspective/terrainRoles/
+   * etc. (see {@link AutosaveController}) — without it this would silently
+   * fall back to {@link inferAssetMetadata}, losing e.g. a terrain asset's
+   * tile-role frames. Corrupt or missing metadata degrades to that same
+   * fallback rather than failing the whole recovery.
    */
-  recover(bytes: Uint8Array, name: string | null): void {
+  recover(bytes: Uint8Array, name: string | null, metadataBytes?: Uint8Array): void {
     const document = parseDocument(bytes);
+    let metadata: AssetMetadata | undefined;
+    if (metadataBytes) {
+      try {
+        metadata = parseAssetMetadata(metadataBytes);
+      } catch {
+        metadata = undefined;
+      }
+    }
     this.#discardInteraction();
-    this.#resetActiveAsset(document, true);
+    this.#resetActiveAsset(document, true, metadata);
     this.#fileName = name;
     this.fitView();
     this.#emit();

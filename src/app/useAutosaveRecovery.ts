@@ -99,7 +99,7 @@ export function useAutosaveRecovery(
     setRecovery(null);
     void autosave.resolve();
     try {
-      session.recover(snapshot.bytes, snapshot.fileName);
+      session.recover(snapshot.bytes, snapshot.fileName, snapshot.metadata);
       return null;
     } catch {
       return 'The recovered data was unreadable and has been discarded.';
