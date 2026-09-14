@@ -1,9 +1,62 @@
 .canvas-stage {
   position: relative;
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  grid-template-rows: 20px 1fr;
   width: 100%;
   height: 100%;
   overflow: hidden;
   background: var(--obsipix-bg);
+}
+
+/* The grid track collapse alone isn't enough — the ruler canvases keep their
+   own explicit width/height below and would otherwise overflow their
+   0-sized track and sit on top of the document, stale and still catching
+   pointer events. Hiding them outright removes both problems. */
+.canvas-stage--no-rulers {
+  grid-template-columns: 0 1fr;
+  grid-template-rows: 0 1fr;
+}
+
+.canvas-stage--no-rulers .canvas-stage__ruler,
+.canvas-stage--no-rulers .canvas-stage__corner {
+  display: none;
+}
+
+.canvas-stage__corner {
+  grid-column: 1;
+  grid-row: 1;
+  background: var(--obsipix-surface);
+  border-right: 1px solid var(--obsipix-border);
+  border-bottom: 1px solid var(--obsipix-border);
+}
+
+.canvas-stage__ruler {
+  display: block;
+  touch-action: none;
+}
+
+.canvas-stage__ruler--h {
+  grid-column: 2;
+  grid-row: 1;
+  width: 100%;
+  height: 20px;
+  cursor: ns-resize;
+}
+
+.canvas-stage__ruler--v {
+  grid-column: 1;
+  grid-row: 2;
+  width: 20px;
+  height: 100%;
+  cursor: ew-resize;
+}
+
+.canvas-stage__viewport {
+  position: relative;
+  grid-column: 2;
+  grid-row: 2;
+  overflow: hidden;
 }
 
 .canvas-stage__canvas {
@@ -12,7 +65,20 @@
   image-rendering: pixelated;
 }
 
-/* Space held: hint that a drag will pan */
+/* Sits exactly over the main canvas — the on-canvas brush-size outline is
+   drawn here so hovering never re-runs the main canvas's document composite. */
+.canvas-stage__cursor-canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* A brush-shaped tool draws its own outline on canvas instead of the OS pointer. */
+.canvas-stage--brush-cursor .canvas-stage__canvas {
+  cursor: none;
+}
+
+/* Space held: hint that a drag will pan — wins over the brush-cursor rule above. */
 .canvas-stage--pan-ready .canvas-stage__canvas {
   cursor: grab;
 }

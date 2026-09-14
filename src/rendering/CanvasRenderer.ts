@@ -39,6 +39,26 @@ export interface SelectionOverlay {
   readonly height: number;
 }
 
+/** Ruler guide lines, in document-pixel coordinates, plus one still being dragged into place. */
+export interface GuideOverlay {
+  readonly horizontal: readonly number[];
+  readonly vertical: readonly number[];
+  readonly dragging?: {
+    readonly axis: 'horizontal' | 'vertical';
+    readonly position: number;
+  } | null;
+}
+
+export interface GuideStyle {
+  readonly color: string;
+  readonly draggingColor: string;
+}
+
+export const DEFAULT_GUIDE_STYLE: GuideStyle = {
+  color: 'rgba(74, 163, 255, 0.85)',
+  draggingColor: 'rgba(74, 163, 255, 0.5)',
+};
+
 /** One flattened neighbour frame drawn as onion skin (transient — never in the document). */
 export interface OnionOverlay {
   readonly bytes: Uint8ClampedArray;
@@ -65,6 +85,9 @@ export interface RenderOptions {
   readonly onion?: readonly OnionOverlay[] | null;
   /** The active selection mask, drawn as marching ants. */
   readonly selection?: SelectionOverlay | null;
+  /** Ruler guide lines (a canvas UX feature, not part of the document). */
+  readonly guides?: GuideOverlay | null;
+  readonly guideStyle?: GuideStyle;
 }
 
 export const DEFAULT_CHECKERBOARD: CheckerboardStyle = {
@@ -83,7 +106,7 @@ export const DEFAULT_GRID: GridStyle = {
  *
  * The passes are kept strictly separate and run in this order:
  *
- *   checkerboard → artwork → grid → (selection · onion · preview · cursor)
+ *   checkerboard → artwork → grid → (selection · onion · preview · guides)
  *
  * Only the artwork pass reflects document pixels; every other pass is an
  * editor overlay drawn straight to the visible canvas and never folded back
@@ -196,6 +219,68 @@ export class CanvasRenderer {
       this.#paintPreview(ctx, options.preview, viewport.zoom, originX, originY);
     }
 
+    if (options.guides) {
+      this.#paintGuides(
+        ctx,
+        options.guides,
+        cssWidth,
+        cssHeight,
+        viewport.zoom,
+        originX,
+        originY,
+        options.guideStyle ?? DEFAULT_GUIDE_STYLE,
+      );
+    }
+
+    ctx.restore();
+  }
+
+  /**
+   * Guide lines span the full visible strip, not just the document's own
+   * bounds — like a ruler's ticks, they mark a position relative to the
+   * document origin everywhere you can pan to.
+   */
+  #paintGuides(
+    ctx: CanvasRenderingContext2D,
+    guides: GuideOverlay,
+    cssWidth: number,
+    cssHeight: number,
+    zoom: number,
+    originX: number,
+    originY: number,
+    style: GuideStyle,
+  ): void {
+    ctx.save();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = style.color;
+    ctx.beginPath();
+    for (const position of guides.horizontal) {
+      const y = Math.round(originY + position * zoom) + 0.5;
+      ctx.moveTo(0, y);
+      ctx.lineTo(cssWidth, y);
+    }
+    for (const position of guides.vertical) {
+      const x = Math.round(originX + position * zoom) + 0.5;
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, cssHeight);
+    }
+    ctx.stroke();
+
+    if (guides.dragging) {
+      ctx.strokeStyle = style.draggingColor;
+      ctx.beginPath();
+      const { axis, position } = guides.dragging;
+      if (axis === 'horizontal') {
+        const y = Math.round(originY + position * zoom) + 0.5;
+        ctx.moveTo(0, y);
+        ctx.lineTo(cssWidth, y);
+      } else {
+        const x = Math.round(originX + position * zoom) + 0.5;
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, cssHeight);
+      }
+      ctx.stroke();
+    }
     ctx.restore();
   }
 

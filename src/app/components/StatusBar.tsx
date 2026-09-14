@@ -67,6 +67,30 @@ export function StatusBar({ session }: StatusBarProps) {
       </button>
       <button
         type="button"
+        className={
+          session.showRulers ? 'status-bar__toggle status-bar__toggle--on' : 'status-bar__toggle'
+        }
+        aria-pressed={session.showRulers}
+        onClick={() => {
+          session.toggleRulers();
+        }}
+      >
+        Rulers
+      </button>
+      <button
+        type="button"
+        className={
+          session.showGuides ? 'status-bar__toggle status-bar__toggle--on' : 'status-bar__toggle'
+        }
+        aria-pressed={session.showGuides}
+        onClick={() => {
+          session.toggleGuides();
+        }}
+      >
+        Guides
+      </button>
+      <button
+        type="button"
         className="status-bar__toggle"
         aria-label="Zoom out"
         onClick={() => {

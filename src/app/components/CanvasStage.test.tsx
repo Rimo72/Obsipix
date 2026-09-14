@@ -21,4 +21,17 @@ describe('CanvasStage', () => {
   it('degrades gracefully when the 2D context is unavailable', () => {
     expect(() => render(<CanvasStage session={new EditorSession()} />)).not.toThrow();
   });
+
+  it('renders the horizontal and vertical rulers', () => {
+    render(<CanvasStage session={new EditorSession()} />);
+    expect(screen.getByTestId('ruler-horizontal').tagName).toBe('CANVAS');
+    expect(screen.getByTestId('ruler-vertical').tagName).toBe('CANVAS');
+  });
+
+  it('collapses the ruler gutters when Rulers is toggled off', () => {
+    const session = new EditorSession();
+    session.toggleRulers();
+    render(<CanvasStage session={session} />);
+    expect(screen.getByTestId('canvas-stage')).toHaveClass('canvas-stage--no-rulers');
+  });
 });

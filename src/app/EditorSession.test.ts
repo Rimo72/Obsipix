@@ -860,3 +860,70 @@ describe('EditorSession Project Style (V2 coding-phases Phase 4)', () => {
     expect(secondColor).toEqual({ r: 7, g: 7, b: 7, a: 255 });
   });
 });
+
+describe('EditorSession ruler guides (canvas UX)', () => {
+  it('starts with no guides and both view toggles on', () => {
+    const session = new EditorSession();
+    expect(session.guides).toEqual({ horizontal: [], vertical: [] });
+    expect(session.showRulers).toBe(true);
+    expect(session.showGuides).toBe(true);
+  });
+
+  it('toggleRulers and toggleGuides flip independently', () => {
+    const session = new EditorSession();
+    session.toggleRulers();
+    expect(session.showRulers).toBe(false);
+    expect(session.showGuides).toBe(true);
+    session.toggleGuides();
+    expect(session.showGuides).toBe(false);
+  });
+
+  it('addGuide rounds to the nearest whole pixel and appends per axis', () => {
+    const session = new EditorSession();
+    session.addGuide('horizontal', 10.6);
+    session.addGuide('vertical', 3.2);
+    session.addGuide('horizontal', 20);
+    expect(session.guides).toEqual({ horizontal: [11, 20], vertical: [3] });
+  });
+
+  it('moveGuide repositions an existing guide by index', () => {
+    const session = new EditorSession();
+    session.addGuide('vertical', 5);
+    session.addGuide('vertical', 15);
+    session.moveGuide('vertical', 0, 8.4);
+    expect(session.guides.vertical).toEqual([8, 15]);
+  });
+
+  it('moveGuide and removeGuide ignore an out-of-range index', () => {
+    const session = new EditorSession();
+    session.addGuide('horizontal', 5);
+    session.moveGuide('horizontal', 5, 100);
+    session.removeGuide('horizontal', -1);
+    expect(session.guides.horizontal).toEqual([5]);
+  });
+
+  it('removeGuide deletes only the targeted guide', () => {
+    const session = new EditorSession();
+    session.addGuide('horizontal', 5);
+    session.addGuide('horizontal', 10);
+    session.addGuide('horizontal', 15);
+    session.removeGuide('horizontal', 1);
+    expect(session.guides.horizontal).toEqual([5, 15]);
+  });
+
+  it('clearGuides empties both axes', () => {
+    const session = new EditorSession();
+    session.addGuide('horizontal', 5);
+    session.addGuide('vertical', 5);
+    session.clearGuides();
+    expect(session.guides).toEqual({ horizontal: [], vertical: [] });
+  });
+
+  it('guides are not part of the serialized document (view state, not document content)', () => {
+    const session = new EditorSession();
+    session.addGuide('horizontal', 5);
+    const before = session.serialize();
+    session.clearGuides();
+    expect(session.serialize()).toEqual(before);
+  });
+});

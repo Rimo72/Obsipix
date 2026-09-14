@@ -171,6 +171,9 @@ export class EditorSession {
   #preview: readonly PreviewStamp[] | null = null;
   #showGrid = true;
   #showCheckerboard = true;
+  #showRulers = true;
+  #showGuides = true;
+  #guides: { horizontal: number[]; vertical: number[] } = { horizontal: [], vertical: [] };
 
   #stroke: StrokeHandle | null = null;
   #float: Float | null = null;
@@ -378,6 +381,25 @@ export class EditorSession {
 
   get showCheckerboard(): boolean {
     return this.#showCheckerboard;
+  }
+
+  get showRulers(): boolean {
+    return this.#showRulers;
+  }
+
+  get showGuides(): boolean {
+    return this.#showGuides;
+  }
+
+  /**
+   * Ruler guide lines, in document-pixel coordinates — view state, like
+   * {@link showGrid}, not part of the `.obsipix` file (PROJECT_CORE's
+   * Document format stays untouched; see `docs/OBSIPIX_V2_CODING_PHASES.md`
+   * Phase 0's "Document format frozen" rule). They do not survive
+   * save/reload.
+   */
+  get guides(): { readonly horizontal: readonly number[]; readonly vertical: readonly number[] } {
+    return this.#guides;
   }
 
   get canUndo(): boolean {
@@ -791,6 +813,44 @@ export class EditorSession {
 
   toggleCheckerboard(): void {
     this.#showCheckerboard = !this.#showCheckerboard;
+    this.#emit();
+  }
+
+  toggleRulers(): void {
+    this.#showRulers = !this.#showRulers;
+    this.#emit();
+  }
+
+  toggleGuides(): void {
+    this.#showGuides = !this.#showGuides;
+    this.#emit();
+  }
+
+  /** Add a new guide at `position` (document pixels, rounded to the nearest whole pixel). */
+  addGuide(axis: 'horizontal' | 'vertical', position: number): void {
+    this.#guides[axis].push(Math.round(position));
+    this.#emit();
+  }
+
+  /** Reposition an existing guide while it's being dragged. */
+  moveGuide(axis: 'horizontal' | 'vertical', index: number, position: number): void {
+    if (index < 0 || index >= this.#guides[axis].length) {
+      return;
+    }
+    this.#guides[axis][index] = Math.round(position);
+    this.#emit();
+  }
+
+  removeGuide(axis: 'horizontal' | 'vertical', index: number): void {
+    if (index < 0 || index >= this.#guides[axis].length) {
+      return;
+    }
+    this.#guides[axis].splice(index, 1);
+    this.#emit();
+  }
+
+  clearGuides(): void {
+    this.#guides = { horizontal: [], vertical: [] };
     this.#emit();
   }
 

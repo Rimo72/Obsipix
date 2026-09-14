@@ -192,4 +192,40 @@ describe('CanvasRenderer', () => {
     });
     expect(canvas.context.ops).not.toContain('stroke');
   });
+
+  it('draws guides after everything else, and only when given', () => {
+    const withoutGuides = new FakeCanvas();
+    new CanvasRenderer(asCanvas(withoutGuides)).render(
+      createDefaultDocument(createSequentialIdFactory()),
+      new Viewport({ zoom: 4 }),
+      { showGrid: false },
+    );
+    expect(withoutGuides.context.ops).not.toContain('stroke');
+
+    const renderer = new CanvasRenderer(asCanvas(canvas));
+    renderer.render(createDefaultDocument(createSequentialIdFactory()), new Viewport({ zoom: 4 }), {
+      showGrid: false,
+      showCheckerboard: false,
+      guides: { horizontal: [5], vertical: [] },
+    });
+    expect(canvas.context.ops).toContain('stroke');
+    expect(canvas.context.ops.indexOf('drawImage')).toBeLessThan(
+      canvas.context.ops.indexOf('stroke'),
+    );
+  });
+
+  it('draws a dragging guide as a second, separate stroke pass', () => {
+    const renderer = new CanvasRenderer(asCanvas(canvas));
+    renderer.render(createDefaultDocument(createSequentialIdFactory()), new Viewport({ zoom: 4 }), {
+      showGrid: false,
+      showCheckerboard: false,
+      guides: {
+        horizontal: [],
+        vertical: [],
+        dragging: { axis: 'vertical', position: 10 },
+      },
+    });
+    // one stroke for the (empty) committed guides, one for the guide being dragged
+    expect(canvas.context.ops.filter((op) => op === 'stroke').length).toBe(2);
+  });
 });
