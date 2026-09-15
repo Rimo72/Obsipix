@@ -115,16 +115,20 @@ describe('CanvasRenderer', () => {
     expect(artwork).toBeLessThan(grid);
   });
 
-  it('checkerboard squares are a fixed size regardless of zoom', () => {
+  it('shows exactly 5×5 checker squares across the document, scaling the cell size with zoom', () => {
     const renderer = new CanvasRenderer(asCanvas(canvas));
-    const doc = createDefaultDocument(createSequentialIdFactory());
+    const doc = createDefaultDocument(createSequentialIdFactory()); // 32×32
 
-    renderer.render(doc, new Viewport({ zoom: 4 }), { showCheckerboard: true });
-    renderer.render(doc, new Viewport({ zoom: 48 }), { showCheckerboard: true });
+    renderer.render(doc, new Viewport({ zoom: 1 }), { showCheckerboard: true });
+    // 32px document / 5 columns = 6.4 -> rounds to 6; tile is 2 cells wide
+    expect(canvas.context.lastPatternTile?.width).toBe(12);
+    expect(canvas.context.lastPatternTile?.height).toBe(12);
 
-    // the pattern tile is built once (2 × the 64px square) and reused at both zooms
-    expect(canvas.context.createPattern).toHaveBeenCalledTimes(1);
+    renderer.render(doc, new Viewport({ zoom: 10 }), { showCheckerboard: true });
+    // at 10x the document is 320px on screen; the cell grows to keep 5 across
     expect(canvas.context.lastPatternTile?.width).toBe(128);
+    expect(canvas.context.lastPatternTile?.height).toBe(128);
+    expect(canvas.context.createPattern).toHaveBeenCalledTimes(2);
   });
 
   it("anchors the checkerboard to the document's own corner, not the canvas element's", () => {

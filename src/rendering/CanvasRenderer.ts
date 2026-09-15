@@ -15,8 +15,10 @@ export interface PreviewStamp {
 export interface CheckerboardStyle {
   readonly light: string;
   readonly dark: string;
-  /** Square size in canvas CSS pixels. */
-  readonly size: number;
+  /** How many checker squares span the document's width. */
+  readonly columns: number;
+  /** How many checker squares span the document's height. */
+  readonly rows: number;
 }
 
 export interface GridStyle {
@@ -93,7 +95,8 @@ export interface RenderOptions {
 export const DEFAULT_CHECKERBOARD: CheckerboardStyle = {
   light: '#ffffff',
   dark: '#c7c7c7',
-  size: 64,
+  columns: 5,
+  rows: 5,
 };
 
 export const DEFAULT_GRID: GridStyle = {
@@ -456,30 +459,35 @@ export class CanvasRenderer {
   #checkerCache: { key: string; pattern: CanvasPattern } | null = null;
 
   /**
-   * A cached repeating pattern of a 2×2-square checker tile, built once per
-   * style and reused — the per-paint offset that anchors it to the document
-   * is applied separately via `pattern.setTransform` in
-   * {@link #paintCheckerboard}, so the squares stay a fixed screen size and
-   * do not grow or shrink with zoom, only re-anchor with pan.
+   * A cached repeating pattern of a 2×2-square checker tile, rebuilt whenever
+   * the on-screen cell size changes (zooming changes it, since the checker
+   * always shows exactly `columns` × `rows` squares across the document) —
+   * the per-paint offset that anchors it to the document is applied
+   * separately via `pattern.setTransform` in {@link #paintCheckerboard}.
    */
-  #checkerPatternFor(style: CheckerboardStyle): CanvasPattern | null {
-    const size = Math.max(1, Math.round(style.size));
-    const key = `${style.light}|${style.dark}|${String(size)}`;
+  #checkerPatternFor(
+    style: CheckerboardStyle,
+    cellWidth: number,
+    cellHeight: number,
+  ): CanvasPattern | null {
+    const w = Math.max(1, Math.round(cellWidth));
+    const h = Math.max(1, Math.round(cellHeight));
+    const key = `${style.light}|${style.dark}|${String(w)}|${String(h)}`;
     if (this.#checkerCache?.key === key) {
       return this.#checkerCache.pattern;
     }
     const tile = this.#canvas.ownerDocument.createElement('canvas');
-    tile.width = size * 2;
-    tile.height = size * 2;
+    tile.width = w * 2;
+    tile.height = h * 2;
     const tileCtx = tile.getContext('2d');
     if (!tileCtx) {
       return null;
     }
     tileCtx.fillStyle = style.light;
-    tileCtx.fillRect(0, 0, size * 2, size * 2);
+    tileCtx.fillRect(0, 0, w * 2, h * 2);
     tileCtx.fillStyle = style.dark;
-    tileCtx.fillRect(0, 0, size, size);
-    tileCtx.fillRect(size, size, size, size);
+    tileCtx.fillRect(0, 0, w, h);
+    tileCtx.fillRect(w, h, w, h);
     const pattern = this.#ctx.createPattern(tile, 'repeat');
     if (!pattern) {
       return null;
@@ -489,10 +497,10 @@ export class CanvasRenderer {
   }
 
   /**
-   * The transparency checkerboard (PROJECT_CORE §20). It is a fixed screen-space
-   * grid — the squares are always the same pixel size and do not scale or shift
-   * with zoom or pan — revealed only through the document's on-screen bounds.
-   * Never part of exported artwork.
+   * The transparency checkerboard (PROJECT_CORE §20): always exactly
+   * `style.columns` × `style.rows` squares across the document, so the
+   * square size scales with zoom — revealed only through the document's
+   * on-screen bounds. Never part of exported artwork.
    */
   #paintCheckerboard(
     ctx: CanvasRenderingContext2D,
@@ -507,7 +515,11 @@ export class CanvasRenderer {
     ctx.rect(originX, originY, scaledWidth, scaledHeight);
     ctx.clip();
 
-    const pattern = this.#checkerPatternFor(style);
+    const pattern = this.#checkerPatternFor(
+      style,
+      scaledWidth / style.columns,
+      scaledHeight / style.rows,
+    );
     // Anchor the tile to the document's own top-left corner rather than the
     // canvas element's — otherwise pan/zoom leaves an arbitrary, non-tile-
     // aligned offset and every corner shows a partial square.
