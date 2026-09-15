@@ -119,9 +119,9 @@ describe('CanvasRenderer', () => {
     renderer.render(doc, new Viewport({ zoom: 4 }), { showCheckerboard: true });
     renderer.render(doc, new Viewport({ zoom: 48 }), { showCheckerboard: true });
 
-    // the pattern tile is built once (2 × the 16px square) and reused at both zooms
+    // the pattern tile is built once (2 × the 32px square) and reused at both zooms
     expect(canvas.context.createPattern).toHaveBeenCalledTimes(1);
-    expect(canvas.context.lastPatternTile?.width).toBe(32);
+    expect(canvas.context.lastPatternTile?.width).toBe(64);
   });
 
   it('draws the artwork scaled by the viewport with no smoothing', () => {
