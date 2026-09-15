@@ -30,10 +30,13 @@ class RecordingContext {
   fillRect = vi.fn(() => this.ops.push('fillRect'));
   createPattern = vi.fn((image: { width: number; height: number }, _repeat: string) => {
     this.lastPatternTile = image;
-    return { setTransform: vi.fn() };
+    const pattern = { setTransform: vi.fn() };
+    this.lastPattern = pattern;
+    return pattern;
   });
 
   lastPatternTile: { width: number; height: number } | null = null;
+  lastPattern: { setTransform: ReturnType<typeof vi.fn> } | null = null;
   moveTo = vi.fn();
   lineTo = vi.fn();
   stroke = vi.fn(() => this.ops.push('stroke'));
@@ -119,9 +122,24 @@ describe('CanvasRenderer', () => {
     renderer.render(doc, new Viewport({ zoom: 4 }), { showCheckerboard: true });
     renderer.render(doc, new Viewport({ zoom: 48 }), { showCheckerboard: true });
 
-    // the pattern tile is built once (2 × the 32px square) and reused at both zooms
+    // the pattern tile is built once (2 × the 64px square) and reused at both zooms
     expect(canvas.context.createPattern).toHaveBeenCalledTimes(1);
-    expect(canvas.context.lastPatternTile?.width).toBe(64);
+    expect(canvas.context.lastPatternTile?.width).toBe(128);
+  });
+
+  it("anchors the checkerboard to the document's own corner, not the canvas element's", () => {
+    const renderer = new CanvasRenderer(asCanvas(canvas));
+    const doc = createDefaultDocument(createSequentialIdFactory());
+
+    renderer.render(doc, new Viewport({ zoom: 4, panX: 17, panY: 9 }), {
+      showCheckerboard: true,
+    });
+
+    // otherwise every corner shows a partial, mismatched square whenever the
+    // document rect isn't already tile-aligned to the canvas element's origin
+    expect(canvas.context.lastPattern?.setTransform).toHaveBeenCalledWith(
+      expect.objectContaining({ e: 17, f: 9 }),
+    );
   });
 
   it('draws the artwork scaled by the viewport with no smoothing', () => {

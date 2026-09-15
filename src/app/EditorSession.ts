@@ -170,7 +170,7 @@ export class EditorSession {
    */
   #magicWandSelectionFrameId: FrameId | null = null;
   #preview: readonly PreviewStamp[] | null = null;
-  #showGrid = true;
+  #showGrid = false;
   #showCheckerboard = true;
   #showRulers = true;
   #showGuides = true;
