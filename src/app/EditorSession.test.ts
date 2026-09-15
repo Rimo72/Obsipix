@@ -759,7 +759,7 @@ describe('EditorSession Template Engine (V2 coding-phases Phase 2)', () => {
   });
 });
 
-describe('EditorSession Asset Library operations (V2 coding-phases Phase 3)', () => {
+describe('EditorSession multi-asset operations (V2 coding-phases Phase 3)', () => {
   it('createAsset adds a new asset from a template and switches to it', () => {
     const session = new EditorSession();
     const firstId = session.activeAssetId;

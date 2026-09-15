@@ -284,8 +284,8 @@ export class EditorSession {
    * Create a new Asset from a Template (or the documented default when
    * `templateId` is omitted/unknown) and switch to it (V2 coding-phases
    * Phase 3). Unlike {@link newAssetFromTemplate}, this adds to the Project
-   * instead of replacing the currently active Asset — the Asset Library's
-   * "+ New" action.
+   * instead of replacing the currently active Asset — the asset tabs' "+"
+   * action.
    */
   createAsset(templateId?: TemplateId): AssetId {
     const template = templateId ? this.#templates.get(templateId) : undefined;
@@ -514,8 +514,8 @@ export class EditorSession {
 
   /**
    * Add a new blank Asset and switch to it (V2 coding-phases Phase 3: the
-   * Asset Library's "+ New" → Blank). Unlike {@link newDocument}, this adds
-   * to the Project instead of replacing the active Asset.
+   * asset tabs' "+" → Blank). Unlike {@link newDocument}, this adds to the
+   * Project instead of replacing the active Asset.
    */
   createBlankAsset(options?: BlankDocumentOptions): AssetId {
     const document = this.#buildBlankDocument(options);
@@ -528,7 +528,7 @@ export class EditorSession {
    * Start a fresh asset from a Template (V2 coding-phases Phase 2):
    * "Create Asset → Choose Category → Choose Template → Configure →
    * Create". Like {@link newDocument}, replaces the active asset's document
-   * — Template-driven multi-asset creation arrives with the Asset Library
+   * — Template-driven multi-asset creation arrives with the asset tabs
    * (Phase 3). An unknown `templateId` falls back to the documented default
    * (the same shape as a blank {@link newDocument}) instead of throwing.
    */

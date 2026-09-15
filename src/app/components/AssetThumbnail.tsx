@@ -14,10 +14,10 @@ interface AssetThumbnailProps {
 
 /**
  * A live thumbnail of an Asset's document (its active frame, composited) —
- * the Asset Library's "preview" requirement (V2 vision doc §10). Reuses the
- * same paint routine as the animation-frame thumbnails; unlike those, an
- * asset library is expected to hold few enough assets that no windowing is
- * needed.
+ * used by the Object Variants panel to preview a variant's parent/sibling
+ * assets (V2 vision doc §10). Reuses the same paint routine as the
+ * animation-frame thumbnails; unlike those, a variant set is expected to
+ * hold few enough assets that no windowing is needed.
  */
 export function AssetThumbnail({ document, version, size }: AssetThumbnailProps) {
   const ref = useRef<HTMLCanvasElement>(null);

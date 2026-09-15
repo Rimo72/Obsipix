@@ -22,6 +22,7 @@ import { resolveShortcut, type ShortcutCommand } from '../shortcuts';
 import { useAutosaveRecovery, type AutosaveRecoveryOptions } from '../useAutosaveRecovery';
 import { useEditorSessionVersion } from '../useEditorSession';
 import { AboutDialog } from './AboutDialog';
+import { AssetTabs } from './AssetTabs';
 import { BrushControls } from './BrushControls';
 import { CanvasStage } from './CanvasStage';
 import { ColorControls } from './ColorControls';
@@ -559,6 +560,16 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
         </div>
       </header>
 
+      <AssetTabs
+        session={session}
+        onCreateAsset={() => {
+          setAddAssetDialogOpen(true);
+        }}
+        onEditStyle={() => {
+          setStyleDialogOpen(true);
+        }}
+      />
+
       <div className="app-shell__options" role="toolbar" aria-label="Tool options">
         <BrushControls session={session} />
         <ColorControls session={session} />
@@ -610,12 +621,6 @@ export function AppShell({ session, autosaveRecovery }: AppShellProps) {
           actions={panelActions}
           onAddColor={openAddColor}
           onEditColor={openEditColor}
-          onCreateAsset={() => {
-            setAddAssetDialogOpen(true);
-          }}
-          onEditStyle={() => {
-            setStyleDialogOpen(true);
-          }}
         />
       </div>
 

@@ -7,7 +7,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
  */
 
 export type PanelId =
-  | 'assets'
   | 'character'
   | 'color'
   | 'layers'
@@ -19,7 +18,6 @@ export type PanelId =
 
 /** Sidebar panels stack top-to-bottom in this order; `timeline` is the bottom dock. */
 export const SIDEBAR_PANELS: readonly PanelId[] = [
-  'assets',
   'terrain',
   'character',
   'objectVariants',
@@ -30,7 +28,6 @@ export const SIDEBAR_PANELS: readonly PanelId[] = [
 ];
 
 export const PANEL_TITLE: Record<PanelId, string> = {
-  assets: 'Asset Library',
   character: 'Character Info',
   color: 'Color Management',
   layers: 'Layers',
@@ -62,7 +59,6 @@ const STORAGE_KEY = 'obsipix.panelLayout.v1';
 
 export const DEFAULT_LAYOUT: PanelLayout = {
   panels: {
-    assets: { visible: true, collapsed: false, height: 220 },
     character: { visible: true, collapsed: true, height: 260 },
     color: { visible: true, collapsed: true, height: 260 },
     layers: { visible: true, collapsed: false, height: 210 },

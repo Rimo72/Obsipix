@@ -42,17 +42,9 @@ describe('RightSidebar', () => {
         actions={actions()}
         onAddColor={vi.fn()}
         onEditColor={vi.fn()}
-        onCreateAsset={vi.fn()}
-        onEditStyle={vi.fn()}
       />,
     );
-    for (const name of [
-      'Asset Library',
-      'Color Management',
-      'Layers',
-      'Palettes',
-      'Animation Preview',
-    ]) {
+    for (const name of ['Color Management', 'Layers', 'Palettes', 'Animation Preview']) {
       expect(screen.getByRole('region', { name })).toBeInTheDocument();
     }
     // width is applied from the layout
@@ -69,8 +61,6 @@ describe('RightSidebar', () => {
         actions={actions()}
         onAddColor={vi.fn()}
         onEditColor={vi.fn()}
-        onCreateAsset={vi.fn()}
-        onEditStyle={vi.fn()}
       />,
     );
     expect(screen.queryByRole('region', { name: 'Palettes' })).not.toBeInTheDocument();
@@ -86,8 +76,6 @@ describe('RightSidebar', () => {
         actions={actions({ setVisible })}
         onAddColor={vi.fn()}
         onEditColor={vi.fn()}
-        onCreateAsset={vi.fn()}
-        onEditStyle={vi.fn()}
       />,
     );
     fireEvent.click(screen.getByRole('button', { name: 'Close Layers panel' }));
@@ -99,7 +87,6 @@ describe('RightSidebar', () => {
       <RightSidebar
         session={new EditorSession()}
         layout={hiding(
-          'assets',
           'terrain',
           'character',
           'objectVariants',
@@ -111,8 +98,6 @@ describe('RightSidebar', () => {
         actions={actions()}
         onAddColor={vi.fn()}
         onEditColor={vi.fn()}
-        onCreateAsset={vi.fn()}
-        onEditStyle={vi.fn()}
       />,
     );
     expect(screen.getByText(/View/)).toBeInTheDocument();
